@@ -1,0 +1,246 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Chats table - stores chat sessions
+model Chat {
+  id          String   @id @default(cuid())
+  title       String
+  characterId String
+  userId      String?  @default("default")
+  settings    String?  // JSON string for chat settings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  branches  ChatBranch[]
+
+  @@index([characterId])
+  @@index([userId])
+  @@index([updatedAt])
+}
+
+// Messages table - stores chat messages
+model Message {
+  id        String   @id @default(cuid())
+  chatId    String
+  role      String   // 'user', 'assistant', 'system'
+  content   String
+  metadata  String?  // JSON string for message metadata
+  timestamp DateTime @default(now())
+  branchId  String?  // If message belongs to a specific branch
+
+  // Relations
+  chat    Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  branch  ChatBranch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@index([chatId])
+  @@index([chatId, timestamp])
+  @@index([branchId])
+}
+
+// Chat branches table - stores conversation branches
+model ChatBranch {
+  id          String   @id @default(cuid())
+  parentId    String?  // Parent branch ID
+  chatId      String
+  branchPoint String   // Message ID where branch starts
+  title       String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  chat     Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  parent   ChatBranch? @relation("BranchHierarchy", fields: [parentId], references: [id])
+  children ChatBranch[] @relation("BranchHierarchy")
+  messages Message[]
+
+  @@index([chatId])
+  @@index([parentId])
+  @@index([isActive])
+}
+
+// Characters table - stores AI character definitions
+model Character {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  description       String?
+  personality       String?
+  firstMessage      String?
+  avatar            String?  // Path to avatar file
+  background        String?
+  exampleMessages   String?  // JSON array
+  tags              String?  // JSON array
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  settings          String?  // JSON string for character settings
+
+  // Relations
+  chats         Chat[]
+  worldInfos    WorldInfoCharacter[]
+  pluginSettings PluginSetting[]
+
+  @@index([name])
+  @@index([createdAt])
+}
+
+// World Info table - stores world information entries
+model WorldInfo {
+  id             String   @id @default(cuid())
+  name           String
+  content        String
+  keywords       String?  // JSON array
+  activationType String   // 'always', 'keyword', 'vector'
+  priority       Int      @default(0)
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  settings       String?  // JSON string for world info settings
+
+  // Relations
+  characters WorldInfoCharacter[]
+  vectors    WorldInfoVector[]
+
+  @@index([activationType])
+  @@index([enabled])
+  @@index([priority])
+}
+
+// World Info and Character relationship
+model WorldInfoCharacter {
+  worldInfoId String
+  characterId String
+
+  // Relations
+  worldInfo WorldInfo @relation(fields: [worldInfoId], references: [id], onDelete: Cascade)
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@id([worldInfoId, characterId])
+}
+
+// World Info vectors table - stores vector embeddings for semantic search
+model WorldInfoVector {
+  id         String   @id @default(cuid())
+  worldInfoId String
+  embedding  Blob     // Binary vector data
+  text       String   // Original text for embedding
+  createdAt  DateTime @default(now())
+
+  // Relations
+  worldInfo WorldInfo @relation(fields: [worldInfoId], references: [id], onDelete: Cascade)
+
+  @@index([worldInfoId])
+}
+
+// AI Model Configs table - stores AI model configurations
+model AIModelConfig {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  provider  String   // 'openai', 'anthropic', 'local', etc.
+  model     String
+  apiKey    String?  // Encrypted API key
+  baseUrl   String?  // Custom base URL for local models
+  settings  String?  // JSON string for model settings
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([provider])
+  @@index([isActive])
+}
+
+// Plugins table - stores installed plugins
+model Plugin {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  version     String
+  description String?
+  author      String?
+  homepage    String?
+  repository  String?
+  license     String?
+  keywords    String?  // JSON array
+  enabled     Boolean  @default(false)
+  config      String?  // JSON string for plugin config
+  manifest    String   // JSON string for plugin manifest
+  installedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  settings PluginSetting[]
+
+  @@index([enabled])
+  @@index([name])
+}
+
+// Plugin Settings table - stores plugin configuration per scope
+model PluginSetting {
+  id        String   @id @default(cuid())
+  pluginId  String
+  scopeType String   // 'global', 'character', 'chat'
+  scopeId   String?  // characterId, chatId, or null for global
+  config    String   // JSON string for scope-specific config
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  plugin    Plugin    @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  character Character? @relation(fields: [scopeId], references: [id], onDelete: Cascade)
+
+  @@index([pluginId])
+  @@index([scopeType, scopeId])
+  @@index([enabled])
+}
+
+// User Settings table - for future user system implementation
+model UserSetting {
+  id        String   @id @default("default")
+  theme     String   @default("dark")
+  language  String   @default("en")
+  uiSettings String? // JSON string for UI settings
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([id])
+}
+
+// System Logs table - for application logging
+model SystemLog {
+  id        String   @id @default(cuid())
+  level     String   // 'error', 'warn', 'info', 'debug'
+  message   String
+  metadata  String?  // JSON string for log metadata
+  timestamp DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([level])
+}
+
+// File Storage table - tracks uploaded files
+model FileStorage {
+  id           String   @id @default(cuid())
+  originalName String
+  filename     String   @unique
+  mimeType     String
+  size         Int
+  path         String   // Storage path
+  hash         String?  // File hash for deduplication
+  uploadedBy   String?  @default("default")
+  createdAt    DateTime @default(now())
+
+  @@index([filename])
+  @@index([mimeType])
+  @@index([uploadedBy])
+  @@index([hash])
+}

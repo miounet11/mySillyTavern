@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # Main application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sillytavern-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:./data/sillytavern.db
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-your-secret-key}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
+    volumes:
+      - app_data:/app/data
+      - app_uploads:/app/uploads
+    networks:
+      - sillytavern-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Database (optional - using SQLite by default)
+  # Uncomment if you prefer PostgreSQL over SQLite
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: sillytavern-db
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: sillytavern
+  #     POSTGRES_USER: sillytavern
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - sillytavern-network
+  #   ports:
+  #     - "5432:5432"
+
+  # Redis (optional - for caching and sessions)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: sillytavern-redis
+  #   restart: unless-stopped
+  #   command: redis-server --appendonly yes
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - sillytavern-network
+  #   ports:
+  #     - "6379:6379"
+
+  # Nginx (optional - for reverse proxy and SSL)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: sillytavern-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - app
+  #   networks:
+  #     - sillytavern-network
+
+volumes:
+  app_data:
+    driver: local
+  app_uploads:
+    driver: local
+  # postgres_data:
+  #   driver: local
+  # redis_data:
+  #   driver: local
+
+networks:
+  sillytavern-network:
+    driver: bridge

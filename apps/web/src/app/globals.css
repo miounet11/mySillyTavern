@@ -1,0 +1,282 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 10% 3.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* SillyTavern specific styles */
+  .tavern-container {
+    @apply min-h-screen bg-tavern-dark text-gray-100;
+  }
+
+  .tavern-sidebar {
+    @apply bg-gray-900 border-r border-gray-800 flex flex-col;
+  }
+
+  .tavern-main {
+    @apply flex-1 flex flex-col bg-gray-950;
+  }
+
+  .tavern-header {
+    @apply bg-gray-900 border-b border-gray-800 px-4 py-3;
+  }
+
+  .tavern-chat-container {
+    @apply flex-1 overflow-hidden flex flex-col;
+  }
+
+  .tavern-message {
+    @apply p-4 rounded-lg mb-4 max-w-4xl;
+  }
+
+  .tavern-message-user {
+    @apply bg-blue-600 text-white ml-auto;
+  }
+
+  .tavern-message-assistant {
+    @apply bg-gray-800 text-gray-100 mr-auto;
+  }
+
+  .tavern-input-container {
+    @apply border-t border-gray-800 p-4 bg-gray-900;
+  }
+
+  .tavern-input {
+    @apply w-full bg-gray-800 text-gray-100 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+  }
+
+  .tavern-button {
+    @apply px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .tavern-button-secondary {
+    @apply bg-gray-700 text-gray-100 hover:bg-gray-600;
+  }
+
+  .tavern-button-danger {
+    @apply bg-red-600 text-white hover:bg-red-700;
+  }
+
+  /* Character card styles */
+  .character-card {
+    @apply bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors cursor-pointer;
+  }
+
+  .character-card-avatar {
+    @apply w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center text-2xl;
+  }
+
+  /* World info styles */
+  .world-info-entry {
+    @apply bg-gray-800 border border-gray-700 rounded-lg p-4;
+  }
+
+  .world-info-keyword {
+    @apply inline-block bg-blue-600 text-white text-xs px-2 py-1 rounded mr-2 mb-2;
+  }
+
+  /* Loading and animation styles */
+  .typing-indicator {
+    @apply flex items-center space-x-1;
+  }
+
+  .typing-dot {
+    @apply w-2 h-2 bg-gray-400 rounded-full animate-pulse;
+  }
+
+  .typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  /* Scrollbar styles */
+  .tavern-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .tavern-scrollbar::-webkit-scrollbar-track {
+    @apply bg-gray-900;
+  }
+
+  .tavern-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-700 rounded-full;
+  }
+
+  .tavern-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-600;
+  }
+
+  /* Modal styles */
+  .tavern-modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+  }
+
+  .tavern-modal {
+    @apply bg-gray-900 border border-gray-700 rounded-lg shadow-xl max-w-md w-full mx-4;
+  }
+
+  /* Form styles */
+  .tavern-form-group {
+    @apply mb-4;
+  }
+
+  .tavern-label {
+    @apply block text-sm font-medium text-gray-300 mb-2;
+  }
+
+  .tavern-input {
+    @apply w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  }
+
+  .tavern-textarea {
+    @apply tavern-input resize-vertical min-h-[100px];
+  }
+
+  .tavern-select {
+    @apply tavern-input;
+  }
+
+  .tavern-checkbox {
+    @apply w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500 focus:ring-2;
+  }
+
+  /* Navigation styles */
+  .tavern-nav-item {
+    @apply flex items-center px-3 py-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-md transition-colors;
+  }
+
+  .tavern-nav-item.active {
+    @apply bg-gray-800 text-white;
+  }
+
+  /* Status indicators */
+  .status-online {
+    @apply w-2 h-2 bg-green-500 rounded-full;
+  }
+
+  .status-offline {
+    @apply w-2 h-2 bg-gray-500 rounded-full;
+  }
+
+  .status-error {
+    @apply w-2 h-2 bg-red-500 rounded-full;
+  }
+
+  /* Badge styles */
+  .tavern-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .tavern-badge-primary {
+    @apply bg-blue-600 text-white;
+  }
+
+  .tavern-badge-secondary {
+    @apply bg-gray-700 text-gray-300;
+  }
+
+  .tavern-badge-success {
+    @apply bg-green-600 text-white;
+  }
+
+  .tavern-badge-warning {
+    @apply bg-yellow-600 text-white;
+  }
+
+  .tavern-badge-error {
+    @apply bg-red-600 text-white;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Custom animations */
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(10px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
