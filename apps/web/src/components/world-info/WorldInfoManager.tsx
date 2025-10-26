@@ -54,7 +54,7 @@ export default function WorldInfoManager({ className = '' }: WorldInfoManagerPro
     if (searchQuery) {
       filtered = filtered.filter(info =>
         info.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        info.description.toLowerCase().includes(searchQuery.toLowerCase())
+        (info.description && info.description.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     }
 
@@ -159,8 +159,8 @@ export default function WorldInfoManager({ className = '' }: WorldInfoManagerPro
     return character?.name || '未知角色'
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('zh-CN', {
+  const formatDate = (date: string | Date) => {
+    return new Date(date).toLocaleDateString('zh-CN', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -273,12 +273,12 @@ export default function WorldInfoManager({ className = '' }: WorldInfoManagerPro
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <span className="text-gray-300">{info.entries.length}</span>
+                      <span className="text-gray-300">{info.entries?.length || 0}</span>
                     </TableCell>
                     <TableCell>
                       {info.characterIds.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
-                          {info.characterIds.slice(0, 2).map((characterId) => (
+                          {info.characterIds.slice(0, 2).map((characterId: string) => (
                             <Badge key={characterId} variant="outline" className="text-xs">
                               {getCharacterName(characterId)}
                             </Badge>
@@ -295,7 +295,7 @@ export default function WorldInfoManager({ className = '' }: WorldInfoManagerPro
                     </TableCell>
                     <TableCell>
                       <button
-                        onClick={() => handleToggleActive(info.id, info.isActive)}
+                        onClick={() => handleToggleActive(info.id, info.isActive || false)}
                         className="flex items-center space-x-1 text-sm"
                       >
                         {info.isActive ? (
@@ -326,7 +326,7 @@ export default function WorldInfoManager({ className = '' }: WorldInfoManagerPro
                             编辑
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleToggleActive(info.id, info.isActive)}
+                            onClick={() => handleToggleActive(info.id, info.isActive || false)}
                           >
                             {info.isActive ? (
                               <EyeOff className="w-4 h-4 mr-2" />

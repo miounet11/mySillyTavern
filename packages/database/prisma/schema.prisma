@@ -17,6 +17,8 @@ model Chat {
   characterId String
   userId      String?  @default("default")
   settings    String?  // JSON string for chat settings
+  isFavorite  Boolean  @default(false)
+  isArchived  Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -28,6 +30,8 @@ model Chat {
   @@index([characterId])
   @@index([userId])
   @@index([updatedAt])
+  @@index([isFavorite])
+  @@index([isArchived])
 }
 
 // Messages table - stores chat messages
@@ -132,7 +136,7 @@ model WorldInfoCharacter {
 model WorldInfoVector {
   id         String   @id @default(cuid())
   worldInfoId String
-  embedding  Blob     // Binary vector data
+  embedding  String   // JSON array of vector data
   text       String   // Original text for embedding
   createdAt  DateTime @default(now())
 

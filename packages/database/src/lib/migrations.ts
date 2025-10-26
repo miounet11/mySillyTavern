@@ -16,12 +16,12 @@ export class MigrationService {
     try {
       // Get current database version from metadata or migrations table
       // For now, we'll use a simple approach with a metadata table
-      const result = await prisma.$queryRaw<Array<{ version: string }>>(
+      const result: any = await prisma.$queryRawUnsafe(
         `SELECT name FROM sqlite_master WHERE type='table' AND name='_prisma_migrations'`
       )
 
       if (result.length > 0) {
-        const migration = await prisma.$queryRaw<Array<{ finished_at: string }>>(
+        const migration: any = await prisma.$queryRawUnsafe(
           'SELECT finished_at FROM _prisma_migrations ORDER BY finished_at DESC LIMIT 1'
         )
         return migration.length > 0 ? migration[0].finished_at : null
@@ -120,13 +120,13 @@ export class MigrationService {
 
   async getDatabaseInfo() {
     try {
-      const tables = await prisma.$queryRaw<Array<{ name: string, sql: string }>>(
+      const tables: any = await prisma.$queryRawUnsafe(
         `SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_prisma_%'`
       )
 
       const tableInfo = await Promise.all(
-        tables.map(async (table) => {
-          const count = await prisma.$queryRaw<Array<{ count: number }>>(
+        tables.map(async (table: any) => {
+          const count: any = await prisma.$queryRawUnsafe(
             `SELECT COUNT(*) as count FROM ${table.name}`
           )
           return {

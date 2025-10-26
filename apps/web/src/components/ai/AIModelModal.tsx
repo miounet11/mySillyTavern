@@ -55,9 +55,27 @@ export default function AIModelModal({
   const [testResult, setTestResult] = useState<TestResult | null>(null)
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string
+    provider: 'openai' | 'anthropic' | 'google' | 'local' | 'custom'
+    model: string
+    apiKey: string
+    baseUrl: string
+    settings: {
+      temperature: number
+      maxTokens: number
+      topP: number
+      topK: number
+      frequencyPenalty: number
+      presencePenalty: number
+      stopSequences: string[]
+      systemPrompt: string
+      contextWindow: number
+    }
+    isActive: boolean
+  }>({
     name: '',
-    provider: 'openai' as const,
+    provider: 'openai',
     model: '',
     apiKey: '',
     baseUrl: '',
@@ -68,7 +86,7 @@ export default function AIModelModal({
       topK: 40,
       frequencyPenalty: 0,
       presencePenalty: 0,
-      stopSequences: [] as string[],
+      stopSequences: [],
       systemPrompt: '',
       contextWindow: 4096,
     },
@@ -196,11 +214,12 @@ export default function AIModelModal({
 
       if (editingModel) {
         // Don't update API key if it's empty (keeping existing one)
+        const updateData: any = { ...submitData }
         if (!submitData.apiKey) {
-          delete submitData.apiKey
+          delete updateData.apiKey
         }
 
-        const updatedModel = await updateModel(editingModel.id, submitData)
+        const updatedModel = await updateModel(editingModel.id, updateData)
         if (updatedModel) {
           toast.success('AI模型更新成功')
           onModelUpdated?.(updatedModel)
@@ -257,10 +276,13 @@ export default function AIModelModal({
       const success = await testModel(editingModel?.id || tempModelId)
 
       if (success) {
+        // testModel should return the actual test result with latency
+        // This is a simplified version; in real implementation, testModel returns the full result
+        const data: any = success as any
         setTestResult({
           success: true,
           response: 'Connection successful! The model responded correctly.',
-          latency: Math.floor(Math.random() * 2000) + 500 // Mock latency
+          latency: (data && data.latency) ? data.latency : 0
         })
         toast.success('连接测试成功')
       } else {

@@ -183,30 +183,30 @@ export default function CharacterModal({
   }
 
   const addExampleMessage = () => {
-    setFormData(prev => ({
+    setFormData((prev: CreateCharacterParams) => ({
       ...prev,
       exampleMessages: [...(prev.exampleMessages || []), '']
     }))
   }
 
   const updateExampleMessage = (index: number, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev: CreateCharacterParams) => ({
       ...prev,
-      exampleMessages: prev.exampleMessages?.map((msg, i) => i === index ? value : msg) || []
+      exampleMessages: prev.exampleMessages?.map((msg: string, i: number) => i === index ? value : msg) || []
     }))
   }
 
   const removeExampleMessage = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev: CreateCharacterParams) => ({
       ...prev,
-      exampleMessages: prev.exampleMessages?.filter((_, i) => i !== index) || []
+      exampleMessages: prev.exampleMessages?.filter((_: string, i: number) => i !== index) || []
     }))
   }
 
   const addTag = () => {
     const trimmedTag = newTag.trim()
     if (trimmedTag && !formData.tags?.includes(trimmedTag)) {
-      setFormData(prev => ({
+      setFormData((prev: CreateCharacterParams) => ({
         ...prev,
         tags: [...(prev.tags || []), trimmedTag]
       }))
@@ -215,14 +215,14 @@ export default function CharacterModal({
   }
 
   const removeTag = (tagToRemove: string) => {
-    setFormData(prev => ({
+    setFormData((prev: CreateCharacterParams) => ({
       ...prev,
-      tags: prev.tags?.filter(tag => tag !== tagToRemove) || []
+      tags: prev.tags?.filter((tag: string) => tag !== tagToRemove) || []
     }))
   }
 
   const updateSetting = (key: string, value: any) => {
-    setFormData(prev => ({
+    setFormData((prev: CreateCharacterParams) => ({
       ...prev,
       settings: {
         ...prev.settings,
@@ -310,7 +310,7 @@ export default function CharacterModal({
                     <Input
                       id="name"
                       value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) => setFormData((prev: CreateCharacterParams) => ({ ...prev, name: e.target.value }))}
                       placeholder="输入角色名称"
                       className="tavern-input"
                       maxLength={50}
@@ -325,7 +325,7 @@ export default function CharacterModal({
                     <Textarea
                       id="description"
                       value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={(e) => setFormData((prev: CreateCharacterParams) => ({ ...prev, description: e.target.value }))}
                       placeholder="简要描述这个角色..."
                       className="tavern-input min-h-[80px]"
                       maxLength={500}
@@ -339,7 +339,7 @@ export default function CharacterModal({
                     <Textarea
                       id="firstMessage"
                       value={formData.firstMessage}
-                      onChange={(e) => setFormData(prev => ({ ...prev, firstMessage: e.target.value }))}
+                      onChange={(e) => setFormData((prev: CreateCharacterParams) => ({ ...prev, firstMessage: e.target.value }))}
                       placeholder="角色的开场白或问候语..."
                       className="tavern-input min-h-[100px]"
                       maxLength={500}
@@ -353,7 +353,7 @@ export default function CharacterModal({
               <div>
                 <Label className="text-sm font-medium text-gray-300">标签</Label>
                 <div className="flex flex-wrap gap-2 mt-2 mb-3">
-                  {formData.tags?.map((tag) => (
+                  {formData.tags?.map((tag: string) => (
                     <span
                       key={tag}
                       className="inline-flex items-center px-3 py-1 text-sm bg-gray-700 text-gray-300 rounded-full"
@@ -399,7 +399,7 @@ export default function CharacterModal({
                 <Textarea
                   id="personality"
                   value={formData.personality}
-                  onChange={(e) => setFormData(prev => ({ ...prev, personality: e.target.value }))}
+                  onChange={(e) => setFormData((prev: CreateCharacterParams) => ({ ...prev, personality: e.target.value }))}
                   placeholder="详细描述角色的性格特点、说话方式、行为模式等..."
                   className="tavern-input min-h-[150px]"
                   maxLength={1000}
@@ -413,7 +413,7 @@ export default function CharacterModal({
                 <Textarea
                   id="background"
                   value={formData.background}
-                  onChange={(e) => setFormData(prev => ({ ...prev, background: e.target.value }))}
+                  onChange={(e) => setFormData((prev: CreateCharacterParams) => ({ ...prev, background: e.target.value }))}
                   placeholder="角色的背景故事、经历、世界观等..."
                   className="tavern-input min-h-[150px]"
                   maxLength={2000}
@@ -438,7 +438,7 @@ export default function CharacterModal({
               </div>
 
               <div className="space-y-3">
-                {formData.exampleMessages?.map((message, index) => (
+                {formData.exampleMessages?.map((message: string, index: number) => (
                   <div key={index} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-sm text-gray-400">示例 {index + 1}</Label>

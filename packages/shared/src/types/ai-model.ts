@@ -19,15 +19,17 @@ export interface ModelSettings {
   temperature: number;
   maxTokens: number;
   topP: number;
-  frequencyPenalty: number;
-  presencePenalty: number;
+  topK?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
   stopSequences?: string[];
-  customHeaders?: Record<string, string>;
+  systemPrompt?: string;
   contextWindow?: number;
   maxResponseTokens?: number;
+  customHeaders?: Record<string, string>;
 }
 
-export type AIProvider = 'openai' | 'anthropic' | 'local' | 'novelai' | 'horde' | 'custom' | 'kobold' | 'ooba';
+export type AIProvider = 'openai' | 'anthropic' | 'google' | 'local' | 'novelai' | 'horde' | 'custom' | 'kobold' | 'ooba';
 
 export interface CreateAIModelParams {
   name: string;
@@ -87,6 +89,15 @@ export interface AvailableModels {
   };
 }
 
+export interface Tool {
+  type: string;
+  function?: {
+    name: string;
+    description?: string;
+    parameters?: Record<string, any>;
+  };
+}
+
 export interface GenerationRequest {
   messages: ChatMessage[];
   model: string;
@@ -125,7 +136,7 @@ export interface GenerationResponse {
   created: number;
   model: string;
   choices: Choice[];
-  usage?: TokenUsage;
+  usage?: AITokenUsage;
 }
 
 export interface Choice {
@@ -135,7 +146,7 @@ export interface Choice {
   finish_reason?: 'stop' | 'length' | 'content_filter' | 'function_call' | 'tool_calls';
 }
 
-export interface TokenUsage {
+export interface AITokenUsage {
   prompt_tokens: number;
   completion_tokens: number;
   total_tokens: number;

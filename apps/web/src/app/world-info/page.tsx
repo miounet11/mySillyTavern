@@ -11,16 +11,16 @@ import { Character } from '@sillytavern-clone/shared'
 import { useCharacterStore } from '@/stores/characterStore'
 import Sidebar from '@/components/layout/Sidebar'
 import WorldInfoManager from '@/components/world-info/WorldInfoManager'
-import Button from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 
 export default function WorldInfoPage() {
   const router = useRouter()
-  const { characters, fetchCharacters } = useCharacterStore()
+  const { characters, refreshCharacters } = useCharacterStore()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   useEffect(() => {
-    fetchCharacters()
-  }, [fetchCharacters])
+    refreshCharacters()
+  }, [refreshCharacters])
 
   const handleBack = () => {
     router.push('/chat')

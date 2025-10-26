@@ -12,6 +12,7 @@ export interface Character {
   background: string;
   exampleMessages: string[];
   tags: string[];
+  messageCount?: number;
   createdAt: Date;
   updatedAt: Date;
   settings: CharacterSettings;
@@ -33,7 +34,7 @@ export interface CreateCharacterParams {
   description: string;
   personality?: string;
   firstMessage: string;
-  avatar?: File;
+  avatar?: File | string;
   background?: string;
   exampleMessages?: string[];
   tags?: string[];

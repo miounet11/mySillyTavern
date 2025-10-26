@@ -9,6 +9,7 @@ import { Chat, Message, Character, ChatSettings, GenerationOptions } from '@sill
 interface ChatState {
   // State
   currentChat: Chat | null
+  chats: Chat[]
   messages: Message[]
   character: Character | null
   isLoading: boolean
@@ -28,6 +29,7 @@ interface ChatState {
   // Actions
   setCurrentChat: (chat: Chat | null) => void
   setCharacter: (character: Character | null) => void
+  setSelectedCharacter: (character: Character | null) => void
   setLoading: (loading: boolean) => void
   setGenerating: (generating: boolean) => void
   setError: (error: string | null) => void
@@ -42,6 +44,8 @@ interface ChatState {
   // Chat actions
   updateChatSettings: (settings: Partial<ChatSettings>) => void
   updateChatTitle: (title: string) => void
+  deleteChat: (chatId: string) => Promise<boolean>
+  exportChat: (chatId: string) => Promise<any>
 
   // UI actions
   toggleSidebar: () => void
@@ -58,6 +62,7 @@ export const useChatStore = create<ChatState>()(
     subscribeWithSelector((set, get) => ({
       // Initial state
       currentChat: null,
+      chats: [],
       messages: [],
       character: null,
       isLoading: false,
@@ -92,6 +97,10 @@ export const useChatStore = create<ChatState>()(
       },
 
       setCharacter: (character) => {
+        set({ character })
+      },
+
+      setSelectedCharacter: (character) => {
         set({ character })
       },
 
@@ -164,6 +173,64 @@ export const useChatStore = create<ChatState>()(
 
           return { currentChat: updatedChat }
         })
+      },
+
+      deleteChat: async (chatId: string) => {
+        try {
+          const response = await fetch(`/api/chats/${chatId}`, {
+            method: 'DELETE'
+          })
+
+          if (!response.ok) {
+            throw new Error('Failed to delete chat')
+          }
+
+          set((state) => ({
+            chats: state.chats.filter((chat) => chat.id !== chatId),
+            currentChat: state.currentChat?.id === chatId ? null : state.currentChat
+          }))
+
+          return true
+        } catch (error) {
+          console.error('Error deleting chat:', error)
+          return false
+        }
+      },
+
+      exportChat: async (chatId: string) => {
+        try {
+          // Get chat with all messages for export
+          const response = await fetch(`/api/chats/${chatId}`)
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch chat for export')
+          }
+
+          const chat = await response.json()
+          
+          // Format export data
+          const exportData = {
+            version: '1.0.0',
+            exportedAt: new Date().toISOString(),
+            chat: {
+              id: chat.id,
+              title: chat.title,
+              characterId: chat.characterId,
+              characterName: chat.characterName,
+              createdAt: chat.createdAt,
+              updatedAt: chat.updatedAt,
+              settings: chat.settings,
+              metadata: chat.metadata,
+            },
+            messages: chat.messages || [],
+            branches: chat.branches || [],
+          }
+
+          return exportData
+        } catch (error) {
+          console.error('Error exporting chat:', error)
+          throw error
+        }
       },
 
       // UI actions

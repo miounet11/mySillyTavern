@@ -2,6 +2,8 @@
  * Main chat interface component
  */
 
+'use client'
+
 import { useState, useEffect, useRef } from 'react'
 import { MessageCircle, Send, Settings, User, Plus } from 'lucide-react'
 import { useChatStore } from '@/stores/chatStore'
@@ -125,7 +127,8 @@ export default function ChatInterface() {
       setGenerating(true)
 
       // Remove last assistant message if exists
-      const lastMessage = messages.findLast((msg) => msg.role === 'assistant')
+      const assistantMessages = messages.filter((msg) => msg.role === 'assistant')
+      const lastMessage = assistantMessages[assistantMessages.length - 1]
       if (lastMessage) {
         updateMessage(lastMessage.id, {
           content: '',
@@ -223,10 +226,6 @@ export default function ChatInterface() {
         chat={currentChat}
         character={character}
         onNewChat={handleNewChat}
-        onCharacterSelect={handleCharacterSelect}
-        onRegenerate={handleRegenerate}
-        canRegenerate={messages.some(msg => msg.role === 'assistant')}
-        isGenerating={isGenerating}
       />
 
       {/* Messages Area */}
@@ -253,12 +252,17 @@ export default function ChatInterface() {
             <div className="flex-1 overflow-y-auto tavern-scrollbar p-4">
               <MessageList
                 messages={messages}
-                character={character}
                 isLoading={isGenerating}
               />
               {isGenerating && (
                 <div className="flex justify-start mb-4">
-                  <TypingIndicator />
+                  <div className="bg-gray-800 rounded-lg p-3 max-w-sm">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                  </div>
                 </div>
               )}
               <div ref={messagesEndRef} />
@@ -267,7 +271,6 @@ export default function ChatInterface() {
             {/* Message Input */}
             <div className="border-t border-gray-800 p-4">
               <MessageInput
-                ref={inputRef}
                 value={inputValue}
                 onChange={setInputValue}
                 onSend={handleSendMessage}

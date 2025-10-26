@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     ])
 
     // Parse JSON fields
-    const parsedWorldInfos = worldInfos.map(info => ({
+    const parsedWorldInfos = worldInfos.map((info: any) => ({
       ...info,
       entries: info.entries ? JSON.parse(info.entries as string) : [],
       characterIds: info.characterIds ? JSON.parse(info.characterIds as string) : [],

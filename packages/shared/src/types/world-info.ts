@@ -5,11 +5,15 @@
 export interface WorldInfo {
   id: string;
   name: string;
+  description?: string;
   content: string;
+  entries?: any[];
   keywords: string[];
   activationType: WorldInfoActivationType;
   priority: number;
   enabled: boolean;
+  isActive?: boolean;
+  isGlobal?: boolean;
   characterIds: string[]; // Applied to these characters (empty = global)
   createdAt: Date;
   updatedAt: Date;

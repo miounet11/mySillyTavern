@@ -3,12 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   try {
     // Initialize database and seed with default data
-    const { db, seedDatabase, migrationService } = await import('@sillytavern-clone/database')
+    const { db, seedDatabase, needsSeeding, migrationService } = await import('@sillytavern-clone/database')
 
     console.log('🚀 Starting system initialization...')
 
     // Check if database needs initialization
-    const needsInit = await seedDatabase.needsSeeding()
+    const needsInit = await needsSeeding()
 
     if (!needsInit) {
       return NextResponse.json({
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // Seed database with default data
     console.log('🌱 Seeding database with default data...')
-    await seedDatabase.seedDatabase()
+    await seedDatabase()
 
     console.log('✅ System initialization completed successfully!')
 

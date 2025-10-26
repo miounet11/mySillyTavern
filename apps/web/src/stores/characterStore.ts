@@ -52,7 +52,6 @@ export const useCharacterStore = create<CharacterState>()(
         try {
           set({ isLoading: true, error: null })
 
-          // TODO: Implement API call
           const response = await fetch('/api/characters', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -83,9 +82,8 @@ export const useCharacterStore = create<CharacterState>()(
         try {
           set({ isLoading: true, error: null })
 
-          // TODO: Implement API call
           const response = await fetch(`/api/characters/${id}`, {
-            method: 'PUT',
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates)
           })
@@ -116,7 +114,6 @@ export const useCharacterStore = create<CharacterState>()(
         try {
           set({ isLoading: true, error: null })
 
-          // TODO: Implement API call
           const response = await fetch(`/api/characters/${id}`, {
             method: 'DELETE'
           })
@@ -173,7 +170,7 @@ export const useCharacterStore = create<CharacterState>()(
         return characters.filter(char =>
           char.name.toLowerCase().includes(lowerQuery) ||
           char.description.toLowerCase().includes(lowerQuery) ||
-          char.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
+          char.tags.some((tag: string) => tag.toLowerCase().includes(lowerQuery))
         )
       },
     }),

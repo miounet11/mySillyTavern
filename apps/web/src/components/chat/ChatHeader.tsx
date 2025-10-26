@@ -107,24 +107,40 @@ export default function ChatHeader({
     }
   }
 
-  const handleToggleFavorite = () => {
-    // TODO: Implement favorite chat functionality
-    toast.info('收藏功能开发中...')
+  const handleToggleFavorite = async () => {
+    if (!currentChat) return
+    
+    try {
+      const response = await fetch(`/api/chats/${currentChat.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFavorite: !currentChat.isFavorite })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to toggle favorite')
+      }
+      
+      toast.success(currentChat.isFavorite ? '已取消收藏' : '已添加到收藏')
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+      toast.error('操作失败')
+    }
   }
 
   const getChatStats = () => {
     if (!currentChat) return null
 
     const messageCount = currentChat.messages.length
-    const userMessages = currentChat.messages.filter(m => m.role === 'user').length
-    const aiMessages = currentChat.messages.filter(m => m.role === 'assistant').length
+    const userMessages = currentChat.messages.filter((m: any) => m.role === 'user').length
+    const aiMessages = currentChat.messages.filter((m: any) => m.role === 'assistant').length
     const lastMessage = currentChat.messages[currentChat.messages.length - 1]
 
     return {
       total: messageCount,
       user: userMessages,
       ai: aiMessages,
-      lastActivity: lastMessage ? formatDistanceToNow(new Date(lastMessage.createdAt), { addSuffix: true }) : formatDistanceToNow(new Date(currentChat.updatedAt), { addSuffix: true })
+      lastActivity: lastMessage ? formatDistanceToNow(new Date(lastMessage.timestamp), { addSuffix: true }) : formatDistanceToNow(new Date(currentChat.updatedAt), { addSuffix: true })
     }
   }
 
@@ -240,7 +256,7 @@ export default function ChatHeader({
                       <div className="truncate">{currentCharacter.description}</div>
                       {currentCharacter.tags && currentCharacter.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {currentCharacter.tags.slice(0, 3).map((tag) => (
+                          {currentCharacter.tags.slice(0, 3).map((tag: string) => (
                             <Badge key={tag} variant="secondary" className="text-xs">
                               {tag}
                             </Badge>

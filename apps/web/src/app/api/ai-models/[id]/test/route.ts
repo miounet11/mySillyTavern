@@ -131,7 +131,7 @@ async function testAIModel(model: AIModelConfig, testData: any) {
 }
 
 async function testOpenAIModel(model: AIModelConfig, testData: any) {
-  const baseUrl = model.baseUrl || 'https://api.openai.com/v1'
+  const baseUrl = model.baseUrl || process.env.OPENAI_API_BASE_URL || 'https://api.openai.com/v1'
 
   const requestBody = {
     model: model.model,
@@ -167,7 +167,7 @@ async function testOpenAIModel(model: AIModelConfig, testData: any) {
 }
 
 async function testAnthropicModel(model: AIModelConfig, testData: any) {
-  const baseUrl = model.baseUrl || 'https://api.anthropic.com'
+  const baseUrl = model.baseUrl || process.env.ANTHROPIC_API_BASE_URL || 'https://api.anthropic.com'
 
   const requestBody = {
     model: model.model,
@@ -204,13 +204,72 @@ async function testAnthropicModel(model: AIModelConfig, testData: any) {
 }
 
 async function testGoogleModel(model: AIModelConfig, testData: any) {
-  // Placeholder for Google AI testing
-  // Implementation would depend on Google's API format
-  throw new Error('Google AI provider testing not yet implemented')
+  try {
+    const { GoogleGenerativeAI } = await import('@google/generative-ai')
+    const client = new GoogleGenerativeAI(model.apiKey as string)
+    const genModel = client.getGenerativeModel({ 
+      model: model.model,
+      generationConfig: {
+        temperature: testData.temperature ?? model.settings?.temperature ?? 0.7,
+        maxOutputTokens: testData.maxTokens ?? model.settings?.maxTokens ?? 100,
+      },
+    })
+
+    const result: any = await genModel.generateContent(testData.testMessage)
+    const response: any = result.response
+    
+    return {
+      response: response.text(),
+      usage: response.usageMetadata ? {
+        promptTokens: response.usageMetadata.promptTokenCount || 0,
+        completionTokens: response.usageMetadata.candidatesTokenCount || 0,
+        totalTokens: response.usageMetadata.totalTokenCount || 0,
+      } : null
+    }
+  } catch (error) {
+    throw new Error(`Google AI test failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
 }
 
 async function testLocalModel(model: AIModelConfig, testData: any) {
-  // Placeholder for local model testing
-  // Implementation would depend on the local model API format
-  throw new Error('Local model provider testing not yet implemented')
+  try {
+    // Most local models follow OpenAI-compatible API format
+    const baseUrl = model.baseUrl || process.env.LOCAL_AI_BASE_URL || 'http://localhost:8080/v1'
+    
+    const requestBody = {
+      model: model.model,
+      messages: [
+        {
+          role: 'user',
+          content: testData.testMessage
+        }
+      ],
+      temperature: testData.temperature ?? model.settings?.temperature ?? 0.7,
+      max_tokens: testData.maxTokens ?? model.settings?.maxTokens ?? 100,
+    }
+
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Some local models may require an API key, others don't
+        ...(model.apiKey ? { 'Authorization': `Bearer ${model.apiKey}` } : {})
+      },
+      body: JSON.stringify(requestBody),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Local model API error: ${response.status} ${response.statusText}. ${errorText}`)
+    }
+
+    const data = await response.json()
+
+    return {
+      response: data.choices?.[0]?.message?.content || 'No response generated',
+      usage: data.usage
+    }
+  } catch (error) {
+    throw new Error(`Local model test failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
 }

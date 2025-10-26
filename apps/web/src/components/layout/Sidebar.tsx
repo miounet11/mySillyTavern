@@ -2,6 +2,8 @@
  * Main sidebar component with navigation and chat list
  */
 
+'use client'
+
 import { useState, useEffect } from 'react'
 import {
   MessageSquare,
@@ -16,7 +18,8 @@ import {
   Star,
   Archive,
   Clock,
-  Hash
+  Hash,
+  Globe
 } from 'lucide-react'
 import { Chat, Character } from '@sillytavern-clone/shared'
 import { useChatStore } from '@/stores/chatStore'
@@ -61,7 +64,7 @@ export default function Sidebar({
   const filteredChats = chats.filter(chat => {
     const matchesSearch = searchQuery === '' ||
       chat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      chat.characterName.toLowerCase().includes(searchQuery.toLowerCase())
+      (chat.characterName && chat.characterName.toLowerCase().includes(searchQuery.toLowerCase()))
 
     switch (filterMode) {
       case 'favorites':
@@ -78,7 +81,7 @@ export default function Sidebar({
     searchQuery === '' ||
     character.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     character.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    character.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    character.tags.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
   const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
@@ -104,14 +107,55 @@ export default function Sidebar({
 
   const handleToggleFavorite = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    // TODO: Implement toggle favorite functionality
-    toast.info('收藏功能开发中...')
+    
+    const chat = chats.find(c => c.id === chatId)
+    if (!chat) return
+    
+    try {
+      const response = await fetch(`/api/chats/${chatId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFavorite: !chat.isFavorite })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to toggle favorite')
+      }
+      
+      // Update local state
+      const updatedChat = await response.json()
+      // Trigger re-fetch or update store
+      toast.success(updatedChat.isFavorite ? '已添加到收藏' : '已取消收藏')
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+      toast.error('操作失败')
+    }
   }
 
   const handleArchiveChat = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    // TODO: Implement archive functionality
-    toast.info('归档功能开发中...')
+    
+    const chat = chats.find(c => c.id === chatId)
+    if (!chat) return
+    
+    try {
+      const response = await fetch(`/api/chats/${chatId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isArchived: !chat.isArchived })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to toggle archive')
+      }
+      
+      // Update local state
+      const updatedChat = await response.json()
+      toast.success(updatedChat.isArchived ? '已归档' : '已取消归档')
+    } catch (error) {
+      console.error('Error toggling archive:', error)
+      toast.error('操作失败')
+    }
   }
 
   const handleCharacterClick = (character: Character) => {
@@ -372,7 +416,7 @@ export default function Sidebar({
                         {/* Tags */}
                         {character.tags && character.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-2">
-                            {character.tags.slice(0, 3).map((tag) => (
+                            {character.tags.slice(0, 3).map((tag: string) => (
                               <Badge key={tag} variant="secondary" className="text-xs">
                                 {tag}
                               </Badge>

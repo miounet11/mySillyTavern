@@ -35,13 +35,11 @@ export default function MessageList({
   onDeleteMessage,
   onRegenerateMessage
 }: MessageListProps) {
-  const { currentChat, selectedCharacter, regenerateMessage } = useChatStore()
+  const { currentChat, character } = useChatStore()
   const messages = propMessages || currentChat?.messages || []
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
-
-  const character = selectedCharacter
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -78,7 +76,7 @@ export default function MessageList({
       if (onDeleteMessage) {
         onDeleteMessage(messageId)
       } else {
-        toast.info('删除消息功能开发中...')
+        toast('删除消息功能开发中...')
       }
     }
   }
@@ -87,12 +85,7 @@ export default function MessageList({
     if (onRegenerateMessage) {
       onRegenerateMessage(messageId)
     } else {
-      try {
-        await regenerateMessage(messageId)
-        toast.success('消息已重新生成')
-      } catch (error) {
-        toast.error('重新生成失败')
-      }
+      toast('重新生成功能开发中...')
     }
   }
 
@@ -123,7 +116,7 @@ export default function MessageList({
   return (
     <div className={`flex-1 overflow-y-auto tavern-scrollbar ${className}`}>
       <div className="space-y-4 p-4">
-        {messages.map((message, index) => {
+        {messages.map((message: Message, index: number) => {
           const isUser = message.role === 'user'
           const isEditing = editingMessageId === message.id
           const previousMessage = messages[index - 1]
@@ -175,7 +168,7 @@ export default function MessageList({
                         {isUser ? '你' : character?.name || 'AI'}
                       </span>
                       <span className="text-gray-500 text-xs">
-                        {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
                       </span>
                     </div>
                   )}
@@ -278,7 +271,7 @@ export default function MessageList({
                     </div>
 
                     {/* Message Status */}
-                    {message.isRegenerating && (
+                    {message.metadata?.isRegenerated && (
                       <div className={`flex items-center space-x-2 mt-1 text-xs text-blue-400 ${
                         isUser ? 'justify-end' : 'justify-start'
                       }`}>

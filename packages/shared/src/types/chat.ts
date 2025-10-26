@@ -6,7 +6,12 @@ export interface Chat {
   id: string;
   title: string;
   characterId: string;
+  characterName?: string;
   userId?: string;
+  messages: Message[];
+  isFavorite?: boolean;
+  isArchived?: boolean;
+  modelUsed?: string;
   createdAt: Date;
   updatedAt: Date;
   settings: ChatSettings;
@@ -78,7 +83,7 @@ export interface GenerationOptions {
   regenerate?: boolean;
 }
 
-export interface GenerationResponse {
+export interface ChatGenerationResponse {
   message: Message;
   usage?: TokenUsage;
   metadata?: {

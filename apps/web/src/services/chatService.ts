@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { Chat, Message, CreateChatParams, CreateMessageParams, GenerationOptions, GenerationResponse } from '@sillytavern-clone/shared'
+import { Chat, Message, CreateChatParams, CreateMessageParams, GenerationOptions, ChatGenerationResponse } from '@sillytavern-clone/shared'
 import { API_ENDPOINTS, HTTP_METHODS, HTTP_STATUS } from '@sillytavern-clone/shared'
 
 // Create axios instance with default configuration
@@ -22,17 +22,14 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-    config.metadata = { startTime: Date.now() }
     return config
   },
   (error) => Promise.reject(error)
 )
 
-// Response interceptor for logging and error handling
+// Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => {
-    const duration = Date.now() - response.config.metadata.startTime
-    console.log(`API call to ${response.config.url} took ${duration}ms`)
     return response
   },
   (error) => {
@@ -184,9 +181,9 @@ class ChatService {
   async generateResponse(
     chatId: string,
     options?: GenerationOptions
-  ): Promise<GenerationResponse> {
+  ): Promise<ChatGenerationResponse> {
     try {
-      const response = await apiClient.post<GenerationResponse>(
+      const response = await apiClient.post<ChatGenerationResponse>(
         API_ENDPOINTS.CHAT_GENERATE(chatId),
         options
       )
@@ -200,9 +197,9 @@ class ChatService {
   /**
    * Regenerate last AI response
    */
-  async regenerateResponse(chatId: string): Promise<GenerationResponse> {
+  async regenerateResponse(chatId: string): Promise<ChatGenerationResponse> {
     try {
-      const response = await apiClient.post<GenerationResponse>(
+      const response = await apiClient.post<ChatGenerationResponse>(
         API_ENDPOINTS.CHAT_REGENERATE(chatId)
       )
       return response.data

@@ -82,10 +82,7 @@ export async function PUT(
 
     // If this model is being set as active, deactivate all other models
     if (validatedData.isActive === true) {
-      await db.updateMany('AIModelConfig', {
-        data: { isActive: false },
-        where: { id: { not: id } }
-      })
+      await db.updateMany('AIModelConfig', { id: { not: id } }, { isActive: false })
     }
 
     // Prepare update data
@@ -104,10 +101,7 @@ export async function PUT(
     updateData.updatedAt = new Date()
 
     // Update model
-    const model = await db.update('AIModelConfig', {
-      where: { id },
-      data: updateData
-    })
+    const model = await db.update('AIModelConfig', id, updateData)
 
     // Return updated model with parsed fields
     const parsedModel = {
@@ -158,9 +152,7 @@ export async function DELETE(
     }
 
     // Delete model
-    await db.delete('AIModelConfig', {
-      where: { id }
-    })
+    await db.delete('AIModelConfig', id)
 
     return NextResponse.json(
       { message: 'AI model deleted successfully' },

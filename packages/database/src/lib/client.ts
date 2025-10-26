@@ -43,57 +43,102 @@ export class DatabaseService {
     }
   }
 
-  // Generic CRUD operations
-  async create<T>(model: keyof PrismaClient, data: any) {
+  // Generic CRUD operations (forgiving API to match various call sites)
+  async create<T>(model: string, data: any) {
     const modelClient = (this.client as any)[model]
     return modelClient.create({ data })
   }
 
-  async findById<T>(model: keyof PrismaClient, id: string) {
+  async findById<T>(model: string, id: string) {
     const modelClient = (this.client as any)[model]
     return modelClient.findUnique({ where: { id } })
   }
 
-  async findMany<T>(model: keyof PrismaClient, options?: any) {
+  async findUnique<T>(model: string, whereOrId: any) {
     const modelClient = (this.client as any)[model]
-    return modelClient.findMany(options)
+    if (typeof whereOrId === 'string') {
+      return modelClient.findUnique({ where: { id: whereOrId } })
+    }
+    // If caller passed plain where (e.g., { id: '...' } or { name: '...' })
+    if (whereOrId && !('where' in whereOrId)) {
+      return modelClient.findUnique({ where: whereOrId })
+    }
+    return modelClient.findUnique(whereOrId)
   }
 
-  async update<T>(model: keyof PrismaClient, id: string, data: any) {
+  async findMany<T>(model: string, options?: any) {
     const modelClient = (this.client as any)[model]
-    return modelClient.update({ where: { id }, data })
+    if (!options) return modelClient.findMany()
+    // Accept either full options or plain where
+    if ('where' in options || 'orderBy' in options || 'skip' in options || 'take' in options || 'include' in options || 'select' in options) {
+      return modelClient.findMany(options)
+    }
+    return modelClient.findMany({ where: options })
   }
 
-  async delete<T>(model: keyof PrismaClient, id: string) {
+  async findFirst<T>(model: string, options?: any) {
     const modelClient = (this.client as any)[model]
-    return modelClient.delete({ where: { id } })
+    if (!options) return modelClient.findFirst()
+    // Accept either full options or plain where
+    if ('where' in options || 'orderBy' in options || 'skip' in options || 'take' in options || 'include' in options || 'select' in options) {
+      return modelClient.findFirst(options)
+    }
+    return modelClient.findFirst({ where: options })
+  }
+
+  async update<T>(model: string, whereOrId: any, data: any) {
+    const modelClient = (this.client as any)[model]
+    if (typeof whereOrId === 'string') {
+      return modelClient.update({ where: { id: whereOrId }, data })
+    }
+    if (whereOrId && !('where' in whereOrId)) {
+      return modelClient.update({ where: whereOrId, data })
+    }
+    return modelClient.update({ ...(whereOrId || {}), data })
+  }
+
+  async delete<T>(model: string, whereOrId: any) {
+    const modelClient = (this.client as any)[model]
+    if (typeof whereOrId === 'string') {
+      return modelClient.delete({ where: { id: whereOrId } })
+    }
+    if (whereOrId && !('where' in whereOrId)) {
+      return modelClient.delete({ where: whereOrId })
+    }
+    return modelClient.delete(whereOrId)
   }
 
   // Batch operations
-  async createMany<T>(model: keyof PrismaClient, data: any[]) {
+  async createMany<T>(model: string, data: any[]) {
     const modelClient = (this.client as any)[model]
     return modelClient.createMany({ data })
   }
 
-  async updateMany<T>(model: keyof PrismaClient, where: any, data: any) {
+  async updateMany<T>(model: string, where: any, data: any) {
     const modelClient = (this.client as any)[model]
     return modelClient.updateMany({ where, data })
   }
 
-  async deleteMany<T>(model: keyof PrismaClient, where: any) {
+  async deleteMany<T>(model: string, where: any) {
     const modelClient = (this.client as any)[model]
     return modelClient.deleteMany({ where })
   }
 
   // Count operations
-  async count<T>(model: keyof PrismaClient, where?: any) {
+  async count<T>(model: string, options?: any) {
     const modelClient = (this.client as any)[model]
-    return modelClient.count({ where })
+    if (!options) return modelClient.count()
+    // If options already includes `where`, pass as-is
+    if ('where' in options || 'select' in options || 'orderBy' in options) {
+      return modelClient.count(options)
+    }
+    // Treat options as plain where filter
+    return modelClient.count({ where: options })
   }
 
   // Transaction support
-  async transaction<T>(callback: (tx: PrismaClient) => Promise<T>) {
-    return this.client.$transaction(callback)
+  async transaction<T>(callback: (tx: any) => Promise<T>) {
+    return this.client.$transaction(callback as any)
   }
 
   // Disconnect

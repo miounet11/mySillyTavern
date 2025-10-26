@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     ])
 
     // Parse JSON fields
-    const parsedModels = models.map(model => ({
+    const parsedModels = models.map((model: any) => ({
       ...model,
       settings: model.settings ? JSON.parse(model.settings as string) : {},
       isActive: model.isActive || false,
@@ -97,10 +97,7 @@ export async function POST(request: NextRequest) {
 
     // If this model is set as active, deactivate all other models
     if (validatedData.isActive) {
-      await db.updateMany('AIModelConfig', {
-        data: { isActive: false },
-        where: {}
-      })
+      await db.updateMany('AIModelConfig', {}, { isActive: false })
     }
 
     // Create AI model configuration

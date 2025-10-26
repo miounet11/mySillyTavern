@@ -84,12 +84,12 @@ export default function WorldInfoModal({
       if (editingWorldInfo) {
         setFormData({
           name: editingWorldInfo.name,
-          description: editingWorldInfo.description,
-          isGlobal: editingWorldInfo.isGlobal,
-          isActive: editingWorldInfo.isActive,
+          description: editingWorldInfo.description || '',
+          isGlobal: editingWorldInfo.isGlobal || false,
+          isActive: editingWorldInfo.isActive || true,
         })
         setSelectedCharacterIds(editingWorldInfo.characterIds || [])
-        setEntries(editingWorldInfo.entries.length > 0 ? editingWorldInfo.entries : [createNewEntry()])
+        setEntries(editingWorldInfo.entries && editingWorldInfo.entries.length > 0 ? editingWorldInfo.entries : [createNewEntry()])
       } else {
         resetForm()
       }

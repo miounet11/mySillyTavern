@@ -63,7 +63,7 @@ export const useAIModelStore = create<AIModelState>()(
           set({ models })
 
           // Set active model if none is selected
-          const active = models.find(model => model.isActive)
+          const active = models.find((model: any) => model.isActive)
           if (active && !get().activeModel) {
             set({ activeModel: active })
           }
@@ -196,7 +196,7 @@ export const useAIModelStore = create<AIModelState>()(
 
       getActiveModelSettings() {
         const { activeModel } = get()
-        return activeModel ? JSON.parse(activeModel.settings || '{}') : {}
+        return activeModel ? activeModel.settings : {}
       },
     }),
     {
