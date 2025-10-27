@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { 
   ArrowLeft, 
@@ -20,6 +19,8 @@ interface ChatSettingsPanelProps {
   isOpen: boolean
   onToggle: () => void
   onOpenWorldInfo: () => void
+  onOpenExternalPrompts?: () => void
+  onOpenTemplateVariables?: () => void
   onOpenRegexEditor?: () => void
   onOpenPresetEditor?: () => void
   onOpenBranchView?: () => void
@@ -30,6 +31,8 @@ export default function ChatSettingsPanel({
   isOpen,
   onToggle,
   onOpenWorldInfo,
+  onOpenExternalPrompts,
+  onOpenTemplateVariables,
   onOpenRegexEditor,
   onOpenPresetEditor,
   onOpenBranchView,
@@ -105,6 +108,7 @@ export default function ChatSettingsPanel({
         </div>
 
         <Button
+          onClick={onOpenExternalPrompts}
           variant="outline"
           className="w-full justify-start tavern-button-secondary gap-3"
           title="外部提示词"
@@ -124,6 +128,7 @@ export default function ChatSettingsPanel({
         </Button>
 
         <Button
+          onClick={onOpenTemplateVariables}
           variant="outline"
           className="w-full justify-start tavern-button-secondary gap-3"
           title="模板词选择器"
@@ -159,7 +164,7 @@ export default function ChatSettingsPanel({
         </div>
 
         <Button
-          onClick={() => router.push('/settings')}
+          onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
           variant="outline"
           className="w-full justify-start tavern-button-secondary gap-3"
           title="高级设置"
@@ -182,6 +187,8 @@ export default function ChatSettingsPanel({
           </div>
         </div>
       </div>
+
+      {/* Dialogs moved to chat/page to match World Info open behavior */}
     </div>
   )
 }

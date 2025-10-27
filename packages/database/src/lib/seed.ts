@@ -4,6 +4,7 @@
 
 import { prisma } from './client'
 import { nanoid } from 'nanoid'
+import { seedCharacters } from './seed-characters'
 
 const defaultCharacters = [
   {
@@ -172,19 +173,13 @@ export async function seedDatabase() {
 
     if (existingCharacters > 0 || existingWorldInfo > 0 || existingModels > 0) {
       console.log('📊 Database already contains data. Skipping seeding.')
+      console.log('💡 To re-seed with new characters, run: npx prisma db seed --force')
       return
     }
 
-    // Seed default characters
-    console.log('📝 Creating default characters...')
-    for (const character of defaultCharacters) {
-      await prisma.character.create({
-        data: {
-          id: nanoid(),
-          ...character
-        }
-      })
-    }
+    // Seed characters using the new seed-characters module
+    console.log('📝 Creating high-quality character cards...')
+    await seedCharacters()
 
     // Seed default world info
     console.log('🌍 Creating default world info entries...')
@@ -242,7 +237,8 @@ export async function seedDatabase() {
     })
 
     console.log('✅ Database seeding completed successfully!')
-    console.log(`Created ${defaultCharacters.length} characters`)
+    const characterCount = await prisma.character.count()
+    console.log(`Created ${characterCount} characters`)
     console.log(`Created ${defaultWorldInfo.length} world info entries`)
     console.log(`Created ${defaultAIModels.length} AI model configurations`)
 

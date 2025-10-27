@@ -5,6 +5,8 @@
 'use client'
 
 import { Suspense, useState } from 'react'
+import ExternalPromptsDialog from '@/components/prompts/ExternalPromptsDialog'
+import TemplateVariablePicker from '@/components/prompts/TemplateVariablePicker'
 import ChatList from '@/components/chat/ChatList'
 import ChatInterface from '@/components/chat/ChatInterface'
 import ChatSettingsPanel from '@/components/chat/ChatSettingsPanel'
@@ -20,6 +22,8 @@ import toast from 'react-hot-toast'
 export default function ChatPage() {
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(true)
   const [isWorldInfoOpen, setIsWorldInfoOpen] = useState(false)
+  const [isExternalPromptsOpen, setIsExternalPromptsOpen] = useState(false)
+  const [isTemplateVarsOpen, setIsTemplateVarsOpen] = useState(false)
   const [isRegexEditorOpen, setIsRegexEditorOpen] = useState(false)
   const [isPresetEditorOpen, setIsPresetEditorOpen] = useState(false)
   const [isBranchViewOpen, setIsBranchViewOpen] = useState(false)
@@ -53,6 +57,8 @@ export default function ChatPage() {
         isOpen={isSettingsPanelOpen}
         onToggle={() => setIsSettingsPanelOpen(!isSettingsPanelOpen)}
         onOpenWorldInfo={() => setIsWorldInfoOpen(true)}
+        onOpenExternalPrompts={() => setIsExternalPromptsOpen(true)}
+        onOpenTemplateVariables={() => setIsTemplateVarsOpen(true)}
         onOpenRegexEditor={() => setIsRegexEditorOpen(true)}
         onOpenPresetEditor={() => setIsPresetEditorOpen(true)}
         onOpenBranchView={() => setIsBranchViewOpen(true)}
@@ -78,6 +84,16 @@ export default function ChatPage() {
         isOpen={isWorldInfoOpen}
         onClose={() => setIsWorldInfoOpen(false)}
         characterId={character?.id}
+      />
+
+      {/* Prompts Modals - match World Info open/close flow */}
+      <ExternalPromptsDialog
+        isOpen={isExternalPromptsOpen}
+        onClose={() => setIsExternalPromptsOpen(false)}
+      />
+      <TemplateVariablePicker
+        isOpen={isTemplateVarsOpen}
+        onClose={() => setIsTemplateVarsOpen(false)}
       />
 
       <RegexScriptEditor

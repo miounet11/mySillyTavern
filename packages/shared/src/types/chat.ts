@@ -70,7 +70,7 @@ export interface CreateChatParams {
 
 export interface CreateMessageParams {
   content: string;
-  role: 'user' | 'system';
+  role: 'user' | 'assistant' | 'system';
   metadata?: Partial<MessageMetadata>;
 }
 

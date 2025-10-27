@@ -3,12 +3,13 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Plus, Search, Users, Filter, Grid, List } from 'lucide-react'
+import { Plus, Search, Users, Filter, Grid, List, Upload } from 'lucide-react'
 import { Character } from '@sillytavern-clone/shared'
 import { useCharacterStore } from '@/stores/characterStore'
 import { useChatStore } from '@/stores/chatStore'
 import CharacterCard from './CharacterCard'
 import CharacterModal from './CharacterModal'
+import CharacterImportDialog from './CharacterImportDialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import toast from 'react-hot-toast'
 
 export default function CharacterList() {
   const {
@@ -36,6 +38,7 @@ export default function CharacterList() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isImportOpen, setIsImportOpen] = useState(false)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   // Filter and sort characters
@@ -73,6 +76,8 @@ export default function CharacterList() {
     setIsModalOpen(true)
   }
 
+  const handleImportCharacter = () => setIsImportOpen(true)
+
   const handleSelectCharacter = (character: Character) => {
     setCharacter(character)
     setCurrentChat(null) // Clear current chat to start fresh
@@ -108,13 +113,23 @@ export default function CharacterList() {
             Characters ({characters.length})
           </h2>
 
-          <Button
-            onClick={handleCreateCharacter}
-            className="tavern-button"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Character
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleImportCharacter}
+              variant="outline"
+              className="tavern-button-secondary"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Import
+            </Button>
+            <Button
+              onClick={handleCreateCharacter}
+              className="tavern-button"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Character
+            </Button>
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -296,6 +311,14 @@ export default function CharacterList() {
         onCharacterCreated={(character) => {
           setCharacter(character)
           setIsModalOpen(false)
+        }}
+      />
+
+      <CharacterImportDialog
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImported={async () => {
+          await refreshCharacters()
         }}
       />
     </div>

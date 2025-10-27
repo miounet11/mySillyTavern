@@ -10,6 +10,7 @@ export interface Character {
   firstMessage: string;
   avatar?: string;
   background: string;
+  scenario?: string;
   exampleMessages: string[];
   tags: string[];
   messageCount?: number;

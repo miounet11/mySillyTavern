@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Download, Heart, Eye, MessageSquare } from 'lucide-react'
 
-interface CommunityCharacter {
+export interface CommunityCharacter {
   id: string
   name: string
   description: string

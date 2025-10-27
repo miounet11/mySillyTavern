@@ -46,6 +46,7 @@ export default function ChatInterface() {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const [appSettings, setAppSettings] = useState<{ userName?: string; autoSendGreeting?: boolean; openerTemplate?: string }>({})
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -67,6 +68,16 @@ export default function ChatInterface() {
       window.removeEventListener('create-new-chat', handleCreateNewChat)
     }
   }, [hasActiveModel, characters, activeModel])
+
+  // Load app settings from localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('app_settings')
+      if (raw) {
+        setAppSettings(JSON.parse(raw))
+      }
+    } catch {}
+  }, [])
 
   // Handle sending a message
   const handleSendMessage = async (content: string) => {
@@ -223,6 +234,28 @@ export default function ChatInterface() {
       setCharacter(characterToUse)
       toast.success('新对话已创建')
 
+      // ST parity: auto-send greeting and prefill opener
+      const flagsEnabled = (process.env.NEXT_PUBLIC_ST_PARITY_GREETING_ENABLED ?? 'true') !== 'false'
+      const shouldAutoSend = flagsEnabled && appSettings.autoSendGreeting !== false
+      const greeting = characterToUse.firstMessage || ''
+      if (shouldAutoSend && greeting.trim()) {
+        const greetMsg = await chatService.addMessage(newChat.id, {
+          role: 'assistant',
+          content: greeting.trim(),
+        })
+        addMessage(greetMsg)
+      }
+
+      const template = (appSettings.openerTemplate || '').trim()
+      if (template) {
+        const substituted = template
+          .replace(/\{\{user\}\}/g, appSettings.userName || 'User')
+          .replace(/\{\{char\}\}/g, characterToUse.name)
+          .replace(/\{\{scenario\}\}/g, characterToUse.background || characterToUse.scenario || '')
+        setInputValue(substituted)
+        inputRef.current?.focus()
+      }
+
     } catch (error) {
       console.error('Error creating chat:', error)
       setError('创建对话失败')
@@ -263,7 +296,7 @@ export default function ChatInterface() {
                         在开始对话前，您需要先配置一个 AI 模型。我们支持 OpenAI、Anthropic、Google 以及本地模型（如 Ollama）。
                       </p>
                       <button
-                        onClick={() => router.push('/settings')}
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
                         className="tavern-button inline-flex items-center gap-2"
                       >
                         <Settings className="w-4 h-4" />

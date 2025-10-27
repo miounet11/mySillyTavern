@@ -1,263 +1,156 @@
 #!/bin/bash
 
-# SillyTavern Perfect Clone - Deployment Script
-# This script builds and deploys the application using Docker
+# SillyTavern 快速部署脚本
+# Usage: ./scripts/deploy.sh
 
-set -e  # Exit on any error
+set -e  # Exit on error
 
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Print colored output
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+# Project directory
+PROJECT_DIR="/www/wwwroot/jiuguanmama/mySillyTavern"
+
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}  SillyTavern 生产环境部署脚本${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo ""
+
+# Function to print section header
+print_section() {
+    echo ""
+    echo -e "${YELLOW}>>> $1${NC}"
+    echo "----------------------------------------"
 }
 
+# Function to print success
 print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    echo -e "${GREEN}✅ $1${NC}"
 }
 
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
+# Function to print error
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo -e "${RED}❌ $1${NC}"
 }
 
-# Check if Docker is installed
-check_docker() {
-    if ! command -v docker &> /dev/null; then
-        print_error "Docker is not installed. Please install Docker first."
-        exit 1
+# Check if running as root
+if [ "$EUID" -eq 0 ]; then 
+    print_error "请不要以 root 用户运行此脚本"
+    exit 1
+fi
+
+# Navigate to project directory
+cd "$PROJECT_DIR" || exit 1
+
+# Step 1: Backup current database
+print_section "1. 备份当前数据库"
+if [ -f "./scripts/backup-db.sh" ]; then
+    ./scripts/backup-db.sh
+    print_success "数据库备份完成"
+else
+    print_error "备份脚本不存在，跳过备份"
+fi
+
+# Step 2: Pull latest code
+print_section "2. 拉取最新代码"
+if [ -d ".git" ]; then
+    git pull origin main || git pull origin master
+    print_success "代码更新完成"
+else
+    print_error "不是 Git 仓库，跳过拉取"
+fi
+
+# Step 3: Install dependencies
+print_section "3. 安装依赖"
+pnpm install --frozen-lockfile
+print_success "依赖安装完成"
+
+# Step 4: Generate Prisma Client
+print_section "4. 生成 Prisma Client"
+cd packages/database
+npx prisma generate
+print_success "Prisma Client 生成完成"
+
+# Step 5: Run database migrations
+print_section "5. 运行数据库迁移"
+npx prisma migrate deploy
+print_success "数据库迁移完成"
+
+# Optional: Seed database if empty
+DB_COUNT=$(npx prisma db execute --stdin <<< "SELECT COUNT(*) FROM \"Character\";" | grep -o '[0-9]\+' | head -1)
+if [ "$DB_COUNT" -eq 0 ]; then
+    echo -e "${YELLOW}检测到空数据库，是否导入示例数据？(y/n)${NC}"
+    read -p "> " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        npx prisma db seed
+        print_success "示例数据导入完成"
     fi
+fi
 
-    if ! command -v docker-compose &> /dev/null; then
-        print_error "Docker Compose is not installed. Please install Docker Compose first."
-        exit 1
-    fi
+cd ../..
 
-    print_success "Docker and Docker Compose are installed"
-}
+# Step 6: Build application
+print_section "6. 构建应用"
+pnpm build
+print_success "应用构建完成"
 
-# Create necessary directories
-create_directories() {
-    print_status "Creating necessary directories..."
-
-    mkdir -p data
-    mkdir -p uploads
-    mkdir -p logs
-
-    print_success "Directories created"
-}
-
-# Setup environment file
-setup_env() {
-    print_status "Setting up environment variables..."
-
-    if [ ! -f .env ]; then
-        print_warning ".env file not found. Creating a template..."
-        cat > .env << EOF
-# SillyTavern Perfect Clone - Environment Variables
-
-# Application
-NODE_ENV=production
-PORT=3000
-HOSTNAME=0.0.0.0
-
-# Database (SQLite by default)
-DATABASE_URL=file:./data/sillytavern.db
-
-# Authentication (Optional)
-NEXTAUTH_SECRET=your-super-secret-key-change-this-in-production
-NEXTAUTH_URL=http://localhost:3000
-
-# AI Model API Keys (Add your API keys here)
-# OpenAI
-OPENAI_API_KEY=your-openai-api-key
-
-# Anthropic (Claude)
-ANTHROPIC_API_KEY=your-anthropic-api-key
-
-# Google AI
-GOOGLE_AI_API_KEY=your-google-ai-api-key
-
-# PostgreSQL (Optional - Uncomment if using PostgreSQL)
-# POSTGRES_PASSWORD=your-secure-password
-# DATABASE_URL=postgresql://sillytavern:your-secure-password@postgres:5432/sillytavern
-
-# Redis (Optional - Uncomment if using Redis)
-# REDIS_URL=redis://redis:6379
-EOF
-        print_warning "Please edit .env file and add your API keys before running the application."
+# Step 7: Restart PM2
+print_section "7. 重启 PM2 应用"
+if command -v pm2 &> /dev/null; then
+    # Check if app is running
+    if pm2 list | grep -q "sillytavern-web"; then
+        pm2 restart sillytavern-web
+        print_success "PM2 应用重启完成"
     else
-        print_success ".env file exists"
+        pm2 start ecosystem.production.config.js --env production
+        pm2 save
+        print_success "PM2 应用启动完成"
     fi
-}
+else
+    print_error "PM2 未安装，请手动启动应用"
+fi
 
-# Build and deploy the application
-deploy_app() {
-    print_status "Building and deploying SillyTavern Perfect Clone..."
+# Step 8: Check application health
+print_section "8. 检查应用健康状态"
+sleep 3
+if curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health | grep -q "200"; then
+    print_success "应用运行正常"
+else
+    print_error "应用可能未正常启动，请检查日志"
+    echo "查看日志: pm2 logs sillytavern-web"
+fi
 
-    # Stop existing containers
-    docker-compose down --remove-orphans || true
+# Step 9: Reload Nginx
+print_section "9. 重新加载 Nginx"
+if command -v nginx &> /dev/null; then
+    sudo nginx -t && sudo systemctl reload nginx
+    print_success "Nginx 重新加载完成"
+else
+    print_error "Nginx 未安装或未配置"
+fi
 
-    # Build the application
-    print_status "Building Docker image..."
-    docker-compose build --no-cache
-
-    # Start the application
-    print_status "Starting application containers..."
-    docker-compose up -d
-
-    # Wait for the application to start
-    print_status "Waiting for application to start..."
-    sleep 10
-
-    # Check if the application is running
-    if curl -f http://localhost:3000/api/health &> /dev/null; then
-        print_success "Application is running successfully!"
-        print_status "Access your SillyTavern at: http://localhost:3000"
-    else
-        print_warning "Application might still be starting. Please wait a moment and check http://localhost:3000"
-    fi
-}
-
-# Show logs
-show_logs() {
-    print_status "Showing application logs..."
-    docker-compose logs -f
-}
-
-# Stop the application
-stop_app() {
-    print_status "Stopping SillyTavern Perfect Clone..."
-    docker-compose down
-    print_success "Application stopped"
-}
-
-# Update the application
-update_app() {
-    print_status "Updating SillyTavern Perfect Clone..."
-
-    # Pull latest changes (if in git repository)
-    if [ -d .git ]; then
-        git pull origin main || print_warning "Could not pull latest changes"
-    fi
-
-    # Rebuild and restart
-    docker-compose down
-    docker-compose build --no-cache
-    docker-compose up -d
-
-    print_success "Application updated successfully!"
-}
-
-# Backup data
-backup_data() {
-    print_status "Creating backup..."
-
-    BACKUP_DIR="backups/$(date +%Y%m%d_%H%M%S)"
-    mkdir -p "$BACKUP_DIR"
-
-    # Backup database
-    if [ -f data/sillytavern.db ]; then
-        cp data/sillytavern.db "$BACKUP_DIR/"
-        print_success "Database backed up to $BACKUP_DIR/sillytavern.db"
-    fi
-
-    # Backup uploads
-    if [ -d uploads ]; then
-        cp -r uploads "$BACKUP_DIR/"
-        print_success "Uploads backed up to $BACKUP_DIR/uploads"
-    fi
-
-    # Backup environment file
-    if [ -f .env ]; then
-        cp .env "$BACKUP_DIR/"
-        print_success "Environment file backed up to $BACKUP_DIR/.env"
-    fi
-
-    print_success "Backup completed: $BACKUP_DIR"
-}
-
-# Show help
-show_help() {
-    echo "SillyTavern Perfect Clone - Deployment Script"
-    echo ""
-    echo "Usage: $0 [COMMAND]"
-    echo ""
-    echo "Commands:"
-    echo "  deploy     Build and deploy the application"
-    echo "  start      Start the application"
-    echo "  stop       Stop the application"
-    echo "  restart    Restart the application"
-    echo "  logs       Show application logs"
-    echo "  update     Update the application"
-    echo "  backup     Backup application data"
-    echo "  status     Show application status"
-    echo "  help       Show this help message"
-    echo ""
-    echo "Examples:"
-    echo "  $0 deploy     # First-time deployment"
-    echo "  $0 start      # Start the application"
-    echo "  $0 logs       # View logs"
-    echo "  $0 update     # Update to latest version"
-}
-
-# Show application status
-show_status() {
-    print_status "Application status:"
-    docker-compose ps
-}
-
-# Main script logic
-case "${1:-deploy}" in
-    "deploy")
-        check_docker
-        create_directories
-        setup_env
-        deploy_app
-        ;;
-    "start")
-        check_docker
-        docker-compose up -d
-        print_success "Application started"
-        ;;
-    "stop")
-        stop_app
-        ;;
-    "restart")
-        stop_app
-        check_docker
-        docker-compose up -d
-        print_success "Application restarted"
-        ;;
-    "logs")
-        show_logs
-        ;;
-    "update")
-        check_docker
-        update_app
-        ;;
-    "backup")
-        backup_data
-        ;;
-    "status")
-        show_status
-        ;;
-    "help"|"-h"|"--help")
-        show_help
-        ;;
-    *)
-        print_error "Unknown command: $1"
-        show_help
-        exit 1
-        ;;
-esac
-
-print_success "Done! 🎉"
+# Summary
+echo ""
+echo -e "${BLUE}========================================${NC}"
+echo -e "${GREEN}  部署完成！${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo ""
+echo "应用状态:"
+pm2 status
+echo ""
+echo "访问地址:"
+echo "  - Local:  http://localhost:3000"
+echo "  - Domain: https://www.isillytavern.com"
+echo ""
+echo "常用命令:"
+echo "  - 查看日志: pm2 logs sillytavern-web"
+echo "  - 查看状态: pm2 status"
+echo "  - 重启应用: pm2 restart sillytavern-web"
+echo "  - 监控应用: pm2 monit"
+echo ""
+print_success "部署脚本执行完成！"

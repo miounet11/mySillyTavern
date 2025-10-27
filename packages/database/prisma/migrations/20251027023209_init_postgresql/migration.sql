@@ -1,69 +1,87 @@
 -- CreateTable
 CREATE TABLE "Chat" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "characterId" TEXT NOT NULL,
     "userId" TEXT DEFAULT 'default',
     "settings" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "Chat_characterId_fkey" FOREIGN KEY ("characterId") REFERENCES "Character" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "isFavorite" BOOLEAN NOT NULL DEFAULT false,
+    "isArchived" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Chat_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Message" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "chatId" TEXT NOT NULL,
     "role" TEXT NOT NULL,
     "content" TEXT NOT NULL,
     "metadata" TEXT,
-    "timestamp" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "branchId" TEXT,
-    CONSTRAINT "Message_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES "Chat" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "Message_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "ChatBranch" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+
+    CONSTRAINT "Message_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "ChatBranch" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "parentId" TEXT,
     "chatId" TEXT NOT NULL,
     "branchPoint" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "ChatBranch_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES "Chat" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "ChatBranch_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "ChatBranch" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ChatBranch_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Character" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
     "personality" TEXT,
+    "scenario" TEXT,
     "firstMessage" TEXT,
+    "mesExample" TEXT,
     "avatar" TEXT,
     "background" TEXT,
     "exampleMessages" TEXT,
     "tags" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    "settings" TEXT
+    "creatorNotes" TEXT,
+    "systemPrompt" TEXT,
+    "postHistoryInstructions" TEXT,
+    "alternateGreetings" TEXT,
+    "characterBook" TEXT,
+    "creator" TEXT,
+    "characterVersion" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "settings" TEXT,
+
+    CONSTRAINT "Character_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "WorldInfo" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "content" TEXT NOT NULL,
     "keywords" TEXT,
     "activationType" TEXT NOT NULL,
-    "priority" INTEGER NOT NULL DEFAULT 0,
+    "priority" INTEGER NOT NULL DEFAULT 100,
+    "position" INTEGER NOT NULL DEFAULT 4,
+    "depth" INTEGER NOT NULL DEFAULT 4,
     "enabled" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    "settings" TEXT
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "settings" TEXT,
+
+    CONSTRAINT "WorldInfo_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -71,24 +89,23 @@ CREATE TABLE "WorldInfoCharacter" (
     "worldInfoId" TEXT NOT NULL,
     "characterId" TEXT NOT NULL,
 
-    PRIMARY KEY ("worldInfoId", "characterId"),
-    CONSTRAINT "WorldInfoCharacter_worldInfoId_fkey" FOREIGN KEY ("worldInfoId") REFERENCES "WorldInfo" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "WorldInfoCharacter_characterId_fkey" FOREIGN KEY ("characterId") REFERENCES "Character" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "WorldInfoCharacter_pkey" PRIMARY KEY ("worldInfoId","characterId")
 );
 
 -- CreateTable
 CREATE TABLE "WorldInfoVector" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "worldInfoId" TEXT NOT NULL,
     "embedding" TEXT NOT NULL,
     "text" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "WorldInfoVector_worldInfoId_fkey" FOREIGN KEY ("worldInfoId") REFERENCES "WorldInfo" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "WorldInfoVector_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "AIModelConfig" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "provider" TEXT NOT NULL,
     "model" TEXT NOT NULL,
@@ -96,13 +113,15 @@ CREATE TABLE "AIModelConfig" (
     "baseUrl" TEXT,
     "settings" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AIModelConfig_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Plugin" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "version" TEXT NOT NULL,
     "description" TEXT,
@@ -114,46 +133,52 @@ CREATE TABLE "Plugin" (
     "enabled" BOOLEAN NOT NULL DEFAULT false,
     "config" TEXT,
     "manifest" TEXT NOT NULL,
-    "installedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "installedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Plugin_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "PluginSetting" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "pluginId" TEXT NOT NULL,
     "scopeType" TEXT NOT NULL,
     "scopeId" TEXT,
     "config" TEXT NOT NULL,
     "enabled" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "PluginSetting_pluginId_fkey" FOREIGN KEY ("pluginId") REFERENCES "Plugin" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "PluginSetting_scopeId_fkey" FOREIGN KEY ("scopeId") REFERENCES "Character" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PluginSetting_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "UserSetting" (
-    "id" TEXT NOT NULL PRIMARY KEY DEFAULT 'default',
+    "id" TEXT NOT NULL DEFAULT 'default',
     "theme" TEXT NOT NULL DEFAULT 'dark',
     "language" TEXT NOT NULL DEFAULT 'en',
     "uiSettings" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "UserSetting_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "SystemLog" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "level" TEXT NOT NULL,
     "message" TEXT NOT NULL,
     "metadata" TEXT,
-    "timestamp" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SystemLog_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "FileStorage" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "originalName" TEXT NOT NULL,
     "filename" TEXT NOT NULL,
     "mimeType" TEXT NOT NULL,
@@ -161,7 +186,9 @@ CREATE TABLE "FileStorage" (
     "path" TEXT NOT NULL,
     "hash" TEXT,
     "uploadedBy" TEXT DEFAULT 'default',
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "FileStorage_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -172,6 +199,12 @@ CREATE INDEX "Chat_userId_idx" ON "Chat"("userId");
 
 -- CreateIndex
 CREATE INDEX "Chat_updatedAt_idx" ON "Chat"("updatedAt");
+
+-- CreateIndex
+CREATE INDEX "Chat_isFavorite_idx" ON "Chat"("isFavorite");
+
+-- CreateIndex
+CREATE INDEX "Chat_isArchived_idx" ON "Chat"("isArchived");
 
 -- CreateIndex
 CREATE INDEX "Message_chatId_idx" ON "Message"("chatId");
@@ -262,3 +295,33 @@ CREATE INDEX "FileStorage_uploadedBy_idx" ON "FileStorage"("uploadedBy");
 
 -- CreateIndex
 CREATE INDEX "FileStorage_hash_idx" ON "FileStorage"("hash");
+
+-- AddForeignKey
+ALTER TABLE "Chat" ADD CONSTRAINT "Chat_characterId_fkey" FOREIGN KEY ("characterId") REFERENCES "Character"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Message" ADD CONSTRAINT "Message_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES "Chat"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Message" ADD CONSTRAINT "Message_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "ChatBranch"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChatBranch" ADD CONSTRAINT "ChatBranch_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES "Chat"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChatBranch" ADD CONSTRAINT "ChatBranch_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "ChatBranch"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WorldInfoCharacter" ADD CONSTRAINT "WorldInfoCharacter_worldInfoId_fkey" FOREIGN KEY ("worldInfoId") REFERENCES "WorldInfo"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WorldInfoCharacter" ADD CONSTRAINT "WorldInfoCharacter_characterId_fkey" FOREIGN KEY ("characterId") REFERENCES "Character"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WorldInfoVector" ADD CONSTRAINT "WorldInfoVector_worldInfoId_fkey" FOREIGN KEY ("worldInfoId") REFERENCES "WorldInfo"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PluginSetting" ADD CONSTRAINT "PluginSetting_pluginId_fkey" FOREIGN KEY ("pluginId") REFERENCES "Plugin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PluginSetting" ADD CONSTRAINT "PluginSetting_scopeId_fkey" FOREIGN KEY ("scopeId") REFERENCES "Character"("id") ON DELETE CASCADE ON UPDATE CASCADE;

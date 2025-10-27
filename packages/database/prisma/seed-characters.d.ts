@@ -1,0 +1,23 @@
+export declare const seedCharacters: () => Promise<{
+    id: string;
+    name: string;
+    description: string | null;
+    personality: string | null;
+    scenario: string | null;
+    firstMessage: string | null;
+    mesExample: string | null;
+    avatar: string | null;
+    background: string | null;
+    exampleMessages: string | null;
+    tags: string | null;
+    creatorNotes: string | null;
+    systemPrompt: string | null;
+    postHistoryInstructions: string | null;
+    alternateGreetings: string | null;
+    characterBook: string | null;
+    creator: string | null;
+    characterVersion: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    settings: string | null;
+}[]>;

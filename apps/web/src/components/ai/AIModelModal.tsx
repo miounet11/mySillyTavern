@@ -58,7 +58,7 @@ function AIModelModal({
   // Form state
   const [formData, setFormData] = useState<{
     name: string
-    provider: 'openai' | 'anthropic' | 'google' | 'local' | 'custom'
+    provider: 'openai' | 'anthropic' | 'google' | 'azure' | 'cohere' | 'deepseek' | 'moonshot' | 'zhipu' | 'newapi' | 'local' | 'custom'
     model: string
     apiKey: string
     baseUrl: string
@@ -95,11 +95,15 @@ function AIModelModal({
   })
 
   const [testMessage, setTestMessage] = useState('Hello! Can you respond with a simple greeting?')
+  const [availableModels, setAvailableModels] = useState<string[]>([])
+  const [isFetchingModels, setIsFetchingModels] = useState(false)
+  const [modelInputMode, setModelInputMode] = useState<'select' | 'input'>('select') // 'select' or 'input'
 
   // Common model options for each provider
   const providerModels = {
     openai: [
       'gpt-4-turbo-preview',
+      'gpt-4-turbo',
       'gpt-4',
       'gpt-4-32k',
       'gpt-3.5-turbo',
@@ -115,11 +119,39 @@ function AIModelModal({
     google: [
       'gemini-pro',
       'gemini-pro-vision',
+      'gemini-1.5-pro',
+      'gemini-1.5-flash',
     ],
+    azure: [
+      'gpt-4',
+      'gpt-35-turbo',
+    ],
+    cohere: [
+      'command',
+      'command-light',
+      'command-r',
+      'command-r-plus',
+    ],
+    deepseek: [
+      'deepseek-chat',
+      'deepseek-coder',
+    ],
+    moonshot: [
+      'moonshot-v1-8k',
+      'moonshot-v1-32k',
+      'moonshot-v1-128k',
+    ],
+    zhipu: [
+      'glm-4',
+      'glm-4-air',
+      'glm-3-turbo',
+    ],
+    newapi: [], // Will be fetched from API
     local: [
       'llama-2-7b-chat',
       'llama-2-13b-chat',
       'llama-2-70b-chat',
+      'qwen-72b-chat',
       'custom-model',
     ],
     custom: []
@@ -127,9 +159,15 @@ function AIModelModal({
 
   const defaultBaseUrls = {
     openai: 'https://api.openai.com/v1',
-    anthropic: 'https://api.anthropic.com',
+    anthropic: 'https://api.anthropic.com/v1',
     google: 'https://generativelanguage.googleapis.com/v1beta',
-    local: 'http://localhost:8080',
+    azure: 'https://YOUR_RESOURCE.openai.azure.com',
+    cohere: 'https://api.cohere.ai/v1',
+    deepseek: 'https://api.deepseek.com/v1',
+    moonshot: 'https://api.moonshot.cn/v1',
+    zhipu: 'https://open.bigmodel.cn/api/paas/v4',
+    newapi: 'https://api.example.com/v1',
+    local: 'http://localhost:8080/v1',
     custom: ''
   }
 
@@ -190,13 +228,8 @@ function AIModelModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.name.trim()) {
-      toast.error('模型名称是必填项')
-      return
-    }
-
     if (!formData.model.trim()) {
-      toast.error('模型是必填项')
+      toast.error('模型名称是必填项')
       return
     }
 
@@ -205,11 +238,18 @@ function AIModelModal({
       return
     }
 
+    if (formData.provider === 'custom' && !formData.baseUrl.trim()) {
+      toast.error('自定义 API 需要提供基础地址')
+      return
+    }
+
     setIsLoading(true)
 
     try {
       const submitData = {
         ...formData,
+        // Use model name as display name if no custom name is provided
+        name: formData.name.trim() || formData.model.trim(),
         // Only set baseUrl if it's provided and different from default
         baseUrl: formData.baseUrl || defaultBaseUrls[formData.provider] || undefined
       }
@@ -333,130 +373,336 @@ function AIModelModal({
     updateSetting('stopSequences', sequences)
   }
 
+  // Fetch available models from API
+  const fetchModelsFromAPI = async () => {
+    if (!formData.baseUrl || !formData.apiKey) {
+      toast.error('请先填写 API 地址和密钥')
+      return
+    }
+
+    setIsFetchingModels(true)
+    try {
+      const baseUrl = formData.baseUrl.replace(/\/$/, '') // Remove trailing slash
+      const response = await fetch(`${baseUrl}/models`, {
+        headers: {
+          'Authorization': `Bearer ${formData.apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      
+      // Handle different API response formats
+      let models: string[] = []
+      if (data.data && Array.isArray(data.data)) {
+        // OpenAI-compatible format
+        models = data.data.map((m: any) => m.id || m.model || m.name).filter(Boolean)
+      } else if (Array.isArray(data.models)) {
+        // Alternative format
+        models = data.models.map((m: any) => typeof m === 'string' ? m : (m.id || m.name)).filter(Boolean)
+      } else if (Array.isArray(data)) {
+        // Direct array format
+        models = data.map((m: any) => typeof m === 'string' ? m : (m.id || m.name)).filter(Boolean)
+      }
+
+      if (models.length === 0) {
+        toast.error('未找到可用模型')
+        return
+      }
+
+      setAvailableModels(models)
+      setModelInputMode('select')
+      toast.success(`成功获取 ${models.length} 个模型`)
+    } catch (error) {
+      console.error('Error fetching models:', error)
+      toast.error(`获取模型列表失败: ${error instanceof Error ? error.message : '未知错误'}`)
+    } finally {
+      setIsFetchingModels(false)
+    }
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto tavern-scrollbar">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-gray-100">
+      <DialogContent className="max-w-6xl w-[95vw] h-[92vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-800 flex-shrink-0">
+          <DialogTitle className="text-2xl font-semibold text-gray-100">
             {editingModel ? '编辑AI模型' : '添加AI模型'}
           </DialogTitle>
+          <p className="text-sm text-gray-400 mt-1">
+            配置 AI 模型连接信息和参数设置
+          </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="basic">基本配置</TabsTrigger>
-              <TabsTrigger value="settings">模型设置</TabsTrigger>
-              <TabsTrigger value="test">连接测试</TabsTrigger>
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+            <TabsList className="grid w-full grid-cols-3 mx-6 mt-4 mb-0 flex-shrink-0">
+              <TabsTrigger value="basic" className="text-base py-3">
+                <Settings className="w-4 h-4 mr-2" />
+                基本配置
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="text-base py-3">
+                <Globe className="w-4 h-4 mr-2" />
+                模型设置
+              </TabsTrigger>
+              <TabsTrigger value="test" className="text-base py-3">
+                <TestTube className="w-4 h-4 mr-2" />
+                连接测试
+              </TabsTrigger>
             </TabsList>
 
             {/* Basic Configuration */}
-            <TabsContent value="basic" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-300">
-                    模型名称 <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="例如: GPT-4 Turbo"
-                    className="tavern-input"
-                    maxLength={50}
-                    required
-                  />
+            <TabsContent value="basic" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-6">
+              <div className="space-y-6 max-w-5xl mx-auto">
+                {/* Step 1: API Base URL - First */}
+                <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">1</div>
+                    <h3 className="text-sm font-semibold text-gray-200">设置 API 地址</h3>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="provider" className="text-sm font-medium text-gray-300">
+                        选择提供商或自定义
+                      </Label>
+                      <Select
+                        value={formData.provider}
+                        onValueChange={(value: any) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            provider: value,
+                            model: '',
+                            baseUrl: defaultBaseUrls[value as keyof typeof defaultBaseUrls] || ''
+                          }))
+                          setAvailableModels([])
+                          setModelInputMode('select')
+                        }}
+                      >
+                        <SelectTrigger className="tavern-input">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* 主流提供商 */}
+                          <SelectItem value="openai">OpenAI (ChatGPT)</SelectItem>
+                          <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+                          <SelectItem value="google">Google (Gemini)</SelectItem>
+                          <SelectItem value="azure">Azure OpenAI</SelectItem>
+                          
+                          {/* 国内提供商 */}
+                          <SelectItem value="deepseek">DeepSeek (深度求索)</SelectItem>
+                          <SelectItem value="moonshot">Moonshot (月之暗面)</SelectItem>
+                          <SelectItem value="zhipu">智谱 AI (GLM)</SelectItem>
+                          
+                          {/* 其他提供商 */}
+                          <SelectItem value="cohere">Cohere</SelectItem>
+                          
+                          {/* NewAPI 和自定义 */}
+                          <SelectItem value="newapi">NewAPI (中转API)</SelectItem>
+                          <SelectItem value="local">本地模型 (Ollama/LM Studio)</SelectItem>
+                          <SelectItem value="custom">自定义 API</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="baseUrl" className="text-sm font-medium text-gray-300">
+                        API 基础地址 {formData.provider === 'custom' && <span className="text-red-500">*</span>}
+                      </Label>
+                      <Input
+                        id="baseUrl"
+                        type="url"
+                        value={formData.baseUrl}
+                        onChange={(e) => setFormData(prev => ({ ...prev, baseUrl: e.target.value }))}
+                        placeholder={defaultBaseUrls[formData.provider as keyof typeof defaultBaseUrls] || 'https://api.example.com/v1'}
+                        className="tavern-input"
+                      />
+                      <div className="text-xs text-gray-500 mt-1">
+                        {formData.provider === 'custom' ? 
+                          '请输入完整的 API 地址（如：https://your-api.com/v1）' : 
+                          `默认：${defaultBaseUrls[formData.provider as keyof typeof defaultBaseUrls] || '需要手动输入'}`
+                        }
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="provider" className="text-sm font-medium text-gray-300">
-                    提供商 <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    value={formData.provider}
-                    onValueChange={(value: any) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        provider: value,
-                        model: '',
-                        baseUrl: defaultBaseUrls[value as keyof typeof defaultBaseUrls] || ''
-                      }))
-                    }}
-                  >
-                    <SelectTrigger className="tavern-input">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="openai">OpenAI</SelectItem>
-                      <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                      <SelectItem value="google">Google AI</SelectItem>
-                      <SelectItem value="local">本地模型</SelectItem>
-                      <SelectItem value="custom">自定义</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="model" className="text-sm font-medium text-gray-300">
-                    模型 <span className="text-red-500">*</span>
-                  </Label>
-                  {formData.provider !== 'custom' ? (
-                    <Select
-                      value={formData.model}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, model: value }))}
-                    >
-                      <SelectTrigger className="tavern-input">
-                        <SelectValue placeholder="选择模型..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {providerModels[formData.provider as keyof typeof providerModels].map((model) => (
-                          <SelectItem key={model} value={model}>
-                            {model}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
+                {/* Step 2: API Key - Second */}
+                <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">2</div>
+                    <h3 className="text-sm font-semibold text-gray-200">配置 API 密钥</h3>
+                  </div>
+                  <div>
+                    <Label htmlFor="apiKey" className="text-sm font-medium text-gray-300">
+                      API 密钥 {formData.provider !== 'local' && <span className="text-red-500">*</span>}
+                    </Label>
                     <Input
-                      id="model"
-                      value={formData.model}
-                      onChange={(e) => setFormData(prev => ({ ...prev, model: e.target.value }))}
-                      placeholder="输入模型名称..."
+                      id="apiKey"
+                      type="password"
+                      value={formData.apiKey}
+                      onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
+                      placeholder={formData.provider === 'local' ? '本地模型无需API密钥' : 'sk-...'}
                       className="tavern-input"
-                      maxLength={100}
+                      disabled={formData.provider === 'local'}
                     />
-                  )}
+                    {formData.provider === 'local' && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        本地模型无需 API 密钥
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="apiKey" className="text-sm font-medium text-gray-300">
-                    API密钥 {formData.provider !== 'local' && <span className="text-red-500">*</span>}
-                  </Label>
-                  <Input
-                    id="apiKey"
-                    type="password"
-                    value={formData.apiKey}
-                    onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
-                    placeholder={formData.provider === 'local' ? '本地模型无需API密钥' : '输入API密钥...'}
-                    className="tavern-input"
-                    disabled={formData.provider === 'local'}
-                  />
+                {/* Step 3: Model Selection - Third */}
+                <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">3</div>
+                      <h3 className="text-sm font-semibold text-gray-200">选择或输入模型</h3>
+                    </div>
+                    <div className="flex gap-2">
+                      {/* Fetch models button for compatible providers */}
+                      {(formData.provider === 'newapi' || formData.provider === 'custom' || formData.provider === 'openai' || formData.provider === 'azure') && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={fetchModelsFromAPI}
+                          disabled={isFetchingModels || !formData.baseUrl || !formData.apiKey}
+                          className="text-xs"
+                        >
+                          {isFetchingModels ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-100 mr-1"></div>
+                              获取中...
+                            </>
+                          ) : (
+                            <>
+                              <Globe className="w-3 h-3 mr-1" />
+                              从API获取
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      {/* Toggle between select and input */}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setModelInputMode(modelInputMode === 'select' ? 'input' : 'select')}
+                        className="text-xs"
+                      >
+                        {modelInputMode === 'select' ? '手动输入' : '选择模型'}
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="model" className="text-sm font-medium text-gray-300">
+                      模型名称 <span className="text-red-500">*</span>
+                    </Label>
+                    {modelInputMode === 'select' ? (
+                      <Select
+                        value={formData.model}
+                        onValueChange={(value) => {
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            model: value,
+                            name: prev.name || value // Auto-fill name if empty
+                          }))
+                        }}
+                      >
+                        <SelectTrigger className="tavern-input">
+                          <SelectValue placeholder="选择模型或切换到手动输入..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {/* Show fetched models first if available */}
+                          {availableModels.length > 0 ? (
+                            <>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-gray-400 bg-gray-800/50">
+                                从 API 获取的模型 ({availableModels.length})
+                              </div>
+                              {availableModels.map((model) => (
+                                <SelectItem key={model} value={model}>
+                                  {model}
+                                </SelectItem>
+                              ))}
+                            </>
+                          ) : (
+                            /* Show predefined models */
+                            providerModels[formData.provider as keyof typeof providerModels].length > 0 ? (
+                              <>
+                                <div className="px-2 py-1.5 text-xs font-semibold text-gray-400 bg-gray-800/50">
+                                  预设模型
+                                </div>
+                                {providerModels[formData.provider as keyof typeof providerModels].map((model) => (
+                                  <SelectItem key={model} value={model}>
+                                    {model}
+                                  </SelectItem>
+                                ))}
+                              </>
+                            ) : (
+                              <div className="px-2 py-1.5 text-xs text-gray-500">
+                                暂无预设模型，请点击「从API获取」或「手动输入」
+                              </div>
+                            )
+                          )}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        id="model"
+                        value={formData.model}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            model: value,
+                            name: prev.name || value // Auto-fill name if empty
+                          }))
+                        }}
+                        placeholder="例如: gpt-4-turbo, claude-3-opus, qwen-max, deepseek-chat..."
+                        className="tavern-input"
+                        maxLength={100}
+                      />
+                    )}
+                    <div className="text-xs text-gray-500 mt-1">
+                      {availableModels.length > 0 ? (
+                        `已从 API 获取 ${availableModels.length} 个模型`
+                      ) : modelInputMode === 'input' ? (
+                        '直接输入完整的模型名称'
+                      ) : (
+                        formData.provider === 'newapi' || formData.provider === 'custom' ? 
+                        '点击「从API获取」按钮自动获取可用模型列表' : 
+                        '选择预设模型或点击「手动输入」'
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="md:col-span-2">
-                  <Label htmlFor="baseUrl" className="text-sm font-medium text-gray-300">
-                    API基础URL (可选)
-                  </Label>
-                  <Input
-                    id="baseUrl"
-                    type="url"
-                    value={formData.baseUrl}
-                    onChange={(e) => setFormData(prev => ({ ...prev, baseUrl: e.target.value }))}
-                    placeholder={defaultBaseUrls[formData.provider as keyof typeof defaultBaseUrls] || 'https://api.example.com/v1'}
-                    className="tavern-input"
-                  />
-                  <div className="text-xs text-gray-500 mt-1">
-                    留空使用默认URL：{defaultBaseUrls[formData.provider as keyof typeof defaultBaseUrls] || '需要手动输入'}
+                {/* Step 4: Display Name - Fourth (Optional) */}
+                <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-6 h-6 rounded-full bg-gray-600 text-white text-xs flex items-center justify-center font-bold">4</div>
+                    <h3 className="text-sm font-semibold text-gray-200">自定义显示名称（可选）</h3>
+                  </div>
+                  <div>
+                    <Label htmlFor="name" className="text-sm font-medium text-gray-300">
+                      显示名称
+                    </Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder={formData.model || "为此配置起个名字，例如：我的 GPT-4"}
+                      className="tavern-input"
+                      maxLength={50}
+                    />
+                    <div className="text-xs text-gray-500 mt-1">
+                      留空将使用模型名称作为显示名称
+                    </div>
                   </div>
                 </div>
               </div>
@@ -477,8 +723,8 @@ function AIModelModal({
             </TabsContent>
 
             {/* Model Settings */}
-            <TabsContent value="settings" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <TabsContent value="settings" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="temperature" className="text-sm font-medium text-gray-300">
@@ -648,19 +894,20 @@ function AIModelModal({
             </TabsContent>
 
             {/* Connection Test */}
-            <TabsContent value="test" className="space-y-4">
-              <div>
-                <Label htmlFor="testMessage" className="text-sm font-medium text-gray-300">
-                  测试消息
-                </Label>
-                <Textarea
-                  id="testMessage"
-                  value={testMessage}
-                  onChange={(e) => setTestMessage(e.target.value)}
-                  placeholder="输入一条测试消息..."
-                  className="tavern-input min-h-[80px]"
-                />
-              </div>
+            <TabsContent value="test" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-6">
+              <div className="max-w-3xl mx-auto space-y-6">
+                <div>
+                  <Label htmlFor="testMessage" className="text-sm font-medium text-gray-300">
+                    测试消息
+                  </Label>
+                  <Textarea
+                    id="testMessage"
+                    value={testMessage}
+                    onChange={(e) => setTestMessage(e.target.value)}
+                    placeholder="输入一条测试消息..."
+                    className="tavern-input min-h-[100px] mt-2"
+                  />
+                </div>
 
               <div className="flex space-x-3">
                 <Button
@@ -722,6 +969,7 @@ function AIModelModal({
                   </div>
                 </div>
               )}
+              </div>
             </TabsContent>
           </Tabs>
 

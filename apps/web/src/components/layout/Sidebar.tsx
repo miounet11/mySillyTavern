@@ -5,6 +5,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import {
   MessageSquare,
   Users,
@@ -18,8 +19,8 @@ import {
   Star,
   Archive,
   Clock,
-  Hash,
-  Globe
+  Globe,
+  Hash
 } from 'lucide-react'
 import { Chat, Character } from '@sillytavern-clone/shared'
 import { useChatStore } from '@/stores/chatStore'
@@ -53,12 +54,36 @@ export default function Sidebar({
   onChatSelect,
   onSettings
 }: SidebarProps) {
+  const router = useRouter()
+  const pathname = usePathname()
   const { chats, currentChat, deleteChat, setCurrentChat } = useChatStore()
-  const { characters, selectedCharacter, setSelectedCharacter } = useCharacterStore()
+  const { characters, selectedCharacter, setSelectedCharacter, refreshCharacters } = useCharacterStore()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState('chats')
   const [filterMode, setFilterMode] = useState<'all' | 'favorites' | 'archived'>('all')
+
+  // Load characters on mount
+  useEffect(() => {
+    refreshCharacters()
+  }, [refreshCharacters])
+
+  // Keep sidebar tab selection in sync with the current route
+  useEffect(() => {
+    if (!pathname) return
+    if (pathname.startsWith('/characters')) {
+      setActiveTab('characters')
+      return
+    }
+    if (pathname.startsWith('/world-info')) {
+      setActiveTab('tools')
+      return
+    }
+    if (pathname.startsWith('/chat')) {
+      setActiveTab('chats')
+      return
+    }
+  }, [pathname])
 
   // Filter chats based on search and filter mode
   const filteredChats = chats.filter(chat => {
@@ -371,6 +396,28 @@ export default function Sidebar({
 
           {/* Characters Tab */}
           <TabsContent value="characters" className="mt-4">
+            {/* Quick Actions */}
+            <div className="mb-3 flex gap-2">
+              <Button
+                onClick={() => { setActiveTab('characters'); router.push('/characters/community') }}
+                variant="outline"
+                size="sm"
+                className="flex-1 tavern-button-secondary text-xs"
+              >
+                <Globe className="w-3 h-3 mr-1" />
+                社区
+              </Button>
+              <Button
+                onClick={() => { setActiveTab('characters'); router.push('/characters') }}
+                variant="outline"
+                size="sm"
+                className="flex-1 tavern-button-secondary text-xs"
+              >
+                <Users className="w-3 h-3 mr-1" />
+                管理
+              </Button>
+            </div>
+
             <div className="space-y-1 max-h-[60vh] overflow-y-auto tavern-scrollbar">
               {filteredCharacters.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">

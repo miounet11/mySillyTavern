@@ -72,6 +72,7 @@ async function injectWorldInfo(
 
 export async function POST(request: NextRequest) {
   try {
+    const greetEnabled = process.env.ST_PARITY_GREETING_ENABLED !== 'false'
     const body = await request.json()
     const validatedData = generateSchema.parse(body)
 
@@ -125,12 +126,13 @@ export async function POST(request: NextRequest) {
     // Build conversation history
     const conversationMessages: AIMessage[] = []
 
-    // Add system prompt
+    // Add system prompt (author's note)
     const chatSettings = chat.settings ? JSON.parse(chat.settings) : {}
     const characterSettings = chat.character.settings ? JSON.parse(chat.character.settings) : {}
     const modelSettings = modelConfig.settings ? JSON.parse(modelConfig.settings) : {}
     
-    const systemPrompt = chatSettings.systemPrompt || 
+    const systemPrompt = chat.character.systemPrompt ||
+                        chatSettings.systemPrompt || 
                         characterSettings.systemPrompt || 
                         modelSettings.systemPrompt
 
@@ -138,6 +140,14 @@ export async function POST(request: NextRequest) {
       conversationMessages.push({
         role: 'system',
         content: systemPrompt
+      })
+    }
+
+    // Add scenario/background
+    if (chat.character.scenario || chat.character.background) {
+      conversationMessages.push({
+        role: 'system',
+        content: `Scenario: ${chat.character.scenario || chat.character.background}`
       })
     }
 
@@ -149,12 +159,35 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Add scenario/background
-    if (chat.character.background) {
-      conversationMessages.push({
-        role: 'system',
-        content: `Scenario: ${chat.character.background}`
-      })
+    // Add example dialogues (few-shot) from mesExample or structured exampleMessages
+    const exampleMessagesRaw = chat.character.mesExample || chat.character.exampleMessages
+    let examples: Array<{ user: string; assistant: string }> = []
+    try {
+      if (typeof exampleMessagesRaw === 'string' && exampleMessagesRaw.trim()) {
+        // mesExample stored string: keep as system examples
+        const lines = exampleMessagesRaw.split('\n').filter((l: string) => l.trim())
+        for (let i = 0; i < lines.length; i += 2) {
+          const u = lines[i]
+          const a = lines[i + 1]
+          if (u && a) {
+            examples.push({
+              user: u.replace(/^<USER>:?\s*/i, '').trim(),
+              assistant: a.replace(/^<BOT>:?\s*/i, '').trim(),
+            })
+          }
+        }
+      } else if (Array.isArray(exampleMessagesRaw)) {
+        examples = exampleMessagesRaw.map((m: any) => ({ user: m.user, assistant: m.assistant }))
+      } else if (typeof chat.character.exampleMessages === 'string') {
+        examples = JSON.parse(chat.character.exampleMessages || '[]')
+      }
+    } catch {}
+
+    if (examples.length > 0) {
+      for (const ex of examples) {
+        conversationMessages.push({ role: 'user', content: ex.user })
+        conversationMessages.push({ role: 'assistant', content: ex.assistant })
+      }
     }
 
     // Add conversation history

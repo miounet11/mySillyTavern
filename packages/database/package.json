@@ -4,6 +4,9 @@
   "private": true,
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "prisma": {
+    "seed": "tsx src/seed.ts"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

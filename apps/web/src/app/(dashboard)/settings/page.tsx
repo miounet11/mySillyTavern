@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select } from '@/components/ui/select'
 import { Settings, Database, Puzzle, Globe } from 'lucide-react'
-import AIModelModal from '@/components/ai/AIModelModal'
+import AIModelDrawer from '@/components/ai/AIModelDrawer'
 import { useAIModelStore } from '@/stores/aiModelStore'
 import toast from 'react-hot-toast'
 
@@ -407,19 +407,17 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
 
-      {/* AI Model Modal */}
-      {isModelModalOpen && (
-        <AIModelModal
-          isOpen={isModelModalOpen}
-          onClose={() => {
-            setIsModelModalOpen(false)
-            setEditingModel(null)
-          }}
-          editingModel={editingModel}
-          onModelCreated={handleModelSaved}
-          onModelUpdated={handleModelSaved}
-        />
-      )}
+      {/* AI Model Drawer */}
+      <AIModelDrawer
+        isOpen={isModelModalOpen}
+        onClose={() => {
+          setIsModelModalOpen(false)
+          setEditingModel(null)
+        }}
+        editingModel={editingModel}
+        onModelCreated={handleModelSaved}
+        onModelUpdated={handleModelSaved}
+      />
     </div>
   )
 }

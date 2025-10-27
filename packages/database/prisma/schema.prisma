@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -80,11 +80,20 @@ model Character {
   name              String   @unique
   description       String?
   personality       String?
+  scenario          String?  // V2 field
   firstMessage      String?
+  mesExample        String?  // V2 field: example messages
   avatar            String?  // Path to avatar file
   background        String?
-  exampleMessages   String?  // JSON array
+  exampleMessages   String?  // JSON array (legacy)
   tags              String?  // JSON array
+  creatorNotes      String?  // V2 field
+  systemPrompt      String?  // V2 field
+  postHistoryInstructions String?  // V2 field
+  alternateGreetings String?  // V2 field: JSON array
+  characterBook     String?  // V2 field: JSON object for world info
+  creator           String?  // V2 field
+  characterVersion  String?  // V2 field
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   settings          String?  // JSON string for character settings
@@ -105,7 +114,9 @@ model WorldInfo {
   content        String
   keywords       String?  // JSON array
   activationType String   // 'always', 'keyword', 'vector'
-  priority       Int      @default(0)
+  priority       Int      @default(100)
+  position       Int      @default(4)  // V2 field: insertion position (0-100)
+  depth          Int      @default(4)  // V2 field: scan depth
   enabled        Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -247,4 +258,48 @@ model FileStorage {
   @@index([mimeType])
   @@index([uploadedBy])
   @@index([hash])
+}
+
+// Prompt Templates table - stores reusable prompt templates
+model PromptTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  content     String   // Template content with placeholders
+  category    String   // 'external' for external prompts, 'variable' for template variables
+  description String?  // Optional description
+  isBuiltin   Boolean  @default(false) // Whether it's a system preset
+  userId      String?  @default("default") // User who created (null for builtin)
+  isFavorite  Boolean  @default(false)
+  usageCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([userId])
+  @@index([isBuiltin])
+  @@index([isFavorite])
+}
+
+// Community Characters table - stores community shared character cards
+model CommunityCharacter {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  characterData String   // Full SillyTavern v2 character card JSON
+  avatar        String?
+  author        String
+  authorId      String?  @default("default")
+  downloads     Int      @default(0)
+  likes         Int      @default(0)
+  tags          String?  // JSON array
+  category      String   @default("cards") // cards, popular, new, etc.
+  isPublished   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([name])
+  @@index([category])
+  @@index([isPublished])
+  @@index([author])
+  @@index([downloads])
 }
