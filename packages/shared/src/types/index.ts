@@ -8,6 +8,7 @@ export * from './character';
 export * from './ai-model';
 export * from './world-info';
 export * from './plugin';
+export * from './preset-formats';
 
 // Common utility types
 export interface PaginationParams {

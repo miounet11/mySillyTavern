@@ -62,11 +62,9 @@ export const useAIModelStore = create<AIModelState>()(
           const { models } = await response.json()
           set({ models })
 
-          // Set active model if none is selected
+          // Always sync activeModel with server state
           const active = models.find((model: any) => model.isActive)
-          if (active && !get().activeModel) {
-            set({ activeModel: active })
-          }
+          set({ activeModel: active || null })
 
         } catch (error) {
           console.error('Error fetching AI models:', error)
@@ -125,10 +123,19 @@ export const useAIModelStore = create<AIModelState>()(
           }
 
           const model = await response.json()
-          set((state) => ({
-            models: state.models.map(m => m.id === id ? model : m),
-            activeModel: state.activeModel?.id === id ? model : state.activeModel
-          }))
+          set((state) => {
+            const updatedModels = state.models.map(m => m.id === id ? model : m)
+            // If this model is active after update, set it as activeModel
+            if ((model as any).isActive) {
+              return { models: updatedModels, activeModel: model }
+            }
+            // If we just deactivated the previously active model, try to pick another active
+            if (state.activeModel?.id === id && !(model as any).isActive) {
+              const nextActive = updatedModels.find((m: any) => m.isActive) || null
+              return { models: updatedModels, activeModel: nextActive }
+            }
+            return { models: updatedModels }
+          })
 
           return model
         } catch (error) {
@@ -152,10 +159,14 @@ export const useAIModelStore = create<AIModelState>()(
             throw new Error('Failed to delete AI model')
           }
 
-          set((state) => ({
-            models: state.models.filter(m => m.id !== id),
-            activeModel: state.activeModel?.id === id ? null : state.activeModel
-          }))
+          set((state) => {
+            const remaining = state.models.filter(m => m.id !== id)
+            let nextActive = state.activeModel
+            if (state.activeModel?.id === id) {
+              nextActive = remaining.find((m: any) => m.isActive) || null
+            }
+            return { models: remaining, activeModel: nextActive }
+          })
 
           return true
         } catch (error) {

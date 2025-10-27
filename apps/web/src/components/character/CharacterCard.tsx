@@ -59,12 +59,19 @@ export default function CharacterCard({
               src={character.avatar}
               alt={character.name}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+                const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                if (fallback) fallback.style.display = 'flex'
+              }}
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-6xl text-gray-600">
-              {character.name.charAt(0).toUpperCase()}
-            </div>
-          )}
+          ) : null}
+          <div 
+            className="w-full h-full flex items-center justify-center text-6xl text-gray-600"
+            style={{ display: character.avatar ? 'none' : 'flex' }}
+          >
+            {character.name.charAt(0).toUpperCase()}
+          </div>
           
           {/* Hover overlay with actions */}
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">

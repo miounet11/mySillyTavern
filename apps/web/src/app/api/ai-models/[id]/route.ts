@@ -59,7 +59,7 @@ export async function GET(
   }
 }
 
-export async function PUT(
+async function handleUpdate(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -130,6 +130,21 @@ export async function PUT(
       { status: 500 }
     )
   }
+}
+
+// Support both PUT and PATCH for updates
+export async function PUT(
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
+  return handleUpdate(request, context)
+}
+
+export async function PATCH(
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
+  return handleUpdate(request, context)
 }
 
 export async function DELETE(

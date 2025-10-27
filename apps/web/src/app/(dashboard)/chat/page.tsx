@@ -4,7 +4,8 @@
 
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import ExternalPromptsDialog from '@/components/prompts/ExternalPromptsDialog'
 import TemplateVariablePicker from '@/components/prompts/TemplateVariablePicker'
 import ChatList from '@/components/chat/ChatList'
@@ -13,14 +14,18 @@ import ChatSettingsPanel from '@/components/chat/ChatSettingsPanel'
 import WorldInfoPanel from '@/components/chat/WorldInfoPanel'
 import RegexScriptEditor from '@/components/chat/RegexScriptEditor'
 import PresetEditor from '@/components/chat/PresetEditor'
+import AIModelDrawer from '@/components/ai/AIModelDrawer'
 import ChatBranchVisualization from '@/components/chat/ChatBranchVisualization'
 import ChatNodeEditor from '@/components/chat/ChatNodeEditor'
 import { Loader2 } from 'lucide-react'
 import { useChatStore } from '@/stores/chatStore'
 import toast from 'react-hot-toast'
 
-export default function ChatPage() {
+function ChatPageContent() {
+  const searchParams = useSearchParams()
+  const characterId = searchParams.get('characterId')
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(true)
+  const [isModelDrawerOpen, setIsModelDrawerOpen] = useState(false)
   const [isWorldInfoOpen, setIsWorldInfoOpen] = useState(false)
   const [isExternalPromptsOpen, setIsExternalPromptsOpen] = useState(false)
   const [isTemplateVarsOpen, setIsTemplateVarsOpen] = useState(false)
@@ -30,6 +35,13 @@ export default function ChatPage() {
   const [isNodeEditorOpen, setIsNodeEditorOpen] = useState(false)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const { character } = useChatStore()
+
+  // 监听 open-settings 事件，打开右侧 AI 模型抽屉
+  useEffect(() => {
+    const handler = () => setIsModelDrawerOpen(true)
+    window.addEventListener('open-settings', handler as EventListener)
+    return () => window.removeEventListener('open-settings', handler as EventListener)
+  }, [])
 
   const handleSelectNode = (nodeId: string) => {
     toast.success(`跳转到节点: ${nodeId}`)
@@ -75,7 +87,7 @@ export default function ChatPage() {
       {/* Main chat interface */}
       <div className="flex-1 flex flex-col">
         <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin" /></div>}>
-          <ChatInterface />
+          <ChatInterface characterId={characterId} />
         </Suspense>
       </div>
 
@@ -106,6 +118,12 @@ export default function ChatPage() {
         onClose={() => setIsPresetEditorOpen(false)}
       />
 
+      {/* AI Model Drawer (in-app settings) */}
+      <AIModelDrawer
+        isOpen={isModelDrawerOpen}
+        onClose={() => setIsModelDrawerOpen(false)}
+      />
+
       <ChatBranchVisualization
         isOpen={isBranchViewOpen}
         onClose={() => setIsBranchViewOpen(false)}
@@ -121,5 +139,13 @@ export default function ChatPage() {
         onSave={handleSaveNode}
       />
     </div>
+  )
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="flex h-full items-center justify-center"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
+      <ChatPageContent />
+    </Suspense>
   )
 }

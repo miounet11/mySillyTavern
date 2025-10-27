@@ -18,7 +18,11 @@ import ChatHeader from './ChatHeader'
 import CharacterModal from '../character/CharacterModal'
 import toast from 'react-hot-toast'
 
-export default function ChatInterface() {
+interface ChatInterfaceProps {
+  characterId?: string | null
+}
+
+export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   const router = useRouter()
   const {
     currentChat,
@@ -36,14 +40,17 @@ export default function ChatInterface() {
     clearError,
     addMessage,
     updateMessage,
+    clearMessages,
     reset
   } = useChatStore()
 
   const { characters, createCharacter } = useCharacterStore()
-  const { activeModel, hasActiveModel } = useAIModelStore()
+  const aiModelStore = useAIModelStore()
+  const { activeModel, hasActiveModel, fetchModels } = aiModelStore
 
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [modelsInitialized, setModelsInitialized] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const [appSettings, setAppSettings] = useState<{ userName?: string; autoSendGreeting?: boolean; openerTemplate?: string }>({})
@@ -56,6 +63,15 @@ export default function ChatInterface() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Load AI models on mount to ensure we have the active model
+  useEffect(() => {
+    const loadModels = async () => {
+      await fetchModels()
+      setModelsInitialized(true)
+    }
+    loadModels()
+  }, [])
 
   // Listen for new chat event from sidebar
   useEffect(() => {
@@ -78,6 +94,117 @@ export default function ChatInterface() {
       }
     } catch {}
   }, [])
+
+  // Handle character selection from URL parameter
+  useEffect(() => {
+    const loadCharacterAndCreateChat = async () => {
+      // Wait for models to be initialized first
+      if (!modelsInitialized) return
+      
+      if (!characterId) return
+      
+      // Re-fetch models to ensure we have the latest state
+      await fetchModels()
+      
+      // Check again after fetching - use store getter to get fresh state
+      const currentActiveModel = aiModelStore.getState().activeModel
+      if (!currentActiveModel) {
+        toast.error('请先配置 AI 模型')
+        // 打开右侧设置抽屉，而不是跳转页面
+        window.dispatchEvent(new CustomEvent('open-settings'))
+        return
+      }
+
+      try {
+        setLoading(true)
+
+        // Fetch character data from API
+        const response = await fetch(`/api/characters/${characterId}`)
+        if (!response.ok) {
+          throw new Error('Failed to load character')
+        }
+        
+        const characterData = await response.json()
+        setCharacter(characterData)
+
+        // Check if there's an existing chat for this character
+        const chatsResponse = await fetch(`/api/chats?characterId=${characterId}&limit=1`)
+        if (chatsResponse.ok) {
+          const chatsData = await chatsResponse.json()
+          if (chatsData.chats && chatsData.chats.length > 0) {
+            // Load the most recent chat for this character
+            const existingChat = chatsData.chats[0]
+            setCurrentChat(existingChat)
+            
+            // Load messages for this chat
+            const messagesResponse = await fetch(`/api/chats/${existingChat.id}/messages`)
+            if (messagesResponse.ok) {
+              const messagesData = await messagesResponse.json()
+              // Clear existing messages and add new ones
+              clearMessages()
+              messagesData.messages.forEach((msg: Message) => addMessage(msg))
+            }
+            
+            toast.success(`已加载与 ${characterData.name} 的对话`)
+            // Clean up URL parameter
+            router.replace('/chat')
+            return
+          }
+        }
+
+        // Create new chat if no existing chat found
+        const newChat = await chatService.createChat({
+          title: `与 ${characterData.name} 的对话 - ${new Date().toLocaleString('zh-CN', { 
+            month: '2-digit', 
+            day: '2-digit', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          })}`,
+          characterId: characterData.id,
+          settings: {
+            modelId: currentActiveModel.id
+          }
+        })
+
+        setCurrentChat(newChat)
+        toast.success(`已创建与 ${characterData.name} 的新对话`)
+
+        // Auto-send greeting if enabled
+        const flagsEnabled = (process.env.NEXT_PUBLIC_ST_PARITY_GREETING_ENABLED ?? 'true') !== 'false'
+        const shouldAutoSend = flagsEnabled && appSettings.autoSendGreeting !== false
+        const greeting = characterData.firstMessage || ''
+        if (shouldAutoSend && greeting.trim()) {
+          const greetMsg = await chatService.addMessage(newChat.id, {
+            role: 'assistant',
+            content: greeting.trim(),
+          })
+          addMessage(greetMsg)
+        }
+
+        const template = (appSettings.openerTemplate || '').trim()
+        if (template) {
+          const substituted = template
+            .replace(/\{\{user\}\}/g, appSettings.userName || 'User')
+            .replace(/\{\{char\}\}/g, characterData.name)
+            .replace(/\{\{scenario\}\}/g, characterData.background || characterData.scenario || '')
+          setInputValue(substituted)
+          inputRef.current?.focus()
+        }
+
+        // Clean up URL parameter
+        router.replace('/chat')
+
+      } catch (error) {
+        console.error('Error loading character and creating chat:', error)
+        toast.error('加载角色失败，请重试')
+        router.replace('/characters')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadCharacterAndCreateChat()
+  }, [characterId, modelsInitialized, hasActiveModel, activeModel, router, setCharacter, setCurrentChat, setLoading, addMessage, clearMessages, appSettings])
 
   // Handle sending a message
   const handleSendMessage = async (content: string) => {
@@ -181,11 +308,19 @@ export default function ChatInterface() {
 
   // Create new chat
   const handleNewChat = async () => {
-    // 如果尚未有活跃模型，引导用户打开设置页面
+    // 确保模型已加载，必要时刷新一次模型列表
     if (!hasActiveModel) {
-      toast.error('请先配置 AI 模型')
-      router.push('/settings')
-      return
+      try {
+        await fetchModels()
+      } catch {}
+
+      const hasModelNow = useAIModelStore.getState().hasActiveModel
+      if (!hasModelNow) {
+        toast.error('请先配置 AI 模型')
+        // 打开右侧设置抽屉，而不是跳转页面
+        window.dispatchEvent(new CustomEvent('open-settings'))
+        return
+      }
     }
 
     try {

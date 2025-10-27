@@ -34,12 +34,19 @@ export default function CommunityCard({
             src={character.avatar}
             alt={character.name}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+              const fallback = e.currentTarget.nextElementSibling as HTMLElement
+              if (fallback) fallback.style.display = 'flex'
+            }}
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-6xl text-gray-600">
-            {character.name.charAt(0).toUpperCase()}
-          </div>
-        )}
+        ) : null}
+        <div 
+          className="w-full h-full flex items-center justify-center text-6xl text-gray-600"
+          style={{ display: character.avatar ? 'none' : 'flex' }}
+        >
+          {character.name.charAt(0).toUpperCase()}
+        </div>
         
         {/* Category badge */}
         <div className="absolute top-3 right-3">

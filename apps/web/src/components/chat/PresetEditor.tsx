@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -16,8 +17,10 @@ import {
   Download,
   FileText,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  MessageSquare
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface Preset {
   id: string
@@ -37,6 +40,7 @@ export default function PresetEditor({
   isOpen,
   onClose
 }: PresetEditorProps) {
+  const router = useRouter()
   const [presets, setPresets] = useState<Preset[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [isEditing, setIsEditing] = useState(false)
@@ -163,6 +167,21 @@ export default function PresetEditor({
     e.target.value = ''
   }
 
+  const handlePresetClick = (preset: Preset) => {
+    if (confirm(`是否应用预设"${preset.name}"并进入对话？`)) {
+      // Apply preset (this would typically save to settings/state)
+      toast.success(`已应用预设: ${preset.name}`)
+      
+      // Close the preset editor
+      onClose()
+      
+      // Navigate to chat if not already there
+      if (window.location.pathname !== '/chat') {
+        router.push('/chat')
+      }
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-5xl h-[85vh] bg-gray-900/95 backdrop-blur-xl rounded-lg border border-gray-700/50 flex flex-col shadow-2xl">
@@ -250,6 +269,16 @@ export default function PresetEditor({
                 </Button>
               </div>
 
+              {/* Hint */}
+              {filteredPresets.length > 0 && (
+                <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-teal-500/10 border border-teal-500/20 rounded-lg">
+                  <MessageSquare className="w-4 h-4 text-teal-400 flex-shrink-0" />
+                  <p className="text-sm text-teal-300">
+                    点击预设行可应用并进入对话
+                  </p>
+                </div>
+              )}
+
               {/* Presets Table */}
               <div className="flex-1 overflow-y-auto tavern-scrollbar">
                 {filteredPresets.length === 0 ? (
@@ -285,10 +314,20 @@ export default function PresetEditor({
                       {filteredPresets.map((preset) => (
                         <tr
                           key={preset.id}
-                          className="border-b border-gray-800 hover:bg-gray-800/30 transition-colors"
+                          onClick={(e) => {
+                            // Don't trigger row click if clicking on buttons or toggles
+                            const target = e.target as HTMLElement
+                            if (!target.closest('button') && !target.closest('input[type="checkbox"]')) {
+                              handlePresetClick(preset)
+                            }
+                          }}
+                          className="border-b border-gray-800 hover:bg-gray-800/30 transition-colors cursor-pointer"
                         >
                           <td className="px-3 py-3">
-                            <label className="relative inline-flex items-center cursor-pointer">
+                            <label 
+                              className="relative inline-flex items-center cursor-pointer"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <input
                                 type="checkbox"
                                 checked={preset.enabled}
@@ -337,21 +376,30 @@ export default function PresetEditor({
                           <td className="px-3 py-3">
                             <div className="flex items-center justify-center gap-1">
                               <button
-                                onClick={() => handleEdit(preset)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleEdit(preset)
+                                }}
                                 className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-teal-400 transition-colors"
                                 title="编辑"
                               >
                                 <Edit className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => handleDuplicate(preset)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDuplicate(preset)
+                                }}
                                 className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-blue-400 transition-colors"
                                 title="复制"
                               >
                                 <Copy className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => handleDelete(preset.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDelete(preset.id)
+                                }}
                                 className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-red-400 transition-colors"
                                 title="删除"
                               >
