@@ -5,7 +5,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { MessageCircle, Send, Settings, User, Plus } from 'lucide-react'
+import { MessageCircle, Send, Settings, User, Plus, AlertCircle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useChatStore } from '@/stores/chatStore'
 import { chatService } from '@/services/chatService'
 import { useCharacterStore } from '@/stores/characterStore'
@@ -18,6 +19,7 @@ import CharacterModal from '../character/CharacterModal'
 import toast from 'react-hot-toast'
 
 export default function ChatInterface() {
+  const router = useRouter()
   const {
     currentChat,
     messages,
@@ -53,6 +55,18 @@ export default function ChatInterface() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Listen for new chat event from sidebar
+  useEffect(() => {
+    const handleCreateNewChat = () => {
+      handleNewChat()
+    }
+
+    window.addEventListener('create-new-chat', handleCreateNewChat)
+    return () => {
+      window.removeEventListener('create-new-chat', handleCreateNewChat)
+    }
+  }, [hasActiveModel, characters, activeModel])
 
   // Handle sending a message
   const handleSendMessage = async (content: string) => {
@@ -156,20 +170,23 @@ export default function ChatInterface() {
 
   // Create new chat
   const handleNewChat = async () => {
+    // 如果尚未有活跃模型，引导用户打开设置页面
     if (!hasActiveModel) {
-      toast.error('Please select an AI model first')
+      toast.error('请先配置 AI 模型')
+      router.push('/settings')
       return
     }
 
     try {
       setLoading(true)
 
-      // For now, create chat with a default character
-      const defaultCharacter = characters[0]
-      if (!defaultCharacter) {
+      // Get or create a default character
+      let characterToUse = characters[0]
+      
+      if (!characterToUse) {
         // Create a default assistant character if none exists
         const newCharacter = await createCharacter({
-          name: 'Assistant',
+          name: 'AI Assistant',
           description: 'A helpful AI assistant',
           personality: 'Helpful, friendly, and knowledgeable',
           firstMessage: 'Hello! How can I help you today?',
@@ -183,17 +200,19 @@ export default function ChatInterface() {
         })
 
         if (newCharacter) {
-          setCharacter(newCharacter)
+          characterToUse = newCharacter
+        } else {
+          throw new Error('Failed to create default character')
         }
       }
 
-      const characterToUse = defaultCharacter || characters[0]
-      if (!characterToUse) {
-        throw new Error('No character available')
-      }
-
       const newChat = await chatService.createChat({
-        title: `${characterToUse.name} - ${new Date().toLocaleString()}`,
+        title: `与 ${characterToUse.name} 的对话 - ${new Date().toLocaleString('zh-CN', { 
+          month: '2-digit', 
+          day: '2-digit', 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })}`,
         characterId: characterToUse.id,
         settings: {
           modelId: activeModel?.id
@@ -202,12 +221,12 @@ export default function ChatInterface() {
 
       setCurrentChat(newChat)
       setCharacter(characterToUse)
-      toast.success('New chat created')
+      toast.success('新对话已创建')
 
     } catch (error) {
       console.error('Error creating chat:', error)
-      setError('Failed to create new chat')
-      toast.error('Failed to create new chat')
+      setError('创建对话失败')
+      toast.error('创建对话失败，请重试')
     } finally {
       setLoading(false)
     }
@@ -231,19 +250,49 @@ export default function ChatInterface() {
       {/* Messages Area */}
       <div className="flex-1 overflow-hidden flex flex-col">
         {!currentChat ? (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
-            <div className="text-center">
-              <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <h3 className="text-xl font-medium mb-2">Select or create a chat</h3>
-              <p className="text-sm mb-4">Choose an existing chat or create a new one to start chatting</p>
-              <button
-                onClick={handleNewChat}
-                disabled={isLoading || !hasActiveModel}
-                className="tavern-button inline-flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                New Chat
-              </button>
+          <div className="flex-1 flex items-center justify-center text-gray-500 p-4">
+            <div className="max-w-md w-full">
+              {/* 首次使用引导 - 未配置 AI 模型 */}
+              {!hasActiveModel && (
+                <div className="mb-6 bg-amber-900/20 border-2 border-amber-600/50 rounded-lg p-6">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-6 h-6 text-amber-500 flex-shrink-0 mt-1" />
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-amber-400 mb-2">欢迎使用 SillyTavern！</h3>
+                      <p className="text-gray-300 text-sm mb-4">
+                        在开始对话前，您需要先配置一个 AI 模型。我们支持 OpenAI、Anthropic、Google 以及本地模型（如 Ollama）。
+                      </p>
+                      <button
+                        onClick={() => router.push('/settings')}
+                        className="tavern-button inline-flex items-center gap-2"
+                      >
+                        <Settings className="w-4 h-4" />
+                        前往配置 AI 模型
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* 常规欢迎界面 */}
+              <div className="text-center">
+                <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <h3 className="text-xl font-medium mb-2">选择或创建对话</h3>
+                <p className="text-sm mb-4">
+                  {!hasActiveModel 
+                    ? '配置 AI 模型后即可开始新对话' 
+                    : '选择已有对话或创建新对话开始聊天'}
+                </p>
+                <button
+                  onClick={handleNewChat}
+                  disabled={isLoading || !hasActiveModel}
+                  className="tavern-button inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!hasActiveModel ? '请先配置 AI 模型' : ''}
+                >
+                  <Plus className="w-4 h-4" />
+                  新对话
+                </button>
+              </div>
             </div>
           </div>
         ) : (

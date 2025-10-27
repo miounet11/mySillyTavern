@@ -59,7 +59,7 @@ export const useAIModelStore = create<AIModelState>()(
             throw new Error('Failed to fetch AI models')
           }
 
-          const models = await response.json()
+          const { models } = await response.json()
           set({ models })
 
           // Set active model if none is selected
@@ -94,6 +94,11 @@ export const useAIModelStore = create<AIModelState>()(
           set((state) => ({
             models: [...state.models, model]
           }))
+
+          // If this model is created as active, update activeModel immediately
+          if ((model as any).isActive) {
+            set({ activeModel: model })
+          }
 
           return model
         } catch (error) {

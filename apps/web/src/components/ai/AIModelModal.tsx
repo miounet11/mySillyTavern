@@ -42,7 +42,7 @@ interface TestResult {
   error?: string
 }
 
-export default function AIModelModal({
+function AIModelModal({
   isOpen,
   onClose,
   onModelCreated,
@@ -53,6 +53,7 @@ export default function AIModelModal({
   const [isLoading, setIsLoading] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const [testResult, setTestResult] = useState<TestResult | null>(null)
+  const [activeTab, setActiveTab] = useState('basic')
 
   // Form state
   const [formData, setFormData] = useState<{
@@ -90,7 +91,7 @@ export default function AIModelModal({
       systemPrompt: '',
       contextWindow: 4096,
     },
-    isActive: false
+    isActive: true
   })
 
   const [testMessage, setTestMessage] = useState('Hello! Can you respond with a simple greeting?')
@@ -135,6 +136,7 @@ export default function AIModelModal({
   // Reset form when modal opens/closes or editing model changes
   useEffect(() => {
     if (isOpen) {
+      setActiveTab('basic') // Reset to first tab when modal opens
       if (editingModel) {
         setFormData({
           name: editingModel.name,
@@ -180,7 +182,7 @@ export default function AIModelModal({
         systemPrompt: '',
         contextWindow: 4096,
       },
-      isActive: false
+      isActive: true
     })
     setTestMessage('Hello! Can you respond with a simple greeting?')
   }
@@ -341,7 +343,7 @@ export default function AIModelModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <Tabs defaultValue="basic" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="basic">基本配置</TabsTrigger>
               <TabsTrigger value="settings">模型设置</TabsTrigger>
@@ -747,3 +749,6 @@ export default function AIModelModal({
     </Dialog>
   )
 }
+
+// Export as default
+export default AIModelModal

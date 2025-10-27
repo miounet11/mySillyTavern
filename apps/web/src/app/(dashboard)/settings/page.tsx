@@ -7,11 +7,29 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select } from '@/components/ui/select'
 import { Settings, Database, Puzzle, Globe } from 'lucide-react'
+import AIModelModal from '@/components/ai/AIModelModal'
+import { useAIModelStore } from '@/stores/aiModelStore'
+import toast from 'react-hot-toast'
 
 export default function SettingsPage() {
   const [aiModels, setAiModels] = useState<any[]>([])
   const [plugins, setPlugins] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isModelModalOpen, setIsModelModalOpen] = useState(false)
+  const [editingModel, setEditingModel] = useState<any>(null)
+  const { fetchModels } = useAIModelStore()
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState('general')
+  
+  // General settings state
+  const [userName, setUserName] = useState('User')
+  const [language, setLanguage] = useState('zh-CN')
+  const [theme, setTheme] = useState('dark')
+  const [fontSize, setFontSize] = useState('medium')
+  const [compactMode, setCompactMode] = useState(false)
+  const [showTimestamp, setShowTimestamp] = useState(true)
+  const [autoScroll, setAutoScroll] = useState(true)
 
   useEffect(() => {
     fetchData()
@@ -55,16 +73,84 @@ export default function SettingsPage() {
     }
   }
 
+  const handleAddModel = () => {
+    setEditingModel(null)
+    setIsModelModalOpen(true)
+  }
+
+  const handleEditModel = (model: any) => {
+    setEditingModel(model)
+    setIsModelModalOpen(true)
+  }
+
+  const handleModelSaved = async () => {
+    setIsModelModalOpen(false)
+    setEditingModel(null)
+    await fetchData()
+    await fetchModels() // 更新全局状态
+  }
+
+  const handleSetActiveModel = async (modelId: string) => {
+    try {
+      const response = await fetch(`/api/ai-models/${modelId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: true })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to set active model')
+      }
+
+      toast.success('已设为活跃模型')
+      await fetchData()
+      await fetchModels() // 更新全局状态
+    } catch (error) {
+      console.error('Error setting active model:', error)
+      toast.error('设置失败')
+    }
+  }
+
+  const handleSaveGeneralSettings = () => {
+    // Save settings to localStorage
+    const settings = {
+      userName,
+      language,
+      theme,
+      fontSize,
+      compactMode,
+      showTimestamp,
+      autoScroll
+    }
+    localStorage.setItem('app_settings', JSON.stringify(settings))
+    toast.success('设置已保存')
+  }
+  
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('app_settings')
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings)
+      setUserName(settings.userName || 'User')
+      setLanguage(settings.language || 'zh-CN')
+      setTheme(settings.theme || 'dark')
+      setFontSize(settings.fontSize || 'medium')
+      setCompactMode(settings.compactMode || false)
+      setShowTimestamp(settings.showTimestamp !== false)
+      setAutoScroll(settings.autoScroll !== false)
+    }
+  }, [])
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 min-h-screen">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">设置</h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <h1 className="text-3xl font-bold mb-2 text-gray-100">设置</h1>
+        <p className="text-gray-400">
           配置应用程序设置和偏好
         </p>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="general" className="gap-2">
             <Settings className="w-4 h-4" />
@@ -98,7 +184,8 @@ export default function SettingsPage() {
                   id="user-name"
                   type="text"
                   placeholder="你的名字"
-                  defaultValue="User"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
                   className="mt-1"
                 />
               </div>
@@ -107,8 +194,9 @@ export default function SettingsPage() {
                 <Label htmlFor="language">语言</Label>
                 <select
                   id="language"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
                   className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2"
-                  defaultValue="zh-CN"
                 >
                   <option value="zh-CN">简体中文</option>
                   <option value="en">English</option>
@@ -120,8 +208,9 @@ export default function SettingsPage() {
                 <Label htmlFor="theme">主题</Label>
                 <select
                   id="theme"
+                  value={theme}
+                  onChange={(e) => setTheme(e.target.value)}
                   className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2"
-                  defaultValue="dark"
                 >
                   <option value="light">浅色</option>
                   <option value="dark">深色</option>
@@ -129,7 +218,7 @@ export default function SettingsPage() {
                 </select>
               </div>
 
-              <Button className="mt-4">保存设置</Button>
+              <Button className="mt-4" onClick={handleSaveGeneralSettings}>保存设置</Button>
             </div>
           </div>
         </TabsContent>
@@ -139,7 +228,7 @@ export default function SettingsPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">AI 模型配置</h2>
-              <Button variant="outline" size="sm">添加模型</Button>
+              <Button variant="outline" size="sm" onClick={handleAddModel}>添加模型</Button>
             </div>
 
             {isLoading ? (
@@ -147,8 +236,10 @@ export default function SettingsPage() {
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
               </div>
             ) : aiModels.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                还没有配置 AI 模型
+              <div className="text-center py-12">
+                <Database className="w-16 h-16 mx-auto mb-4 text-gray-600 opacity-50" />
+                <p className="text-gray-400 mb-4">还没有配置 AI 模型</p>
+                <p className="text-sm text-gray-500 mb-6">点击上方"添加模型"按钮开始配置</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -164,12 +255,21 @@ export default function SettingsPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {model.isActive && (
+                      {model.isActive ? (
                         <span className="px-2 py-1 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 rounded">
-                          活动
+                          当前活跃
                         </span>
+                      ) : (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleSetActiveModel(model.id)}
+                          className="text-xs"
+                        >
+                          设为活跃
+                        </Button>
                       )}
-                      <Button variant="outline" size="sm">编辑</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleEditModel(model)}>编辑</Button>
                     </div>
                   </div>
                 ))}
@@ -191,8 +291,10 @@ export default function SettingsPage() {
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
               </div>
             ) : plugins.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                还没有安装插件
+              <div className="text-center py-12">
+                <Puzzle className="w-16 h-16 mx-auto mb-4 text-gray-600 opacity-50" />
+                <p className="text-gray-400 mb-4">还没有安装插件</p>
+                <p className="text-sm text-gray-500 mb-6">点击上方"安装插件"按钮添加插件</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -243,7 +345,12 @@ export default function SettingsPage() {
                   <p className="text-sm text-gray-500">减少界面间距</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" />
+                  <input 
+                    type="checkbox" 
+                    checked={compactMode}
+                    onChange={(e) => setCompactMode(e.target.checked)}
+                    className="sr-only peer" 
+                  />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                 </label>
               </div>
@@ -254,7 +361,12 @@ export default function SettingsPage() {
                   <p className="text-sm text-gray-500">在消息旁显示时间</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" defaultChecked className="sr-only peer" />
+                  <input 
+                    type="checkbox" 
+                    checked={showTimestamp}
+                    onChange={(e) => setShowTimestamp(e.target.checked)}
+                    className="sr-only peer" 
+                  />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                 </label>
               </div>
@@ -265,7 +377,12 @@ export default function SettingsPage() {
                   <p className="text-sm text-gray-500">新消息时自动滚动到底部</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" defaultChecked className="sr-only peer" />
+                  <input 
+                    type="checkbox" 
+                    checked={autoScroll}
+                    onChange={(e) => setAutoScroll(e.target.checked)}
+                    className="sr-only peer" 
+                  />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                 </label>
               </div>
@@ -274,8 +391,9 @@ export default function SettingsPage() {
                 <Label htmlFor="font-size">字体大小</Label>
                 <select
                   id="font-size"
+                  value={fontSize}
+                  onChange={(e) => setFontSize(e.target.value)}
                   className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2"
-                  defaultValue="medium"
                 >
                   <option value="small">小</option>
                   <option value="medium">中</option>
@@ -283,11 +401,25 @@ export default function SettingsPage() {
                 </select>
               </div>
 
-              <Button className="mt-4">保存设置</Button>
+              <Button className="mt-4" onClick={handleSaveGeneralSettings}>保存设置</Button>
             </div>
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* AI Model Modal */}
+      {isModelModalOpen && (
+        <AIModelModal
+          isOpen={isModelModalOpen}
+          onClose={() => {
+            setIsModelModalOpen(false)
+            setEditingModel(null)
+          }}
+          editingModel={editingModel}
+          onModelCreated={handleModelSaved}
+          onModelUpdated={handleModelSaved}
+        />
+      )}
     </div>
   )
 }
