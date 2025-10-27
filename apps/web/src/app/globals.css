@@ -27,25 +27,25 @@
   }
 
   .dark {
-    --background: 240 10% 3.9%;
+    --background: 222 47% 4%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
+    --card: 222 47% 6%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
+    --popover: 222 47% 4%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
+    --primary: 172 66% 50%;
+    --primary-foreground: 222 47% 4%;
+    --secondary: 217 33% 17%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 172 66% 50%;
+    --accent-foreground: 222 47% 4%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 172 66% 50%;
   }
 }
 
@@ -55,25 +55,80 @@
   }
   body {
     @apply bg-background text-foreground;
+    position: relative;
+    overflow-x: hidden;
+  }
+  
+  /* Starfield background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+      radial-gradient(2px 2px at 20% 30%, white, transparent),
+      radial-gradient(2px 2px at 60% 70%, white, transparent),
+      radial-gradient(1px 1px at 50% 50%, white, transparent),
+      radial-gradient(1px 1px at 80% 10%, white, transparent),
+      radial-gradient(2px 2px at 90% 60%, white, transparent),
+      radial-gradient(1px 1px at 33% 80%, white, transparent),
+      radial-gradient(1px 1px at 70% 40%, white, transparent);
+    background-size: 200% 200%, 180% 180%, 220% 220%, 250% 250%, 190% 190%, 230% 230%, 210% 210%;
+    background-position: 0% 0%, 50% 50%, 100% 100%, 0% 100%, 100% 0%, 50% 0%, 0% 50%;
+    animation: starfieldMove 120s linear infinite;
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  /* Radial gradient overlay for depth */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, transparent 0%, rgba(10, 10, 15, 0.8) 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes starfieldMove {
+    0% {
+      background-position: 0% 0%, 50% 50%, 100% 100%, 0% 100%, 100% 0%, 50% 0%, 0% 50%;
+    }
+    100% {
+      background-position: 100% 100%, 0% 0%, 0% 0%, 100% 0%, 0% 100%, 50% 100%, 100% 50%;
+    }
   }
 }
 
 @layer components {
   /* SillyTavern specific styles */
   .tavern-container {
-    @apply min-h-screen bg-tavern-dark text-gray-100;
+    @apply min-h-screen text-gray-100 relative;
+    background: linear-gradient(to bottom, #0a0a0f 0%, #0f0f1e 50%, #0a0a0f 100%);
+    z-index: 1;
   }
 
   .tavern-sidebar {
-    @apply bg-gray-900 border-r border-gray-800 flex flex-col;
+    @apply border-r border-gray-800/50 flex flex-col relative;
+    background: rgba(15, 15, 30, 0.8);
+    backdrop-filter: blur(10px);
   }
 
   .tavern-main {
-    @apply flex-1 flex flex-col bg-gray-950;
+    @apply flex-1 flex flex-col relative;
+    background: transparent;
   }
 
   .tavern-header {
-    @apply bg-gray-900 border-b border-gray-800 px-4 py-3;
+    @apply border-b border-gray-800/50 px-4 py-3 relative;
+    background: rgba(15, 15, 30, 0.6);
+    backdrop-filter: blur(10px);
   }
 
   .tavern-chat-container {
@@ -85,11 +140,16 @@
   }
 
   .tavern-message-user {
-    @apply bg-blue-600 text-white ml-auto;
+    @apply text-white ml-auto relative;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
   }
 
   .tavern-message-assistant {
-    @apply bg-gray-800 text-gray-100 mr-auto;
+    @apply text-gray-100 mr-auto relative;
+    background: rgba(30, 41, 59, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(71, 85, 105, 0.3);
   }
 
   .tavern-input-container {
@@ -101,20 +161,51 @@
   }
 
   .tavern-button {
-    @apply px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-4 py-2 text-white rounded-lg focus:outline-none focus:ring-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden;
+    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+    box-shadow: 0 0 20px rgba(20, 184, 166, 0.3);
+  }
+  
+  .tavern-button:hover:not(:disabled) {
+    box-shadow: 0 0 30px rgba(20, 184, 166, 0.5);
+    transform: translateY(-1px);
   }
 
   .tavern-button-secondary {
-    @apply bg-gray-700 text-gray-100 hover:bg-gray-600;
+    @apply text-gray-100 relative;
+    background: rgba(55, 65, 81, 0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(75, 85, 99, 0.5);
+    box-shadow: none;
+  }
+  
+  .tavern-button-secondary:hover:not(:disabled) {
+    background: rgba(75, 85, 99, 0.6);
+    box-shadow: 0 0 20px rgba(75, 85, 99, 0.3);
   }
 
   .tavern-button-danger {
-    @apply bg-red-600 text-white hover:bg-red-700;
+    @apply text-white;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+  }
+  
+  .tavern-button-danger:hover:not(:disabled) {
+    box-shadow: 0 0 30px rgba(220, 38, 38, 0.5);
   }
 
   /* Character card styles */
   .character-card {
-    @apply bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors cursor-pointer;
+    @apply rounded-lg p-0 transition-all cursor-pointer relative overflow-hidden;
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(71, 85, 105, 0.3);
+  }
+  
+  .character-card:hover {
+    border-color: rgba(20, 184, 166, 0.5);
+    box-shadow: 0 0 30px rgba(20, 184, 166, 0.2);
+    transform: translateY(-4px);
   }
 
   .character-card-avatar {
@@ -183,7 +274,16 @@
   }
 
   .tavern-input {
-    @apply w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+    @apply w-full px-3 py-2 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all;
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(71, 85, 105, 0.5);
+    focus:ring-color: rgba(20, 184, 166, 0.5);
+  }
+  
+  .tavern-input:focus {
+    border-color: rgba(20, 184, 166, 0.5);
+    box-shadow: 0 0 20px rgba(20, 184, 166, 0.2);
   }
 
   .tavern-textarea {
@@ -260,6 +360,14 @@
     animation: fadeIn 0.2s ease-out;
   }
 
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+
   @keyframes slideUp {
     from {
       transform: translateY(10px);
@@ -278,5 +386,30 @@
     to {
       opacity: 1;
     }
+  }
+
+  @keyframes scaleIn {
+    from {
+      transform: scale(0.95);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(20, 184, 166, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 30px rgba(20, 184, 166, 0.5);
+    }
+  }
+
+  /* Smooth page transitions */
+  .page-transition {
+    animation: fadeIn 0.3s ease-out;
   }
 }

@@ -180,8 +180,8 @@ export default function MessageList({
                     <div
                       className={`rounded-lg px-4 py-3 relative ${
                         isUser
-                          ? 'bg-blue-600 text-white rounded-br-sm'
-                          : 'bg-gray-800 text-gray-100 rounded-bl-sm border border-gray-700'
+                          ? 'tavern-message-user rounded-br-sm'
+                          : 'tavern-message-assistant rounded-bl-sm'
                       }`}
                     >
                       {isEditing ? (
