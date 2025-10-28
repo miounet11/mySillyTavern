@@ -3,7 +3,7 @@
  */
 
 import { create } from 'zustand'
-import { devtools, subscribeWithSelector } from 'zustand/middleware'
+import { devtools, subscribeWithSelector, persist } from 'zustand/middleware'
 import { Chat, Message, Character, ChatSettings, GenerationOptions } from '@sillytavern-clone/shared'
 
 interface ChatState {
@@ -20,6 +20,10 @@ interface ChatState {
   sidebarOpen: boolean
   showCharacterInfo: boolean
   showWorldInfo: boolean
+
+  // Generation Settings
+  isStreamingEnabled: boolean
+  isFastModeEnabled: boolean
 
   // Computed
   hasMessages: boolean
@@ -53,24 +57,53 @@ interface ChatState {
   toggleCharacterInfo: () => void
   toggleWorldInfo: () => void
 
+  // Generation settings actions
+  toggleStreaming: () => void
+  setStreaming: (enabled: boolean) => void
+  toggleFastMode: () => void
+  setFastMode: (enabled: boolean) => void
+
   // Reset
   reset: () => void
 }
 
+// Load settings from localStorage
+const loadSettings = () => {
+  if (typeof window === 'undefined') return { isStreamingEnabled: true, isFastModeEnabled: false }
+  
+  try {
+    const streaming = localStorage.getItem('chat_streaming_enabled')
+    const fastMode = localStorage.getItem('chat_fast_mode_enabled')
+    
+    return {
+      isStreamingEnabled: streaming === null ? true : streaming === 'true',
+      isFastModeEnabled: fastMode === 'true'
+    }
+  } catch (error) {
+    console.error('Error loading chat settings:', error)
+    return { isStreamingEnabled: true, isFastModeEnabled: false }
+  }
+}
+
 export const useChatStore = create<ChatState>()(
   devtools(
-    subscribeWithSelector((set, get) => ({
-      // Initial state
-      currentChat: null,
-      chats: [],
-      messages: [],
-      character: null,
-      isLoading: false,
-      isGenerating: false,
-      error: null,
-      sidebarOpen: true,
-      showCharacterInfo: false,
-      showWorldInfo: false,
+    subscribeWithSelector((set, get) => {
+      const settings = loadSettings()
+      
+      return {
+        // Initial state
+        currentChat: null,
+        chats: [],
+        messages: [],
+        character: null,
+        isLoading: false,
+        isGenerating: false,
+        error: null,
+        sidebarOpen: true,
+        showCharacterInfo: false,
+        showWorldInfo: false,
+        isStreamingEnabled: settings.isStreamingEnabled,
+        isFastModeEnabled: settings.isFastModeEnabled,
 
       // Computed getters
       get hasMessages() {
@@ -250,8 +283,44 @@ export const useChatStore = create<ChatState>()(
         set((state) => ({ showWorldInfo: !state.showWorldInfo }))
       },
 
+      // Generation settings actions
+      toggleStreaming: () => {
+        set((state) => {
+          const newValue = !state.isStreamingEnabled
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('chat_streaming_enabled', String(newValue))
+          }
+          return { isStreamingEnabled: newValue }
+        })
+      },
+
+      setStreaming: (enabled) => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('chat_streaming_enabled', String(enabled))
+        }
+        set({ isStreamingEnabled: enabled })
+      },
+
+      toggleFastMode: () => {
+        set((state) => {
+          const newValue = !state.isFastModeEnabled
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('chat_fast_mode_enabled', String(newValue))
+          }
+          return { isFastModeEnabled: newValue }
+        })
+      },
+
+      setFastMode: (enabled) => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('chat_fast_mode_enabled', String(enabled))
+        }
+        set({ isFastModeEnabled: enabled })
+      },
+
       // Reset
       reset: () => {
+        const settings = loadSettings()
         set({
           currentChat: null,
           messages: [],
@@ -262,9 +331,11 @@ export const useChatStore = create<ChatState>()(
           sidebarOpen: true,
           showCharacterInfo: false,
           showWorldInfo: false,
+          isStreamingEnabled: settings.isStreamingEnabled,
+          isFastModeEnabled: settings.isFastModeEnabled,
         })
       },
-    })),
+    }}),
     {
       name: 'chat-store',
     }

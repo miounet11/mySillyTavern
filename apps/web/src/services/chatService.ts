@@ -195,6 +195,88 @@ class ChatService {
   }
 
   /**
+   * Generate AI response with streaming
+   */
+  async generateResponseStreaming(
+    chatId: string,
+    options: {
+      modelId?: string
+      clientModel?: any
+      fastMode?: boolean
+      onChunk?: (chunk: string, fullContent: string) => void
+      onComplete?: (message: Message) => void
+      onError?: (error: string) => void
+    }
+  ): Promise<void> {
+    try {
+      const response = await fetch(API_ENDPOINTS.CHAT_GENERATE(chatId), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...options,
+          streaming: true,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (!reader) {
+        throw new Error('No response body reader available')
+      }
+
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+
+              if (data.error) {
+                options.onError?.(data.error)
+                return
+              }
+
+              if (data.done) {
+                if (data.message) {
+                  options.onComplete?.(data.message)
+                }
+                return
+              }
+
+              if (data.content) {
+                options.onChunk?.(data.content, data.fullContent)
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e)
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in streaming generation:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      options.onError?.(errorMessage)
+      throw this.handleError(error)
+    }
+  }
+
+  /**
    * Regenerate last AI response
    */
   async regenerateResponse(chatId: string): Promise<ChatGenerationResponse> {

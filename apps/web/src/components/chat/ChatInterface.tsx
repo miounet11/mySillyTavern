@@ -15,14 +15,17 @@ import { Message, CreateMessageParams, Character } from '@sillytavern-clone/shar
 import MessageList from './MessageList'
 import MessageInput from './MessageInput'
 import ChatHeader from './ChatHeader'
+import ChatControlBar from './ChatControlBar'
 import CharacterModal from '../character/CharacterModal'
 import toast from 'react-hot-toast'
+import { useTranslation } from '@/lib/i18n'
 
 interface ChatInterfaceProps {
   characterId?: string | null
 }
 
 export default function ChatInterface({ characterId }: ChatInterfaceProps) {
+  const { t } = useTranslation()
   const router = useRouter()
   const {
     currentChat,
@@ -31,6 +34,8 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     isLoading,
     isGenerating,
     error,
+    isStreamingEnabled,
+    isFastModeEnabled,
     setCurrentChat,
     setCharacter,
     setLoading,
@@ -72,8 +77,16 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   }, [currentChat, character, messages.length, canGenerate, isLoading, isGenerating])
 
   // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  const scrollToBottom = (smooth = true) => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' })
+    }
+  }
+
+  // Manual scroll to bottom handler
+  const handleScrollToBottom = () => {
+    scrollToBottom(true)
+    toast.success('已跳转到对话底部', { duration: 1000 })
   }
 
   useEffect(() => {
@@ -160,7 +173,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
       // Check if we have an active model (from localStorage)
       if (!hasActiveModel || !activeModel) {
         console.error('[ChatInterface] No active model configured!', { hasActiveModel, activeModel })
-        toast.error('请先配置 AI 模型')
+        toast.error(t('chat.chatInterface.noModel'))
         // 打开右侧设置抽屉，而不是跳转页面
         window.dispatchEvent(new CustomEvent('open-settings'))
         // Clean up URL parameter even on error
@@ -213,7 +226,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
               characterName: characterData.name,
               messageCount: loadedMessages.length
             })
-            toast.success(`已加载与 ${characterData.name} 的对话`)
+            toast.success(t('chat.chatInterface.chatLoaded', { name: characterData.name }))
             
             // Clean up URL parameter after state is set - use longer delay to ensure state updates complete
             setTimeout(() => {
@@ -271,7 +284,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
           hasCharacter: !!characterData,
           characterName: characterData.name
         })
-        toast.success(`已创建与 ${characterData.name} 的新对话`)
+        toast.success(t('chat.chatInterface.chatCreated', { name: characterData.name }))
         
         // Clean up URL parameter after all state updates - use longer delay to ensure completion
         setTimeout(() => {
@@ -281,7 +294,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
 
       } catch (error) {
         console.error('Error loading character and creating chat:', error)
-        toast.error('加载角色失败，请重试')
+        toast.error(t('chat.chatInterface.loadCharacterFailed'))
         setTimeout(() => router.replace('/characters'), 100)
       } finally {
         setLoading(false)
@@ -346,21 +359,59 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   // Generate AI response
   const generateAIResponse = async () => {
     try {
-      const response = await chatService.generateResponse(currentChat!.id, {
-        modelId: activeModel?.id,
-        clientModel: activeModel
-          ? {
-              provider: activeModel.provider,
-              model: activeModel.model,
-              apiKey: activeModel.apiKey,
-              baseUrl: activeModel.baseUrl,
-              settings: activeModel.settings || {},
-            }
-          : undefined,
-      })
+      const clientModel = activeModel
+        ? {
+            provider: activeModel.provider,
+            model: activeModel.model,
+            apiKey: activeModel.apiKey,
+            baseUrl: activeModel.baseUrl,
+            settings: activeModel.settings || {},
+          }
+        : undefined
 
-      // Add AI message to UI
-      addMessage(response.message)
+      // Use streaming if enabled
+      if (isStreamingEnabled) {
+        // Create a temporary message for streaming updates
+        const tempMessageId = `temp-ai-${Date.now()}`
+        const tempMessage: Message = {
+          id: tempMessageId,
+          chatId: currentChat!.id,
+          role: 'assistant',
+          content: '',
+          timestamp: new Date()
+        }
+        addMessage(tempMessage)
+
+        await chatService.generateResponseStreaming(currentChat!.id, {
+          modelId: activeModel?.id,
+          clientModel,
+          fastMode: isFastModeEnabled,
+          onChunk: (chunk: string, fullContent: string) => {
+            // Update the temporary message with new content
+            updateMessage(tempMessageId, { content: fullContent })
+          },
+          onComplete: (message: Message) => {
+            // Replace temporary message with final one
+            updateMessage(tempMessageId, message)
+          },
+          onError: (error: string) => {
+            setError(error)
+            toast.error('生成回复失败')
+            // Remove the temporary message on error
+            updateMessage(tempMessageId, { content: '[生成失败]' })
+          }
+        })
+      } else {
+        // Non-streaming (original behavior)
+        const response = await chatService.generateResponse(currentChat!.id, {
+          modelId: activeModel?.id,
+          clientModel,
+          fastMode: isFastModeEnabled,
+        })
+
+        // Add AI message to UI
+        addMessage(response.message)
+      }
 
     } catch (error) {
       console.error('Error generating response:', error)
@@ -409,7 +460,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   const handleNewChat = async () => {
     // Check if we have an active model configured (from localStorage)
     if (!hasActiveModel || !activeModel) {
-      toast.error('请先配置 AI 模型')
+      toast.error(t('chat.chatInterface.noModel'))
       // 打开右侧设置抽屉，而不是跳转页面
       window.dispatchEvent(new CustomEvent('open-settings'))
       return
@@ -476,7 +527,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
 
       setCurrentChat(newChat)
       setCharacter(characterToUse)
-      toast.success('新对话已创建')
+      toast.success(t('chat.chatInterface.newChatCreated'))
 
       // ST parity: auto-send greeting and prefill opener
       const flagsEnabled = (process.env.NEXT_PUBLIC_ST_PARITY_GREETING_ENABLED ?? 'true') !== 'false'
@@ -502,8 +553,8 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
 
     } catch (error) {
       console.error('Error creating chat:', error)
-      setError('创建对话失败')
-      toast.error('创建对话失败，请重试')
+      setError(t('chat.chatInterface.createChatFailed'))
+      toast.error(t('chat.chatInterface.createChatFailedRetry'))
     } finally {
       setLoading(false)
     }
@@ -554,17 +605,17 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
               {/* 常规欢迎界面 */}
               <div className="text-center">
                 <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-xl font-medium mb-2">选择或创建对话</h3>
+                <h3 className="text-xl font-medium mb-2">{t('chat.chatInterface.selectOrCreate')}</h3>
                 <p className="text-sm mb-4">
                   {!hasActiveModel 
-                    ? '配置 AI 模型后即可开始新对话' 
-                    : '选择已有对话或创建新对话开始聊天'}
+                    ? t('chat.chatInterface.configureModelFirst')
+                    : t('chat.chatInterface.selectOrCreateChat')}
                 </p>
                 <button
                   onClick={handleNewChat}
                   disabled={isLoading || !hasActiveModel}
                   className="tavern-button inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={!hasActiveModel ? '请先配置 AI 模型' : ''}
+                  title={!hasActiveModel ? t('chat.chatInterface.noModel') : ''}
                 >
                   <Plus className="w-4 h-4" />
                   新对话
@@ -593,6 +644,14 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
               )}
               <div ref={messagesEndRef} />
             </div>
+
+            {/* Control Bar */}
+            <ChatControlBar
+              onScrollToBottom={handleScrollToBottom}
+              onRegenerate={handleRegenerate}
+              showRegenerate={messages.length > 0 && messages.some(m => m.role === 'assistant')}
+              disabled={!canGenerate || isLoading}
+            />
 
             {/* Message Input */}
             <div className="border-t border-gray-800 p-4">

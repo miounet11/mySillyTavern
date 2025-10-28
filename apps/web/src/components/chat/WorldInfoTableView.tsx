@@ -320,7 +320,7 @@ export default function WorldInfoTableView({
 
       {sortedEntries.length === 0 && (
         <div className="text-center py-8 text-gray-500">
-          <p>暂无世界书条目</p>
+          <p>{t('chat.worldInfo.noEntries')}</p>
         </div>
       )}
     </div>

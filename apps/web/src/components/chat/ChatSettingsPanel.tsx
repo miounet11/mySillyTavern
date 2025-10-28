@@ -14,6 +14,7 @@ import {
   FileJson
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from '@/lib/i18n'
 
 interface ChatSettingsPanelProps {
   isOpen: boolean
@@ -38,6 +39,7 @@ export default function ChatSettingsPanel({
   onOpenBranchView,
   characterName
 }: ChatSettingsPanelProps) {
+  const { t } = useTranslation()
   const router = useRouter()
 
   if (!isOpen) {
@@ -45,7 +47,7 @@ export default function ChatSettingsPanel({
       <button
         onClick={onToggle}
         className="fixed left-4 top-20 z-30 p-2 rounded-lg bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 text-gray-300 hover:text-white hover:bg-gray-700/80 transition-all shadow-lg"
-        title="展开侧边栏"
+        title={t('chat.settingsPanel.expandSidebar')}
       >
         <PanelLeftOpen className="w-5 h-5" />
       </button>
@@ -57,11 +59,11 @@ export default function ChatSettingsPanel({
       {/* Header */}
       <div className="p-4 border-b border-gray-800/50">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-gray-300">对话设置</h3>
+          <h3 className="text-sm font-semibold text-gray-300">{t('chat.settingsPanel.title')}</h3>
           <button
             onClick={onToggle}
             className="p-1 rounded hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
-            title="收起侧边栏"
+            title={t('chat.settingsPanel.collapseSidebar')}
           >
             <PanelLeftClose className="w-4 h-4" />
           </button>
@@ -69,7 +71,7 @@ export default function ChatSettingsPanel({
 
         {characterName && (
           <div className="text-xs text-gray-500 mb-2">
-            当前角色: <span className="text-teal-400">{characterName}</span>
+            {t('chat.settingsPanel.currentCharacter')}: <span className="text-teal-400">{characterName}</span>
           </div>
         )}
       </div>
@@ -82,12 +84,12 @@ export default function ChatSettingsPanel({
           className="w-full justify-start tavern-button-secondary gap-3"
         >
           <ArrowLeft className="w-4 h-4" />
-          返回角色列表
+          {t('chat.settingsPanel.backToCharacters')}
         </Button>
 
         <div className="pt-4 pb-2">
           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            剧情
+            {t('chat.settingsPanel.sections.plot')}
           </h4>
         </div>
 
@@ -95,15 +97,15 @@ export default function ChatSettingsPanel({
           onClick={onOpenBranchView}
           variant="outline"
           className="w-full justify-start tavern-button-secondary gap-3"
-          title="管理对话分支"
+          title={t('chat.settingsPanel.branches.tooltip')}
         >
           <GitBranch className="w-4 h-4" />
-          剧情分支管理
+          {t('chat.settingsPanel.branches.title')}
         </Button>
 
         <div className="pt-4 pb-2">
           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            设置
+            {t('chat.settingsPanel.sections.settings')}
           </h4>
         </div>
 
@@ -111,55 +113,55 @@ export default function ChatSettingsPanel({
           onClick={onOpenExternalPrompts}
           variant="outline"
           className="w-full justify-start tavern-button-secondary gap-3"
-          title="外部提示词"
+          title={t('chat.settingsPanel.externalPrompts.tooltip')}
         >
           <FileText className="w-4 h-4" />
-          外部提示词
+          {t('chat.settingsPanel.externalPrompts.title')}
         </Button>
 
         <Button
           onClick={onOpenWorldInfo}
           variant="outline"
           className="w-full justify-start tavern-button-secondary gap-3"
-          title="世界书设置"
+          title={t('chat.settingsPanel.worldInfo.tooltip')}
         >
           <BookOpen className="w-4 h-4" />
-          世界书
+          {t('chat.settingsPanel.worldInfo.title')}
         </Button>
 
         <Button
           onClick={onOpenTemplateVariables}
           variant="outline"
           className="w-full justify-start tavern-button-secondary gap-3"
-          title="模板词选择器"
+          title={t('chat.settingsPanel.templateVars.tooltip')}
         >
           <Wand2 className="w-4 h-4" />
-          模板词选择
+          {t('chat.settingsPanel.templateVars.title')}
         </Button>
 
         <Button
           onClick={onOpenRegexEditor}
           variant="outline"
           className="w-full justify-start tavern-button-secondary gap-3"
-          title="正则脚本编辑器"
+          title={t('chat.settingsPanel.regex.tooltip')}
         >
           <Code className="w-4 h-4" />
-          正则脚本
+          {t('chat.settingsPanel.regex.title')}
         </Button>
 
         <Button
           onClick={onOpenPresetEditor}
           variant="outline"
           className="w-full justify-start tavern-button-secondary gap-3"
-          title="预设编辑器"
+          title={t('chat.settingsPanel.presets.tooltip')}
         >
           <FileJson className="w-4 h-4" />
-          预设管理
+          {t('chat.settingsPanel.presets.title')}
         </Button>
 
         <div className="pt-4 pb-2">
           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            高级
+            {t('chat.settingsPanel.sections.advanced')}
           </h4>
         </div>
 
@@ -167,10 +169,10 @@ export default function ChatSettingsPanel({
           onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
           variant="outline"
           className="w-full justify-start tavern-button-secondary gap-3"
-          title="高级设置"
+          title={t('chat.settingsPanel.advancedSettings.tooltip')}
         >
           <Settings className="w-4 h-4" />
-          高级设置
+          {t('chat.settingsPanel.advancedSettings.title')}
         </Button>
       </div>
 
@@ -178,11 +180,11 @@ export default function ChatSettingsPanel({
       <div className="p-4 border-t border-gray-800/50">
         <div className="text-xs text-gray-600 space-y-1">
           <div className="flex justify-between">
-            <span>消息数:</span>
+            <span>{t('chat.settingsPanel.stats.messageCount')}:</span>
             <span className="text-gray-400">--</span>
           </div>
           <div className="flex justify-between">
-            <span>Token 使用:</span>
+            <span>{t('chat.settingsPanel.stats.tokenUsage')}:</span>
             <span className="text-gray-400">--</span>
           </div>
         </div>

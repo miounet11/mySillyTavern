@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { X, Save } from 'lucide-react'
+import { useTranslation } from '@/lib/i18n'
 
 interface ChatNode {
   id: string
@@ -26,6 +27,7 @@ export default function ChatNodeEditor({
   nodeId,
   onSave
 }: ChatNodeEditorProps) {
+  const { t } = useTranslation()
   const [content, setContent] = useState('')
   const [memorySummary, setMemorySummary] = useState('')
   const [originalNode, setOriginalNode] = useState<ChatNode | null>(null)
@@ -76,8 +78,8 @@ export default function ChatNodeEditor({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-800/50">
           <div>
-            <h2 className="text-2xl font-bold text-gray-100">编辑节点</h2>
-            <p className="text-sm text-gray-400 mt-1">节点 ID: {nodeId}</p>
+            <h2 className="text-2xl font-bold text-gray-100">{t('chat.nodeEditor.title')}</h2>
+            <p className="text-sm text-gray-400 mt-1">{t('chat.nodeEditor.nodeId')}: {nodeId}</p>
           </div>
           <button
             onClick={handleCancel}
@@ -92,9 +94,9 @@ export default function ChatNodeEditor({
           {/* Left Panel - Memory Summary */}
           <div className="flex-1 border-r border-gray-800 p-6 flex flex-col">
             <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-100 mb-2">记忆摘要</h3>
+              <h3 className="text-lg font-semibold text-gray-100 mb-2">{t('chat.nodeEditor.memorySummary.title')}</h3>
               <p className="text-sm text-gray-400">
-                编辑与此节点关联的记忆摘要，这些信息将作为上下文提供给 AI。
+                {t('chat.nodeEditor.memorySummary.description')}
               </p>
             </div>
 
@@ -102,23 +104,23 @@ export default function ChatNodeEditor({
               value={memorySummary}
               onChange={(e) => setMemorySummary(e.target.value)}
               className="flex-1 tavern-textarea font-mono text-sm resize-none"
-              placeholder="输入记忆摘要...&#10;&#10;支持 Markdown 格式：&#10;&#10;## 章节标题&#10;### 小节标题&#10;- 列表项 1&#10;- 列表项 2&#10;&#10;**加粗文本**&#10;*斜体文本*"
+              placeholder={t('chat.nodeEditor.memorySummary.placeholder')}
             />
 
             <div className="mt-4 text-xs text-gray-500">
-              <p>💡 提示：使用 Markdown 格式组织记忆摘要</p>
-              <p>- 使用 ## 和 ### 创建章节</p>
-              <p>- 使用 - 或 * 创建列表</p>
-              <p>- 使用 **文本** 加粗，*文本* 斜体</p>
+              <p>{t('chat.nodeEditor.memorySummary.tips.title')}</p>
+              <p>{t('chat.nodeEditor.memorySummary.tips.sections')}</p>
+              <p>{t('chat.nodeEditor.memorySummary.tips.lists')}</p>
+              <p>{t('chat.nodeEditor.memorySummary.tips.formatting')}</p>
             </div>
           </div>
 
           {/* Right Panel - Message Content */}
           <div className="flex-1 p-6 flex flex-col">
             <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-100 mb-2">回复内容</h3>
+              <h3 className="text-lg font-semibold text-gray-100 mb-2">{t('chat.nodeEditor.content.title')}</h3>
               <p className="text-sm text-gray-400">
-                查看和编辑此节点的完整消息内容。
+                {t('chat.nodeEditor.content.description')}
               </p>
             </div>
 
@@ -126,15 +128,15 @@ export default function ChatNodeEditor({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="flex-1 tavern-textarea resize-none"
-              placeholder="输入消息内容..."
+              placeholder={t('chat.nodeEditor.content.placeholder')}
             />
 
             <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
               <div>
-                <p>字符数: {content.length}</p>
+                <p>{t('chat.nodeEditor.content.charCount')}: {content.length}</p>
                 {originalNode && (
                   <p className="mt-1">
-                    时间: {new Date(originalNode.timestamp).toLocaleString('zh-CN')}
+                    {t('chat.nodeEditor.content.timestamp')}: {new Date(originalNode.timestamp).toLocaleString('zh-CN')}
                   </p>
                 )}
               </div>
@@ -148,7 +150,7 @@ export default function ChatNodeEditor({
                         : 'bg-purple-500/20 text-purple-300'
                     }`}
                   >
-                    {originalNode.role === 'user' ? '用户消息' : 'AI 回复'}
+                    {originalNode.role === 'user' ? t('chat.nodeEditor.roles.user') : t('chat.nodeEditor.roles.assistant')}
                   </span>
                 </div>
               )}
@@ -163,14 +165,14 @@ export default function ChatNodeEditor({
             variant="outline"
             className="tavern-button-secondary"
           >
-            取消
+            {t('chat.nodeEditor.actions.cancel')}
           </Button>
           <Button
             onClick={handleSave}
             className="tavern-button gap-2"
           >
             <Save className="w-4 h-4" />
-            保存更改
+            {t('chat.nodeEditor.actions.save')}
           </Button>
         </div>
       </div>

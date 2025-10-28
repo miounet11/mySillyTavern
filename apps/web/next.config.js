@@ -2,9 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  experimental: {
-    appDir: true,
-  },
   images: {
     remotePatterns: [
       {
@@ -15,10 +12,6 @@ const nextConfig = {
   },
   // Enable transpilation of packages
   transpilePackages: ['@sillytavern-clone/shared'],
-  // Environment variables that should be available in the browser
-  env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY,
-  },
   // Webpack configuration for any custom build needs
   webpack: (config, { isServer }) => {
     // Add any custom webpack configuration here

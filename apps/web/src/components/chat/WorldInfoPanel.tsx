@@ -18,6 +18,7 @@ import {
   Table,
   LayoutGrid
 } from 'lucide-react'
+import { useTranslation } from '@/lib/i18n'
 
 interface WorldInfoEntry {
   id: string
@@ -41,6 +42,7 @@ export default function WorldInfoPanel({
   onClose,
   characterId
 }: WorldInfoPanelProps) {
+  const { t } = useTranslation()
   const [entries, setEntries] = useState<WorldInfoEntry[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [isCreating, setIsCreating] = useState(false)
@@ -116,7 +118,7 @@ export default function WorldInfoPanel({
   }
 
   const handleDelete = (id: string) => {
-    if (confirm('确定要删除这个世界书条目吗？')) {
+    if (confirm(t('chat.worldInfo.deleteConfirm'))) {
       setEntries(entries.filter(e => e.id !== id))
     }
   }
@@ -144,7 +146,7 @@ export default function WorldInfoPanel({
         <div className="flex items-center justify-between p-6 border-b border-gray-800/50">
           <div className="flex items-center gap-3">
             <BookOpen className="w-6 h-6 text-teal-400" />
-            <h2 className="text-2xl font-bold text-gray-100">世界书</h2>
+            <h2 className="text-2xl font-bold text-gray-100">{t('chat.worldInfo.title')}</h2>
           </div>
           <button
             onClick={onClose}
@@ -162,9 +164,9 @@ export default function WorldInfoPanel({
             <div className="flex gap-3 mb-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="搜索世界书条目..."
-                  value={searchQuery}
+              <Input
+                placeholder={t('chat.worldInfo.searchPlaceholder')}
+                value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 tavern-input"
                 />
@@ -201,7 +203,7 @@ export default function WorldInfoPanel({
                 className="tavern-button gap-2"
               >
                 <Plus className="w-4 h-4" />
-                添加条目
+                {t('chat.worldInfo.addEntry')}
               </Button>
             </div>
 
@@ -211,7 +213,7 @@ export default function WorldInfoPanel({
                 <div className="text-center py-12 text-gray-500">
                   <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-30" />
                   <p className="mb-2">
-                    {searchQuery ? '未找到匹配的条目' : '还没有世界书条目'}
+                    {searchQuery ? t('chat.worldInfo.noMatchingEntries') : t('chat.worldInfo.noEntries')}
                   </p>
                   {!searchQuery && (
                     <Button
@@ -220,7 +222,7 @@ export default function WorldInfoPanel({
                       className="tavern-button-secondary gap-2 mt-4"
                     >
                       <Plus className="w-4 h-4" />
-                      创建第一个条目
+                      {t('chat.worldInfo.createFirstEntry')}
                     </Button>
                   )}
                 </div>
@@ -307,9 +309,9 @@ export default function WorldInfoPanel({
           ) : (
             /* Create/Edit Form */
             <div className="space-y-4">
-              <div>
-                <label className="tavern-label">条目名称</label>
-                <Input
+            <div>
+              <label className="tavern-label">{t('chat.worldInfo.entryName')}</label>
+              <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="例如: 魔法系统"
@@ -325,19 +327,19 @@ export default function WorldInfoPanel({
                   placeholder="例如: 魔法, 法术, 咒语"
                   className="tavern-input"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  当对话中出现这些关键词时，此条目会被激活
-                </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {t('chat.worldInfo.keywordsHelp')}
+              </p>
               </div>
 
-              <div>
-                <label className="tavern-label">条目内容</label>
-                <Textarea
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  placeholder="描述这个世界书条目的详细信息..."
-                  className="tavern-textarea min-h-[200px]"
-                />
+            <div>
+              <label className="tavern-label">{t('chat.worldInfo.entryContent')}</label>
+              <Textarea
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                placeholder={t('chat.worldInfo.contentPlaceholder')}
+                className="tavern-textarea min-h-[200px]"
+              />
               </div>
 
               <div className="grid grid-cols-3 gap-4">
@@ -387,9 +389,9 @@ export default function WorldInfoPanel({
                   onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
                   className="tavern-checkbox"
                 />
-                <label htmlFor="enabled" className="text-sm text-gray-300 cursor-pointer">
-                  启用此条目
-                </label>
+              <label htmlFor="enabled" className="text-sm text-gray-300 cursor-pointer">
+                {t('chat.worldInfo.enableEntry')}
+              </label>
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -398,7 +400,7 @@ export default function WorldInfoPanel({
                   disabled={!formData.name || !formData.content}
                   className="tavern-button flex-1"
                 >
-                  保存
+                  {t('chat.worldInfo.save')}
                 </Button>
                 <Button
                   onClick={() => {
@@ -408,7 +410,7 @@ export default function WorldInfoPanel({
                   variant="outline"
                   className="tavern-button-secondary flex-1"
                 >
-                  取消
+                  {t('chat.worldInfo.cancel')}
                 </Button>
               </div>
             </div>

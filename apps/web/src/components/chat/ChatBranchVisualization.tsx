@@ -11,6 +11,7 @@ import {
   ChevronRight,
   ChevronDown
 } from 'lucide-react'
+import { useTranslation } from '@/lib/i18n'
 
 interface ChatBranchNode {
   id: string
@@ -95,6 +96,7 @@ export default function ChatBranchVisualization({
   onEditNode,
   onDeleteNode
 }: ChatBranchVisualizationProps) {
+  const { t } = useTranslation()
   const [nodes] = useState<ChatBranchNode[]>(MOCK_TREE)
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['root', '1_path_1', '1_path_2']))
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
@@ -165,16 +167,16 @@ export default function ChatBranchVisualization({
                         : 'bg-purple-500/20 text-purple-300'
                     }`}
                   >
-                    {node.role === 'user' ? '用户' : 'AI'}
+                    {node.role === 'user' ? t('chat.branchVisualization.roles.user') : t('chat.branchVisualization.roles.assistant')}
                   </span>
                   {node.isCurrent && (
                     <span className="text-xs font-semibold px-2 py-0.5 rounded bg-teal-500/20 text-teal-300">
-                      当前
+                      {t('chat.branchVisualization.currentBranch')}
                     </span>
                   )}
                   {hasChildren && (
                     <span className="text-xs text-gray-500">
-                      {node.children.length} 分支
+                      {node.children.length} {t('chat.branchVisualization.branches')}
                     </span>
                   )}
                 </div>
@@ -187,7 +189,7 @@ export default function ChatBranchVisualization({
                       onEditNode?.(node.id)
                     }}
                     className="p-1 rounded hover:bg-gray-700 text-gray-400 hover:text-teal-400 transition-colors"
-                    title="编辑节点"
+                    title={t('chat.branchVisualization.tooltips.edit')}
                   >
                     <Edit className="w-3 h-3" />
                   </button>
@@ -195,12 +197,12 @@ export default function ChatBranchVisualization({
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        if (confirm('确定要删除此节点及其所有子节点吗？')) {
+                        if (confirm(t('chat.branchVisualization.deleteConfirm'))) {
                           onDeleteNode?.(node.id)
                         }
                       }}
                       className="p-1 rounded hover:bg-gray-700 text-gray-400 hover:text-red-400 transition-colors"
-                      title="删除节点"
+                      title={t('chat.branchVisualization.tooltips.delete')}
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -247,7 +249,7 @@ export default function ChatBranchVisualization({
         <div className="flex items-center justify-between p-6 border-b border-gray-800/50">
           <div className="flex items-center gap-3">
             <GitBranch className="w-6 h-6 text-teal-400" />
-            <h2 className="text-2xl font-bold text-gray-100">剧情分支管理</h2>
+            <h2 className="text-2xl font-bold text-gray-100">{t('chat.branchVisualization.title')}</h2>
           </div>
           <button
             onClick={onClose}
@@ -263,12 +265,12 @@ export default function ChatBranchVisualization({
           <div className="flex-1 overflow-y-auto p-6 tavern-scrollbar">
             <div className="max-w-4xl">
               <div className="mb-4 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 text-sm">
-                <p className="mb-1">💡 <strong>提示：</strong></p>
+                <p className="mb-1"><strong>{t('chat.branchVisualization.tips.title')}</strong></p>
                 <ul className="list-disc list-inside space-y-1 text-xs">
-                  <li>点击节点可查看详情</li>
-                  <li>使用折叠按钮展开或收起分支</li>
-                  <li>当前分支以青色高亮显示</li>
-                  <li>悬停节点可显示编辑和删除按钮</li>
+                  <li>{t('chat.branchVisualization.tips.clickNode')}</li>
+                  <li>{t('chat.branchVisualization.tips.expandCollapse')}</li>
+                  <li>{t('chat.branchVisualization.tips.currentHighlight')}</li>
+                  <li>{t('chat.branchVisualization.tips.hoverActions')}</li>
                 </ul>
               </div>
 
@@ -277,7 +279,7 @@ export default function ChatBranchVisualization({
               ) : (
                 <div className="text-center py-12 text-gray-500">
                   <GitBranch className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                  <p>暂无对话分支</p>
+                  <p>{t('chat.branchVisualization.noBranches')}</p>
                 </div>
               )}
             </div>
@@ -286,7 +288,7 @@ export default function ChatBranchVisualization({
           {/* Side Panel - Node Details */}
           {selectedNode && (
             <div className="w-80 border-l border-gray-800 p-6 overflow-y-auto tavern-scrollbar">
-              <h3 className="text-lg font-semibold text-gray-100 mb-4">节点详情</h3>
+              <h3 className="text-lg font-semibold text-gray-100 mb-4">{t('chat.branchVisualization.nodeDetails.title')}</h3>
               
               {(() => {
                 const node = nodes.find(n => n.id === selectedNode)
@@ -295,31 +297,31 @@ export default function ChatBranchVisualization({
                 return (
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs text-gray-500 uppercase">ID</label>
+                      <label className="text-xs text-gray-500 uppercase">{t('chat.branchVisualization.nodeDetails.id')}</label>
                       <p className="text-sm text-gray-300 font-mono">{node.id}</p>
                     </div>
 
                     <div>
-                      <label className="text-xs text-gray-500 uppercase">角色</label>
+                      <label className="text-xs text-gray-500 uppercase">{t('chat.branchVisualization.nodeDetails.role')}</label>
                       <p className="text-sm text-gray-300">
-                        {node.role === 'user' ? '用户' : 'AI 助手'}
+                        {node.role === 'user' ? t('chat.branchVisualization.roles.user') : t('chat.branchVisualization.roles.assistantFull')}
                       </p>
                     </div>
 
                     <div>
-                      <label className="text-xs text-gray-500 uppercase">内容</label>
+                      <label className="text-xs text-gray-500 uppercase">{t('chat.branchVisualization.nodeDetails.content')}</label>
                       <p className="text-sm text-gray-300 whitespace-pre-wrap">
                         {node.content}
                       </p>
                     </div>
 
                     <div>
-                      <label className="text-xs text-gray-500 uppercase">子分支数</label>
+                      <label className="text-xs text-gray-500 uppercase">{t('chat.branchVisualization.nodeDetails.childrenCount')}</label>
                       <p className="text-sm text-gray-300">{node.children.length}</p>
                     </div>
 
                     <div>
-                      <label className="text-xs text-gray-500 uppercase">时间戳</label>
+                      <label className="text-xs text-gray-500 uppercase">{t('chat.branchVisualization.nodeDetails.timestamp')}</label>
                       <p className="text-sm text-gray-300">
                         {new Date(node.timestamp).toLocaleString('zh-CN')}
                       </p>
@@ -330,26 +332,26 @@ export default function ChatBranchVisualization({
                         onClick={() => onSelectNode?.(node.id)}
                         className="w-full tavern-button"
                       >
-                        跳转到此节点
+                        {t('chat.branchVisualization.actions.jumpToNode')}
                       </Button>
                       <Button
                         onClick={() => onEditNode?.(node.id)}
                         variant="outline"
                         className="w-full tavern-button-secondary"
                       >
-                        编辑节点
+                        {t('chat.branchVisualization.actions.editNode')}
                       </Button>
                       {node.id !== 'root' && (
                         <Button
                           onClick={() => {
-                            if (confirm('确定要删除此节点及其所有子节点吗？')) {
+                            if (confirm(t('chat.branchVisualization.deleteConfirm'))) {
                               onDeleteNode?.(node.id)
                             }
                           }}
                           variant="outline"
                           className="w-full tavern-button-danger"
                         >
-                          删除节点
+                          {t('chat.branchVisualization.actions.deleteNode')}
                         </Button>
                       )}
                     </div>
