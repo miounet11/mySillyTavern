@@ -12,7 +12,7 @@ module.exports = {
     env_production: {
       NODE_ENV: 'production',
       PORT: 3000,
-      DATABASE_URL: 'postgresql://prod_user:prod_password@localhost:5432/sillytavern_prod?schema=public'
+      DATABASE_URL: 'postgresql://sillytavern_prod:sillytavern2025!@localhost:5432/sillytavern_prod?schema=public'
     },
     error_file: '/var/log/sillytavern/error.log',
     out_file: '/var/log/sillytavern/out.log',

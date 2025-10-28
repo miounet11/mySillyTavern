@@ -131,6 +131,7 @@ export async function POST(request: NextRequest) {
     const characterSettings = chat.character.settings ? JSON.parse(chat.character.settings) : {}
     const modelSettings = modelConfig.settings ? JSON.parse(modelConfig.settings) : {}
     
+    // 1. System prompt (if exists)
     const systemPrompt = chat.character.systemPrompt ||
                         chatSettings.systemPrompt || 
                         characterSettings.systemPrompt || 
@@ -143,7 +144,23 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Add scenario/background
+    // 2. Character description (CRITICAL - most important field)
+    if (chat.character.description) {
+      conversationMessages.push({
+        role: 'system',
+        content: `Character Description:\n${chat.character.description}`
+      })
+    }
+
+    // 3. Creator notes (author's guidance)
+    if (chat.character.creatorNotes) {
+      conversationMessages.push({
+        role: 'system',
+        content: `Creator Notes:\n${chat.character.creatorNotes}`
+      })
+    }
+
+    // 4. Scenario/Background
     if (chat.character.scenario || chat.character.background) {
       conversationMessages.push({
         role: 'system',
@@ -151,7 +168,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Add character personality
+    // 5. Character personality
     if (chat.character.personality) {
       conversationMessages.push({
         role: 'system',
@@ -196,6 +213,14 @@ export async function POST(request: NextRequest) {
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
         metadata: msg.metadata ? JSON.parse(msg.metadata) : undefined
+      })
+    }
+
+    // Post-history instructions (added after conversation history)
+    if (chat.character.postHistoryInstructions) {
+      conversationMessages.push({
+        role: 'system',
+        content: chat.character.postHistoryInstructions
       })
     }
 

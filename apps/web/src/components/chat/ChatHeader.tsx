@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useTranslation } from '@/lib/i18n'
 
 interface ChatHeaderProps {
   className?: string
@@ -37,6 +38,7 @@ export default function ChatHeader({
   onNewChat
 }: ChatHeaderProps) {
   const { deleteChat, exportChat } = useChatStore()
+  const { t } = useTranslation()
   const [isExporting, setIsExporting] = useState(false)
 
   const currentChat = chat || null
@@ -45,17 +47,17 @@ export default function ChatHeader({
   const handleDeleteChat = async () => {
     if (!currentChat) return
 
-    const confirmMessage = `确定要删除与 "${currentCharacter?.name || 'AI'}" 的对话吗？此操作无法撤销。`
+    const confirmMessage = t('chat.deleteConfirm', { name: currentCharacter?.name || 'AI' })
 
     if (confirm(confirmMessage)) {
       try {
         const success = await deleteChat(currentChat.id)
         if (success) {
-          toast.success('对话已删除')
+          toast.success(t('chat.deleted'))
           onBack?.()
         }
       } catch (error) {
-        toast.error('删除对话失败')
+        toast.error(t('chat.deleteFailed'))
       }
     }
   }
@@ -77,9 +79,9 @@ export default function ChatHeader({
       linkElement.setAttribute('download', exportFileDefaultName)
       linkElement.click()
 
-      toast.success('对话已导出')
+      toast.success(t('chat.chatHeader.success.exported'))
     } catch (error) {
-      toast.error('导出对话失败')
+      toast.error(t('chat.error.deleteFailed'))
     } finally {
       setIsExporting(false)
     }
@@ -94,16 +96,16 @@ export default function ChatHeader({
 
       if (navigator.share) {
         await navigator.share({
-          title: `与 ${currentCharacter?.name || 'AI'} 的对话`,
-          text: '查看这个有趣的对话',
+          title: t('chat.chatHeader.shareTitle', { name: currentCharacter?.name || 'AI' }),
+          text: t('chat.chatHeader.shareText'),
           url: shareUrl,
         })
       } else {
         await navigator.clipboard.writeText(shareUrl)
-        toast.success('分享链接已复制到剪贴板')
+        toast.success(t('chat.chatHeader.success.shareLinkCopied'))
       }
     } catch (error) {
-      toast.error('分享失败')
+      toast.error(t('chat.chatHeader.error.shareFailed'))
     }
   }
 
@@ -121,10 +123,10 @@ export default function ChatHeader({
         throw new Error('Failed to toggle favorite')
       }
       
-      toast.success(currentChat.isFavorite ? '已取消收藏' : '已添加到收藏')
+      toast.success(currentChat.isFavorite ? t('chat.unfavorited') : t('chat.favorited'))
     } catch (error) {
       console.error('Error toggling favorite:', error)
-      toast.error('操作失败')
+      toast.error(t('chat.chatHeader.error.operationFailed'))
     }
   }
 
@@ -196,13 +198,13 @@ export default function ChatHeader({
               <div className="flex items-center space-x-3 text-sm text-gray-300 mt-1">
                 <span className="flex items-center space-x-1.5 glass-light px-2 py-1 rounded-full">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="font-medium">在线</span>
+                  <span className="font-medium">{t('chat.chatHeader.online')}</span>
                 </span>
 
                 {stats && (
                   <>
                     <span className="text-gray-500">•</span>
-                    <span className="font-medium">{stats.total} 条消息</span>
+                    <span className="font-medium">{stats.total} {t('chat.chatHeader.messagesCount')}</span>
                     <span className="text-gray-500">•</span>
                     <span className="text-gray-400">{stats.lastActivity}</span>
                   </>
@@ -222,7 +224,7 @@ export default function ChatHeader({
                 className="glass-light hover:bg-white/10 text-white border-white/20 hover-lift transition-all"
               >
                 <Edit className="w-4 h-4 mr-2" />
-                编辑角色
+                {t('chat.editCharacter')}
               </Button>
             )}
 
@@ -234,7 +236,7 @@ export default function ChatHeader({
                 onClick={onNewChat}
                 className="gradient-btn-primary hover-lift transition-all"
               >
-                新对话
+                {t('chat.chatHeader.newChat')}
               </Button>
             )}
 
@@ -278,23 +280,23 @@ export default function ChatHeader({
                 {/* Chat Actions */}
                 <DropdownMenuItem onClick={handleToggleFavorite}>
                   <Star className="w-4 h-4 mr-2" />
-                  {currentChat?.isFavorite ? '取消收藏' : '收藏对话'}
+                  {currentChat?.isFavorite ? t('chat.chatHeader.unfavoriteChat') : t('chat.chatHeader.favoriteChat')}
                 </DropdownMenuItem>
 
                 <DropdownMenuItem onClick={handleShareChat}>
                   <Share2 className="w-4 h-4 mr-2" />
-                  分享对话
+                  {t('chat.chatHeader.shareChat')}
                 </DropdownMenuItem>
 
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={handleExportChat} disabled={isExporting}>
                   <Download className="w-4 h-4 mr-2" />
-                  {isExporting ? '导出中...' : '导出对话'}
+                  {isExporting ? t('chat.chatHeader.exportingChat') : t('chat.chatHeader.exportChat')}
                 </DropdownMenuItem>
 
                 {currentCharacter && onEditCharacter && (
                   <DropdownMenuItem onClick={onEditCharacter}>
                     <Edit className="w-4 h-4 mr-2" />
-                    编辑角色
+                    {t('chat.editCharacter')}
                   </DropdownMenuItem>
                 )}
 
@@ -303,7 +305,7 @@ export default function ChatHeader({
                 {/* Destructive Actions */}
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={handleDeleteChat} className="text-red-500 hover:text-red-400 focus:text-red-400">
                   <Trash2 className="w-4 h-4 mr-2" />
-                  删除对话
+                  {t('chat.deleteChat')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

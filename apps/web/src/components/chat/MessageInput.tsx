@@ -15,6 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useTranslation } from '@/lib/i18n'
 
 interface MessageInputProps {
   className?: string
@@ -28,7 +29,7 @@ interface MessageInputProps {
 
 export default function MessageInput({
   className = '',
-  placeholder = '输入消息...',
+  placeholder,
   disabled = false,
   value,
   onChange,
@@ -37,12 +38,15 @@ export default function MessageInput({
 }: MessageInputProps) {
   const { currentChat, isLoading, character } = useChatStore()
   const { selectedCharacter: activeCharacter } = useCharacterStore()
+  const { t } = useTranslation()
 
   const [internalMessage, setInternalMessage] = useState('')
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const recordingIntervalRef = useRef<NodeJS.Timeout>()
+  const composingRef = useRef(false)
+  const sendingRef = useRef(false)
 
   const currentCharacter = character || activeCharacter
   const message = value !== undefined ? value : internalMessage
@@ -80,18 +84,20 @@ export default function MessageInput({
     const trimmedMessage = message.trim()
 
     if (!trimmedMessage) {
-      toast.error('请输入消息内容')
+      toast.error(t('chat.error.emptyMessage'))
       return
     }
 
     if (!currentCharacter) {
-      toast.error('请先选择一个角色')
+      toast.error(t('chat.error.selectCharacter'))
       return
     }
 
     setIsRecording(false) // Stop any ongoing recording
 
     try {
+      if (sendingRef.current) return
+      sendingRef.current = true
       handleSetMessage('') // Clear input immediately
 
       if (onSend) {
@@ -99,16 +105,20 @@ export default function MessageInput({
       } else if (onSendMessage) {
         onSendMessage(trimmedMessage)
       } else {
-        toast.error('发送功能未配置')
+        toast.error(t('chat.error.sendNotConfigured'))
       }
     } catch (error) {
       console.error('Error sending message:', error)
-      toast.error('发送消息失败')
+      toast.error(t('chat.error.sendFailed'))
       handleSetMessage(trimmedMessage) // Restore message on error
+    } finally {
+      sendingRef.current = false
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (composingRef.current) return
+    if (e.repeat) return
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
@@ -122,7 +132,7 @@ export default function MessageInput({
       
       // 检查浏览器是否支持MediaRecorder
       if (!window.MediaRecorder) {
-        toast.error('您的浏览器不支持语音录制')
+        toast.error(t('chat.error.recordingNotSupported'))
         return
       }
       
@@ -130,13 +140,13 @@ export default function MessageInput({
       
       // 这里应该实现实际的录音功能
       // 由于完整实现需要音频处理和STT服务，这里提供基础框架
-      toast('语音录制功能需要配置语音识别服务 (如 Whisper API)')
+      toast(t('chat.error.recordingNeedsSTT'))
       
       // 清理资源
       stream.getTracks().forEach(track => track.stop())
     } catch (error) {
       console.error('Error starting recording:', error)
-      toast.error('无法访问麦克风，请检查权限设置')
+      toast.error(t('chat.error.microphonePermission'))
     }
   }
 
@@ -160,7 +170,7 @@ export default function MessageInput({
       
       // 检查文件大小 (10MB 限制)
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('文件大小不能超过 10MB')
+        toast.error(t('chat.error.fileTooLarge'))
         return
       }
       
@@ -175,21 +185,21 @@ export default function MessageInput({
         })
         
         if (!response.ok) {
-          throw new Error('上传失败')
+          throw new Error(t('chat.error.uploadFailed'))
         }
         
         const data = await response.json()
-        toast.success('文件上传成功')
+        toast.success(t('chat.file.uploadSuccess'))
         
         // 如果是图片，可以插入到消息中
         if (file.type.startsWith('image/')) {
-          handleSetMessage(message + `\n[图片: ${data.filename}]`)
+          handleSetMessage(message + `\n[${t('chat.file.image')}: ${data.filename}]`)
         } else {
-          handleSetMessage(message + `\n[文件: ${data.filename}]`)
+          handleSetMessage(message + `\n[${t('chat.file.file')}: ${data.filename}]`)
         }
       } catch (error) {
         console.error('Error uploading file:', error)
-        toast.error('文件上传失败')
+        toast.error(t('chat.error.uploadFailed'))
       }
     }
     input.click()
@@ -218,15 +228,55 @@ export default function MessageInput({
     { label: '详细描述', action: () => handleSetMessage('请详细描述一下你现在的状态和想法') },
   ]
 
+  // Story helper chips (剧情推进 / 视角设计 / 场景过渡)
+  const storyChips = [
+    {
+      key: 'advance',
+      label: '剧情推进',
+      className: 'text-amber-300 hover:text-amber-200 border-amber-400/30 hover:border-amber-300/60',
+      fill: () => {
+        const name = currentCharacter?.name || '角色'
+        handleSetMessage(
+          `【剧情推进】\n- 延续当前情节，明确冲突/目标\n- 描述${name}的决定与行动（含动机）\n- 引入悬念或新线索推动下一幕\n- 保持人设与世界观一致，4-8句，自然对话为主`
+        )
+        textareaRef.current?.focus()
+      }
+    },
+    {
+      key: 'pov',
+      label: '视角设计',
+      className: 'text-teal-300 hover:text-teal-200 border-teal-400/30 hover:border-teal-300/60',
+      fill: () => {
+        const name = currentCharacter?.name || '角色'
+        handleSetMessage(
+          `【视角设计】\n- 以第一人称（${name}）或第三人称旁白重述当前片段\n- 加入感官细节（视觉/听觉/触觉/气味）\n- 内心独白 + 外在动作，节奏分层\n- 语言风格贴合人设，避免跳出角色`
+        )
+        textareaRef.current?.focus()
+      }
+    },
+    {
+      key: 'transition',
+      label: '场景过渡',
+      className: 'text-purple-300 hover:text-purple-200 border-purple-400/30 hover:border-purple-300/60',
+      fill: () => {
+        handleSetMessage(
+          '【场景过渡】\n- 交代时间/地点/状态变化（简洁）\n- 承上启下：承接当前冲突，铺垫下一互动点\n- 过渡自然，不割裂语气与叙述视角\n- 2-4句，收束在一个可继续对话的钩子上'
+        )
+        textareaRef.current?.focus()
+      }
+    }
+  ]
+
   return (
     <div className={`border-t border-gray-800/50 glass-card backdrop-blur-lg ${className}`}>
       <div className="p-5">
+
         {/* Character Context and Status */}
         {currentCharacter && (
           <div className="flex items-center space-x-2 mb-4 glass-light px-4 py-2 rounded-lg w-fit">
-            <span className="text-sm text-gray-400">正在与</span>
+            <span className="text-sm text-gray-400">{t('chat.chattingWith')}</span>
             <span className="font-semibold gradient-text">{currentCharacter.name}</span>
-            <span className="text-sm text-gray-400">对话</span>
+            <span className="text-sm text-gray-400">{t('chat.conversation')}</span>
           </div>
         )}
         
@@ -235,7 +285,7 @@ export default function MessageInput({
           <div className="mb-4 p-4 glass-light rounded-xl text-sm animate-fade-in">
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse-glow"></div>
-              <span className="text-blue-300 font-medium">正在初始化对话...</span>
+              <span className="text-blue-300 font-medium">{t('chat.status.initializing')}</span>
             </div>
           </div>
         )}
@@ -245,7 +295,7 @@ export default function MessageInput({
           <div className="flex items-center justify-between mb-4 p-4 glass-card rounded-xl border border-red-500/30 animate-fade-in">
             <div className="flex items-center space-x-3">
               <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-              <span className="text-sm text-red-400 font-medium">正在录制...</span>
+              <span className="text-sm text-red-400 font-medium">{t('chat.status.recording')}</span>
               <span className="text-sm text-red-300 font-mono bg-red-950/50 px-3 py-1 rounded-lg">
                 {formatRecordingTime(recordingTime)}
               </span>
@@ -257,7 +307,7 @@ export default function MessageInput({
               className="glass-light border-red-500/30 text-red-400 hover:bg-red-900/30 hover-lift"
             >
               <MicOff className="w-4 h-4 mr-2" />
-              停止录制
+              {t('chat.status.stopRecording')}
             </Button>
           </div>
         )}
@@ -270,10 +320,12 @@ export default function MessageInput({
               ref={textareaRef}
               value={message}
               onChange={(e) => handleSetMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={placeholder}
+            onKeyDown={handleKeyDown}
+            onCompositionStart={() => { composingRef.current = true }}
+            onCompositionEnd={() => { composingRef.current = false }}
+              placeholder={placeholder || t('chat.message.placeholder')}
               disabled={disabled || isLoading || isRecording}
-              className="glass-input min-h-[70px] max-h-[200px] resize-none pr-16 text-base"
+              className="glass-input input-focus min-h-[70px] max-h-[200px] resize-none pr-16 text-base"
               rows={1}
             />
 
@@ -297,7 +349,7 @@ export default function MessageInput({
               onClick={handleFileUpload}
               disabled={disabled || isLoading || isRecording}
               className="glass-light hover:bg-white/10 text-gray-300 hover:text-white border-white/20 hover-lift w-11 h-11"
-              title="上传文件"
+              title={t('chat.file.upload')}
             >
               <Paperclip className="w-5 h-5" />
             </Button>
@@ -310,7 +362,7 @@ export default function MessageInput({
               onClick={isRecording ? stopRecording : startRecording}
               disabled={disabled || isLoading}
               className={isRecording ? "bg-red-600 hover:bg-red-700 w-11 h-11" : "glass-light hover:bg-white/10 text-gray-300 hover:text-white border-white/20 hover-lift w-11 h-11"}
-              title={isRecording ? "停止录制" : "语音输入"}
+              title={isRecording ? t('chat.voice.stopRecording') : t('chat.voice.input')}
             >
               {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </Button>
@@ -324,7 +376,7 @@ export default function MessageInput({
                   size="sm"
                   disabled={disabled || isLoading || isRecording || !currentCharacter}
                   className="glass-light hover:bg-white/10 text-gray-300 hover:text-white border-white/20 hover-lift w-11 h-11"
-                  title="快捷操作"
+                  title={t('chat.quickActions.title')}
                 >
                   <Sparkles className="w-5 h-5" />
                 </Button>
@@ -348,10 +400,10 @@ export default function MessageInput({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => toast('重新生成功能开发中...')}
+                onClick={() => toast(t('chat.message.regenerateInDev'))}
                 disabled={disabled || isLoading}
                 className="glass-light hover:bg-white/10 text-gray-300 hover:text-white border-white/20 hover-lift w-11 h-11"
-                title="重新生成上一条回复"
+                title={t('chat.message.regenerate')}
               >
                 <RotateCcw className="w-5 h-5" />
               </Button>
@@ -369,21 +421,39 @@ export default function MessageInput({
                 !currentCharacter
               }
               className="gradient-btn-primary hover-lift w-14 h-11"
-              title="发送消息 (Enter)"
+              title={t('chat.message.sendEnter')}
             >
               <Send className="w-5 h-5" />
             </Button>
           </div>
         </div>
 
+        {/* Story chips above status indicators */}
+        {currentCharacter && (
+          <div className="flex items-center justify-start mb-3 gap-2 sm:gap-3 max-w-4xl">
+            {storyChips.map(chip => (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={chip.fill}
+                className={`px-2 py-1.5 sm:px-4 text-xs rounded-full border transition-all duration-200 glass-light bg-gray-800/60 ${chip.className}`}
+                aria-label={chip.label}
+              >
+                <span className="hidden sm:inline">{chip.label}</span>
+                <span className="sm:hidden">{chip.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Status Indicators */}
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between mt-2">
           <div className="flex items-center space-x-3 text-xs">
             <span className="glass-light px-3 py-1.5 rounded-lg text-gray-400">
-              <span className="text-blue-400">⏎</span> Enter 发送
+              <span className="text-blue-400">⏎</span> {t('chat.shortcuts.send')}
             </span>
             <span className="glass-light px-3 py-1.5 rounded-lg text-gray-400">
-              <span className="text-purple-400">⇧</span> Shift+Enter 换行
+              <span className="text-purple-400">⇧</span> {t('chat.shortcuts.newline')}
             </span>
             {currentCharacter && (
               <span className="glass-light px-3 py-1.5 rounded-lg text-gray-400">
@@ -395,7 +465,9 @@ export default function MessageInput({
           {isLoading && (
             <div className="flex items-center space-x-2 glass-light px-4 py-2 rounded-lg animate-pulse-glow">
               <div className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-pulse"></div>
-              <span className="text-sm text-blue-300 font-medium">AI正在思考...</span>
+              <span className="text-sm text-blue-300 font-medium">
+                {t('chat.status.replying', { name: currentCharacter?.name || t('chat.status.character') })}
+              </span>
             </div>
           )}
         </div>

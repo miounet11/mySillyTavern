@@ -422,8 +422,8 @@
   }
 
   .hover-lift:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
   }
 
   .hover-glow {
@@ -432,6 +432,55 @@
 
   .hover-glow:hover {
     box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  }
+
+  /* Chat message enhancements */
+  .message-appear {
+    animation: messageAppear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  @keyframes messageAppear {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Typing cursor animation */
+  .typing-cursor::after {
+    content: '|';
+    animation: cursorBlink 1s infinite;
+    color: #60a5fa;
+    font-weight: bold;
+  }
+
+  @keyframes cursorBlink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+
+  /* Message hover effects */
+  .message-hover {
+    transition: all 0.2s ease;
+  }
+
+  .message-hover:hover {
+    transform: scale(1.01);
+    filter: brightness(1.1);
+  }
+
+  /* Enhanced input focus */
+  .input-focus {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .input-focus:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
   }
 
   /* Gradient text */

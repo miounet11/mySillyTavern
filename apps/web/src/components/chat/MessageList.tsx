@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { useTranslation } from '@/lib/i18n'
 
 interface MessageListProps {
   className?: string
@@ -36,6 +37,7 @@ export default function MessageList({
   onRegenerateMessage
 }: MessageListProps) {
   const { currentChat, character } = useChatStore()
+  const { t } = useTranslation()
   const messages = propMessages || currentChat?.messages || []
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
@@ -48,7 +50,7 @@ export default function MessageList({
 
   const handleCopyMessage = (content: string) => {
     navigator.clipboard.writeText(content)
-    toast.success('消息已复制到剪贴板')
+    toast.success(t('chat.message.copied'))
   }
 
   const handleStartEdit = (message: Message) => {
@@ -72,11 +74,11 @@ export default function MessageList({
   }
 
   const handleDeleteMessage = (messageId: string) => {
-    if (confirm('确定要删除这条消息吗？')) {
+    if (confirm(t('chat.message.deleteConfirm'))) {
       if (onDeleteMessage) {
         onDeleteMessage(messageId)
       } else {
-        toast('删除消息功能开发中...')
+        toast(t('chat.message.deleteInDev'))
       }
     }
   }
@@ -85,28 +87,31 @@ export default function MessageList({
     if (onRegenerateMessage) {
       onRegenerateMessage(messageId)
     } else {
-      toast('重新生成功能开发中...')
+      toast(t('chat.message.regenerateInDev'))
     }
   }
 
   const formatMessageContent = (content: string) => {
-    // Basic markdown-like formatting
+    // Enhanced markdown-like formatting with better styling
     return content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code class="bg-gray-800 px-1 py-0.5 rounded text-sm">$1</code>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-blue-300">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em class="italic text-gray-300">$1</em>')
+      .replace(/`(.*?)`/g, '<code class="bg-gray-800/60 text-teal-300 px-2 py-0.5 rounded text-sm font-mono border border-gray-700">$1</code>')
       .replace(/\n/g, '<br />')
+      .replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold text-blue-300 mt-4 mb-2">$1</h3>')
+      .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-purple-300 mt-4 mb-2">$1</h2>')
+      .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-purple-400 mt-4 mb-2">$1</h1>')
   }
 
   if (messages.length === 0 && !isLoading) {
     return (
       <div className={`flex flex-col items-center justify-center h-full text-gray-500 ${className}`}>
         <Bot className="w-12 h-12 mb-4 opacity-50" />
-        <h3 className="text-lg font-medium mb-2">开始新的对话</h3>
+        <h3 className="text-lg font-medium mb-2">{t('chat.startNewConversation')}</h3>
         <p className="text-sm text-center max-w-md">
           {character
-            ? `与 ${character.name} 开始你的第一次对话吧！`
-            : '请先选择一个角色开始对话'
+            ? t('chat.startChatWith', { name: character.name })
+            : t('chat.selectCharacterFirst')
           }
         </p>
       </div>
@@ -165,7 +170,7 @@ export default function MessageList({
                       <span className={`font-medium ${
                         isUser ? 'text-blue-400' : 'text-gray-400'
                       }`}>
-                        {isUser ? '你' : character?.name || 'AI'}
+                        {isUser ? t('chat.you') || '你' : character?.name || t('chat.status.character')}
                       </span>
                       <span className="text-gray-500 text-xs">
                         {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
@@ -174,46 +179,46 @@ export default function MessageList({
                   )}
 
                   {/* Message Bubble */}
-                  <div className={`relative group ${
+                  <div className={`relative group message-appear message-hover ${
                     isUser ? 'order-1' : 'order-2'
                   }`}>
                     <div
-                      className={`rounded-lg px-4 py-3 relative ${
+                      className={`relative rounded-2xl px-5 py-4 shadow-2xl transition-all duration-300 hover:shadow-3xl ${
                         isUser
-                          ? 'tavern-message-user rounded-br-sm'
-                          : 'tavern-message-assistant rounded-bl-sm'
+                          ? 'bg-gradient-to-br from-blue-600/90 to-blue-700/90 text-white rounded-br-md border border-blue-500/30 backdrop-blur-sm hover:from-blue-500/90 hover:to-blue-600/90'
+                          : 'bg-gradient-to-br from-gray-800/90 to-gray-900/90 text-gray-100 rounded-bl-md border border-gray-700/50 backdrop-blur-sm hover:from-gray-700/90 hover:to-gray-800/90'
                       }`}
                     >
                       {isEditing ? (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           <Textarea
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
-                            className="tavern-input min-h-[100px] resize-none"
-                            placeholder="编辑消息内容..."
+                            className="min-h-[100px] resize-none bg-gray-800/60 border-gray-700/50 text-gray-100 placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500/50"
+                            placeholder={t('chat.message.editPlaceholder')}
                             autoFocus
                           />
                           <div className="flex space-x-2">
                             <Button
                               size="sm"
                               onClick={handleSaveEdit}
-                              className="tavern-button"
+                              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition-all duration-200"
                             >
-                              保存
+                              {t('chat.message.save')}
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={handleCancelEdit}
-                              className="tavern-button-secondary"
+                              className="bg-gray-700/50 hover:bg-gray-700/70 text-gray-300 border-gray-600 rounded-lg transition-all duration-200"
                             >
-                              取消
+                              {t('chat.message.cancel')}
                             </Button>
                           </div>
                         </div>
                       ) : (
                         <div
-                          className="whitespace-pre-wrap break-words"
+                          className="whitespace-pre-wrap break-words text-sm leading-relaxed"
                           dangerouslySetInnerHTML={{
                             __html: formatMessageContent(message.content)
                           }}
@@ -238,20 +243,20 @@ export default function MessageList({
                             <DropdownMenuContent align={isUser ? 'end' : 'start'} className="w-48">
                               <DropdownMenuItem onClick={() => handleCopyMessage(message.content)}>
                                 <Copy className="w-4 h-4 mr-2" />
-                                复制
+                                {t('chat.message.copy')}
                               </DropdownMenuItem>
 
                               {isUser && (
                                 <DropdownMenuItem onClick={() => handleStartEdit(message)}>
                                   <Edit className="w-4 h-4 mr-2" />
-                                  编辑
+                                  {t('chat.message.edit')}
                                 </DropdownMenuItem>
                               )}
 
                               {!isUser && (
                                 <DropdownMenuItem onClick={() => handleRegenerateMessage(message.id)}>
                                   <RotateCcw className="w-4 h-4 mr-2" />
-                                  重新生成
+                                  {t('chat.message.regenerate')}
                                 </DropdownMenuItem>
                               )}
 
@@ -262,7 +267,7 @@ export default function MessageList({
                                 className="text-red-500 hover:text-red-400"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
-                                删除
+                                {t('chat.message.delete')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -272,11 +277,13 @@ export default function MessageList({
 
                     {/* Message Status */}
                     {message.metadata?.isRegenerated && (
-                      <div className={`flex items-center space-x-2 mt-1 text-xs text-blue-400 ${
+                      <div className={`flex items-center space-x-2 mt-2 text-xs ${
                         isUser ? 'justify-end' : 'justify-start'
                       }`}>
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                        <span>正在重新生成...</span>
+                        <div className="flex items-center space-x-1 px-2 py-1 bg-blue-500/20 rounded-full border border-blue-500/30">
+                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
+                          <span className="text-blue-300">{t('chat.message.isRegenerating')}</span>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -288,19 +295,24 @@ export default function MessageList({
 
         {/* Loading Indicator */}
         {isLoading && (
-          <div className="flex justify-start">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
-                <Bot className="w-4 h-4 text-gray-300" />
+          <div className="flex justify-start animate-fade-in">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-600 to-teal-700 flex items-center justify-center shadow-lg">
+                  <Bot className="w-4 h-4 text-white" />
+                </div>
               </div>
-              <div className="bg-gray-800 rounded-lg rounded-bl-sm border border-gray-700 px-4 py-3">
-                <div className="flex items-center space-x-2">
+              <div className="bg-gradient-to-br from-gray-800/90 to-gray-900/90 rounded-2xl rounded-bl-md border border-gray-700/50 backdrop-blur-sm px-5 py-4 shadow-xl">
+                <div className="flex items-center space-x-3">
                   <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                   </div>
-                  <span className="text-sm text-gray-400">AI正在思考...</span>
+                  {/* 显示角色名称，不显示"AI" */}
+                  {character?.name && (
+                    <span className="text-sm text-gray-400">{character.name}</span>
+                  )}
                 </div>
               </div>
             </div>

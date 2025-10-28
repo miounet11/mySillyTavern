@@ -1,20 +1,22 @@
 "use client"
 
 import { useChatStore } from '@/stores/chatStore'
+import { useTranslation } from '@/lib/i18n'
 
 export default function ChatList() {
   const { chats, currentChat, setCurrentChat } = useChatStore()
+  const { t } = useTranslation()
 
   return (
     <div className="flex flex-col h-full bg-gray-900 border-r border-gray-800">
       <div className="p-4 border-b border-gray-800">
-        <h2 className="text-lg font-semibold text-gray-100">对话列表</h2>
+        <h2 className="text-lg font-semibold text-gray-100">{t('chat.chatList.title')}</h2>
       </div>
       
       <div className="flex-1 overflow-y-auto">
         {chats.length === 0 ? (
           <div className="p-4 text-center text-gray-500">
-            暂无对话
+            {t('chat.noConversations')}
           </div>
         ) : (
           <div className="space-y-1 p-2">
@@ -28,7 +30,7 @@ export default function ChatList() {
                     : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                 }`}
               >
-                <div className="font-medium truncate">{chat.title || '新对话'}</div>
+                <div className="font-medium truncate">{chat.title || t('chat.chatList.newChat')}</div>
                 <div className="text-xs text-gray-400 mt-1">
                   {new Date(chat.createdAt).toLocaleDateString()}
                 </div>

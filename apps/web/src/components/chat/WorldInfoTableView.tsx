@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
+import { useTranslation } from '@/lib/i18n'
 
 interface WorldInfoEntry {
   id: string
@@ -38,6 +39,7 @@ export default function WorldInfoTableView({
   onToggle,
   onUpdate
 }: WorldInfoTableViewProps) {
+  const { t } = useTranslation()
   const [expandedKeywords, setExpandedKeywords] = useState<Set<string>>(new Set())
   const [sortField, setSortField] = useState<keyof WorldInfoEntry>('priority')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -92,31 +94,31 @@ export default function WorldInfoTableView({
                 onClick={() => handleSort('enabled')}
                 className="flex items-center gap-1 hover:text-gray-200"
               >
-                开关
+                {t('chat.worldInfo.table.toggle')}
                 <SortIcon field="enabled" />
               </button>
             </th>
             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              状态
+              {t('chat.worldInfo.table.status')}
             </th>
             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
               <button
                 onClick={() => handleSort('name')}
                 className="flex items-center gap-1 hover:text-gray-200"
               >
-                注释
+                {t('chat.worldInfo.table.comment')}
                 <SortIcon field="name" />
               </button>
             </th>
             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              关键词
+              {t('chat.worldInfo.table.keywords')}
             </th>
             <th className="px-3 py-2 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">
               <button
                 onClick={() => handleSort('position')}
                 className="flex items-center gap-1 hover:text-gray-200"
               >
-                位置
+                {t('chat.worldInfo.table.position')}
                 <SortIcon field="position" />
               </button>
             </th>
@@ -125,7 +127,7 @@ export default function WorldInfoTableView({
                 onClick={() => handleSort('depth')}
                 className="flex items-center gap-1 hover:text-gray-200"
               >
-                深度
+                {t('chat.worldInfo.table.depth')}
                 <SortIcon field="depth" />
               </button>
             </th>
@@ -134,12 +136,12 @@ export default function WorldInfoTableView({
                 onClick={() => handleSort('priority')}
                 className="flex items-center gap-1 hover:text-gray-200"
               >
-                优先级
+                {t('chat.worldInfo.table.priority')}
                 <SortIcon field="priority" />
               </button>
             </th>
             <th className="px-3 py-2 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              操作
+              {t('chat.worldInfo.table.actions')}
             </th>
           </tr>
         </thead>
@@ -171,7 +173,7 @@ export default function WorldInfoTableView({
                     : "bg-gray-700/50 text-gray-400 border-gray-600/50"
                   }
                 >
-                  {entry.enabled ? '启用' : '禁用'}
+                  {entry.enabled ? t('chat.worldInfo.table.enabled') : t('chat.worldInfo.table.disabled')}
                 </Badge>
               </td>
 
@@ -298,14 +300,14 @@ export default function WorldInfoTableView({
                   <button
                     onClick={() => onEdit(entry)}
                     className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-teal-400 transition-colors"
-                    title="编辑"
+                    title={t('chat.worldInfo.actions.edit')}
                   >
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => onDelete(entry.id)}
                     className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-red-400 transition-colors"
-                    title="删除"
+                    title={t('chat.worldInfo.actions.delete')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

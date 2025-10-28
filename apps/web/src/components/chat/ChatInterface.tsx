@@ -1,4 +1,4 @@
-wei zhi/**
+/**
  * Main chat interface component
  */
 
@@ -55,6 +55,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   const [modelsInitialized, setModelsInitialized] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const sendingRef = useRef(false)
   const [appSettings, setAppSettings] = useState<{ userName?: string; autoSendGreeting?: boolean; openerTemplate?: string }>({})
 
   // Debug: log state changes
@@ -292,11 +293,15 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
 
   // Handle sending a message
   const handleSendMessage = async (content: string) => {
+    if (sendingRef.current) {
+      return
+    }
     if (!content.trim() || !currentChat || !character || isGenerating) {
       return
     }
 
     try {
+      sendingRef.current = true
       clearError()
       setInputValue('')
       setIsTyping(true)
@@ -334,6 +339,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     } finally {
       setIsTyping(false)
       setGenerating(false)
+      sendingRef.current = false
     }
   }
 
