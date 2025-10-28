@@ -219,34 +219,34 @@ export default function MessageInput({
   ]
 
   return (
-    <div className={`border-t border-gray-800 bg-gray-900 ${className}`}>
-      <div className="p-4">
+    <div className={`border-t border-gray-800/50 glass-card backdrop-blur-lg ${className}`}>
+      <div className="p-5">
         {/* Character Context and Status */}
         {currentCharacter && (
-          <div className="flex items-center space-x-2 mb-3 text-sm text-gray-400">
-            <span>正在与</span>
-            <span className="font-medium text-gray-300">{currentCharacter.name}</span>
-            <span>对话</span>
+          <div className="flex items-center space-x-2 mb-4 glass-light px-4 py-2 rounded-lg w-fit">
+            <span className="text-sm text-gray-400">正在与</span>
+            <span className="font-semibold gradient-text">{currentCharacter.name}</span>
+            <span className="text-sm text-gray-400">对话</span>
           </div>
         )}
         
         {/* Status Message when input is disabled */}
         {(!currentChat && !isLoading) && (
-          <div className="mb-3 p-3 bg-blue-900/20 border border-blue-800 rounded-lg text-sm text-blue-300">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-              <span>正在初始化对话...</span>
+          <div className="mb-4 p-4 glass-light rounded-xl text-sm animate-fade-in">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse-glow"></div>
+              <span className="text-blue-300 font-medium">正在初始化对话...</span>
             </div>
           </div>
         )}
 
         {/* Recording Status */}
         {isRecording && (
-          <div className="flex items-center justify-between mb-3 p-2 bg-red-900/20 border border-red-800 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-              <span className="text-sm text-red-400">正在录制...</span>
-              <span className="text-sm text-red-300 font-mono">
+          <div className="flex items-center justify-between mb-4 p-4 glass-card rounded-xl border border-red-500/30 animate-fade-in">
+            <div className="flex items-center space-x-3">
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+              <span className="text-sm text-red-400 font-medium">正在录制...</span>
+              <span className="text-sm text-red-300 font-mono bg-red-950/50 px-3 py-1 rounded-lg">
                 {formatRecordingTime(recordingTime)}
               </span>
             </div>
@@ -254,7 +254,7 @@ export default function MessageInput({
               size="sm"
               variant="outline"
               onClick={stopRecording}
-              className="border-red-800 text-red-400 hover:bg-red-900/30"
+              className="glass-light border-red-500/30 text-red-400 hover:bg-red-900/30 hover-lift"
             >
               <MicOff className="w-4 h-4 mr-2" />
               停止录制
@@ -273,14 +273,16 @@ export default function MessageInput({
               onKeyPress={handleKeyPress}
               placeholder={placeholder}
               disabled={disabled || isLoading || isRecording}
-              className="tavern-input min-h-[60px] max-h-[200px] resize-none pr-12"
+              className="glass-input min-h-[70px] max-h-[200px] resize-none pr-16 text-base"
               rows={1}
             />
 
             {/* Character Count */}
             {message.length > 0 && (
-              <div className="absolute bottom-2 right-2 text-xs text-gray-500">
-                {message.length}/4000
+              <div className="absolute bottom-3 right-3 text-xs font-medium glass-light px-2 py-1 rounded-lg">
+                <span className={message.length > 3800 ? 'text-red-400' : 'text-gray-400'}>
+                  {message.length}/4000
+                </span>
               </div>
             )}
           </div>
@@ -294,10 +296,10 @@ export default function MessageInput({
               size="sm"
               onClick={handleFileUpload}
               disabled={disabled || isLoading || isRecording}
-              className="tavern-button-secondary"
+              className="glass-light hover:bg-white/10 text-gray-300 hover:text-white border-white/20 hover-lift w-11 h-11"
               title="上传文件"
             >
-              <Paperclip className="w-4 h-4" />
+              <Paperclip className="w-5 h-5" />
             </Button>
 
             {/* Voice Recording */}
@@ -307,10 +309,10 @@ export default function MessageInput({
               size="sm"
               onClick={isRecording ? stopRecording : startRecording}
               disabled={disabled || isLoading}
-              className={isRecording ? "" : "tavern-button-secondary"}
+              className={isRecording ? "bg-red-600 hover:bg-red-700 w-11 h-11" : "glass-light hover:bg-white/10 text-gray-300 hover:text-white border-white/20 hover-lift w-11 h-11"}
               title={isRecording ? "停止录制" : "语音输入"}
             >
-              {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </Button>
 
             {/* Quick Actions */}
@@ -321,18 +323,18 @@ export default function MessageInput({
                   variant="outline"
                   size="sm"
                   disabled={disabled || isLoading || isRecording || !currentCharacter}
-                  className="tavern-button-secondary"
+                  className="glass-light hover:bg-white/10 text-gray-300 hover:text-white border-white/20 hover-lift w-11 h-11"
                   title="快捷操作"
                 >
-                  <Sparkles className="w-4 h-4" />
+                  <Sparkles className="w-5 h-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-48 glass-card border-white/10">
                 {quickActions.map((action, index) => (
                   <DropdownMenuItem
                     key={index}
                     onClick={action.action}
-                    className="cursor-pointer"
+                    className="cursor-pointer hover:bg-white/10"
                   >
                     {action.label}
                   </DropdownMenuItem>
@@ -348,10 +350,10 @@ export default function MessageInput({
                 size="sm"
                 onClick={() => toast('重新生成功能开发中...')}
                 disabled={disabled || isLoading}
-                className="tavern-button-secondary"
+                className="glass-light hover:bg-white/10 text-gray-300 hover:text-white border-white/20 hover-lift w-11 h-11"
                 title="重新生成上一条回复"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-5 h-5" />
               </Button>
             )}
 
@@ -366,27 +368,34 @@ export default function MessageInput({
                 !message.trim() ||
                 !currentCharacter
               }
-              className="tavern-button"
+              className="gradient-btn-primary hover-lift w-14 h-11"
               title="发送消息 (Enter)"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-5 h-5" />
             </Button>
           </div>
         </div>
 
         {/* Status Indicators */}
-        <div className="flex items-center justify-between mt-3">
-          <div className="flex items-center space-x-4 text-xs text-gray-500">
-            <span>Enter 发送, Shift+Enter 换行</span>
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center space-x-3 text-xs">
+            <span className="glass-light px-3 py-1.5 rounded-lg text-gray-400">
+              <span className="text-blue-400">⏎</span> Enter 发送
+            </span>
+            <span className="glass-light px-3 py-1.5 rounded-lg text-gray-400">
+              <span className="text-purple-400">⇧</span> Shift+Enter 换行
+            </span>
             {currentCharacter && (
-              <span>模型: {currentCharacter.settings?.temperature?.toFixed(1) || '0.7'}</span>
+              <span className="glass-light px-3 py-1.5 rounded-lg text-gray-400">
+                <span className="text-teal-400">🎨</span> {currentCharacter.settings?.temperature?.toFixed(1) || '0.7'}
+              </span>
             )}
           </div>
 
           {isLoading && (
-            <div className="flex items-center space-x-2 text-sm text-blue-400">
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-              <span>AI正在思考...</span>
+            <div className="flex items-center space-x-2 glass-light px-4 py-2 rounded-lg animate-pulse-glow">
+              <div className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-pulse"></div>
+              <span className="text-sm text-blue-300 font-medium">AI正在思考...</span>
             </div>
           )}
         </div>

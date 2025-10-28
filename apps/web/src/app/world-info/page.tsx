@@ -20,8 +20,8 @@ export default function WorldInfoPage() {
   }, [refreshCharacters])
 
   return (
-    <div className="min-h-screen bg-gray-950">
-      <div className="container mx-auto px-6 py-8 max-w-7xl">
+    <div className="min-h-screen bg-gray-950 noise-texture">
+      <div className="container mx-auto px-6 py-8 max-w-7xl page-transition">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
@@ -29,26 +29,30 @@ export default function WorldInfoPage() {
               onClick={() => router.push('/')}
               variant="ghost"
               size="sm"
-              className="text-gray-400 hover:text-gray-200"
+              className="glass-light hover:bg-white/10 text-gray-300 hover:text-white border border-white/10"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               返回
             </Button>
           </div>
           
-          <div className="flex items-center gap-3 mb-2">
-            <Globe className="w-8 h-8 text-teal-400" />
-            <h1 className="text-3xl font-bold text-gray-100">
-              世界信息管理
-            </h1>
+          <div className="page-header">
+            <div className="relative z-10 flex items-center gap-4">
+              <Globe className="w-10 h-10 text-teal-400 animate-pulse-glow" />
+              <div>
+                <h1 className="text-4xl font-bold gradient-text mb-2">
+                  世界信息管理
+                </h1>
+                <p className="text-gray-300 text-lg">
+                  管理角色的背景知识和世界观设定
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="text-gray-400">
-            管理角色的背景知识和世界观设定
-          </p>
         </div>
 
         {/* Main Content Area */}
-        <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+        <div className="glass-card border border-gray-700/50 rounded-2xl p-6">
           <WorldInfoManager />
         </div>
       </div>

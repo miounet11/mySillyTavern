@@ -149,62 +149,62 @@ export default function ChatHeader({
   const stats = getChatStats()
 
   return (
-    <div className={`border-b border-gray-800 bg-gray-900 ${className}`}>
-      <div className="p-4">
+    <div className={`border-b border-gray-800/50 glass-card backdrop-blur-lg ${className}`}>
+      <div className="p-5">
         {/* Header Content */}
         <div className="flex items-center justify-between">
           {/* Left Section - Back Button and Character Info */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-4">
             {onBack && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onBack}
-                className="text-gray-400 hover:text-gray-200"
+                className="glass-light hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             )}
 
             {/* Character Avatar */}
-            <div className="relative">
+            <div className="relative group">
               {currentCharacter?.avatar ? (
                 <img
                   src={currentCharacter.avatar}
                   alt={currentCharacter.name}
-                  className="w-10 h-10 rounded-full object-cover"
+                  className="w-14 h-14 rounded-full object-cover border-2 border-blue-500/50 shadow-lg transition-all group-hover:scale-105 group-hover:border-blue-400"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-gray-300" />
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg group-hover:scale-105 transition-all">
+                  <Users className="w-7 h-7 text-white" />
                 </div>
               )}
 
-              {/* Online Status Indicator */}
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></div>
+              {/* Online Status Indicator with Glow */}
+              <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse-glow"></div>
             </div>
 
             {/* Character Name and Status */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-100 flex items-center space-x-2">
+              <h2 className="text-xl font-bold gradient-text flex items-center space-x-2">
                 <span>{currentCharacter?.name || 'AI Assistant'}</span>
                 {currentChat?.isFavorite && (
-                  <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                  <Star className="w-5 h-5 text-yellow-400 fill-current animate-bounce-subtle" />
                 )}
               </h2>
 
-              <div className="flex items-center space-x-3 text-sm text-gray-400">
-                <span className="flex items-center space-x-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>在线</span>
+              <div className="flex items-center space-x-3 text-sm text-gray-300 mt-1">
+                <span className="flex items-center space-x-1.5 glass-light px-2 py-1 rounded-full">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="font-medium">在线</span>
                 </span>
 
                 {stats && (
                   <>
-                    <span>•</span>
-                    <span>{stats.total} 条消息</span>
-                    <span>•</span>
-                    <span>{stats.lastActivity}</span>
+                    <span className="text-gray-500">•</span>
+                    <span className="font-medium">{stats.total} 条消息</span>
+                    <span className="text-gray-500">•</span>
+                    <span className="text-gray-400">{stats.lastActivity}</span>
                   </>
                 )}
               </div>
@@ -212,14 +212,14 @@ export default function ChatHeader({
           </div>
 
           {/* Right Section - Actions */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             {/* Edit Character Button */}
             {currentCharacter && onEditCharacter && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onEditCharacter}
-                className="tavern-button-secondary"
+                className="glass-light hover:bg-white/10 text-white border-white/20 hover-lift transition-all"
               >
                 <Edit className="w-4 h-4 mr-2" />
                 编辑角色
@@ -232,7 +232,7 @@ export default function ChatHeader({
                 variant="outline"
                 size="sm"
                 onClick={onNewChat}
-                className="tavern-button-secondary"
+                className="gradient-btn-primary hover-lift transition-all"
               >
                 新对话
               </Button>
@@ -244,7 +244,7 @@ export default function ChatHeader({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-gray-400 hover:text-gray-200"
+                  className="glass-light hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all"
                 >
                   <MoreVertical className="w-5 h-5" />
                 </Button>
@@ -312,23 +312,30 @@ export default function ChatHeader({
 
         {/* Chat Stats Bar */}
         {stats && stats.total > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-800">
-            <div className="flex items-center justify-between text-sm text-gray-500">
-              <div className="flex items-center space-x-4">
-                <span>用户消息: {stats.user}</span>
-                <span>AI回复: {stats.ai}</span>
-                <span>总计: {stats.total}</span>
+          <div className="mt-4 pt-4 border-t border-gray-700/50">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center space-x-3">
+                <span className="glass-light px-3 py-1.5 rounded-lg text-gray-300 font-medium">
+                  <span className="text-blue-400">👤</span> {stats.user}
+                </span>
+                <span className="glass-light px-3 py-1.5 rounded-lg text-gray-300 font-medium">
+                  <span className="text-purple-400">🤖</span> {stats.ai}
+                </span>
+                <span className="glass-light px-3 py-1.5 rounded-lg text-gray-300 font-medium">
+                  <span className="text-teal-400">💬</span> {stats.total}
+                </span>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3 text-gray-400">
                 {currentCharacter?.settings?.temperature && (
-                  <span>创造性: {currentCharacter.settings.temperature.toFixed(1)}</span>
+                  <span className="glass-light px-3 py-1.5 rounded-lg">
+                    🎨 {currentCharacter.settings.temperature.toFixed(1)}
+                  </span>
                 )}
                 {currentChat?.modelUsed && (
-                  <span>•</span>
-                )}
-                {currentChat?.modelUsed && (
-                  <span>模型: {currentChat.modelUsed}</span>
+                  <span className="glass-light px-3 py-1.5 rounded-lg">
+                    ⚡ {currentChat.modelUsed}
+                  </span>
                 )}
               </div>
             </div>

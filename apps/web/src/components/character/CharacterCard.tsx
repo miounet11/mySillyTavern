@@ -49,16 +49,16 @@ export default function CharacterCard({
   if (variant === 'large') {
     return (
       <div 
-        className="character-card group"
+        className="character-card group stagger-item animate-fade-in"
         onClick={handleClick}
       >
         {/* Character Image */}
-        <div className="relative w-full aspect-[3/4] bg-gray-900 overflow-hidden">
+        <div className="relative w-full aspect-[2/3] bg-gradient-to-br from-gray-900 to-gray-950 overflow-hidden">
           {character.avatar ? (
             <img
               src={character.avatar}
               alt={character.name}
-              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+              className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
               loading="lazy"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
@@ -68,19 +68,25 @@ export default function CharacterCard({
             />
           ) : null}
           <div 
-            className="w-full h-full flex items-center justify-center text-6xl font-bold text-gray-600"
-            style={{ display: character.avatar ? 'none' : 'flex' }}
+            className="w-full h-full flex items-center justify-center text-6xl font-bold"
+            style={{ 
+              display: character.avatar ? 'none' : 'flex',
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2))'
+            }}
           >
-            {character.name.charAt(0).toUpperCase()}
+            <span className="gradient-text text-7xl">{character.name.charAt(0).toUpperCase()}</span>
           </div>
+
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-transparent to-transparent opacity-60"></div>
           
           {/* Hover overlay with actions */}
-          <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center p-4">
-            <div className="w-full space-y-2">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end justify-center p-4 backdrop-blur-sm">
+            <div className="w-full space-y-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
               {onSelect && (
                 <Button
                   onClick={(e) => handleAction(e, () => onSelect(character))}
-                  className="w-full tavern-button"
+                  className="w-full gradient-btn-primary text-sm py-2.5 shadow-lg"
                   size="sm"
                 >
                   <MessageSquare className="w-4 h-4 mr-2" />
@@ -93,9 +99,10 @@ export default function CharacterCard({
                     onClick={(e) => handleAction(e, () => onEdit(character))}
                     variant="outline"
                     size="sm"
-                    className="tavern-button-secondary text-xs px-2"
+                    className="glass-light hover:bg-white/10 text-white border-white/20 text-xs px-2 py-2"
+                    title="编辑"
                   >
-                    <Edit className="w-3 h-3" />
+                    <Edit className="w-3.5 h-3.5" />
                   </Button>
                 )}
                 {onExport && (
@@ -103,9 +110,10 @@ export default function CharacterCard({
                     onClick={(e) => handleAction(e, () => onExport(character.id))}
                     variant="outline"
                     size="sm"
-                    className="tavern-button-secondary text-xs px-2"
+                    className="glass-light hover:bg-white/10 text-white border-white/20 text-xs px-2 py-2"
+                    title="导出"
                   >
-                    <Download className="w-3 h-3" />
+                    <Download className="w-3.5 h-3.5" />
                   </Button>
                 )}
                 {onDelete && (
@@ -113,9 +121,10 @@ export default function CharacterCard({
                     onClick={(e) => handleAction(e, () => onDelete(character.id))}
                     variant="destructive"
                     size="sm"
-                    className="tavern-button-danger text-xs px-2"
+                    className="bg-red-600/80 hover:bg-red-700 text-white text-xs px-2 py-2"
+                    title="删除"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 )}
               </div>
@@ -124,41 +133,39 @@ export default function CharacterCard({
         </div>
 
         {/* Character Info */}
-        <div className="p-4 space-y-2">
-          <h3 className="text-base font-semibold text-gray-100 truncate">{character.name}</h3>
+        <div className="p-4 space-y-2.5">
+          <h3 className="text-base font-semibold text-gray-100 truncate group-hover:text-blue-400 transition-colors">
+            {character.name}
+          </h3>
           
           {character.description && (
-            <p className="text-sm text-gray-400 line-clamp-2 min-h-[2.5rem]">
+            <p className="text-sm text-gray-400 line-clamp-2 min-h-[2.5rem] leading-relaxed">
               {character.description}
             </p>
           )}
 
           {character.tags && character.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-1">
-              {character.tags.slice(0, 2).map((tag: string, index: number) => (
-                <Badge 
-                  key={index} 
-                  variant="secondary"
-                  className="text-xs bg-gray-700 text-gray-300 border-0"
+              {character.tags.slice(0, 3).map((tag: string, index: number) => (
+                <span 
+                  key={index}
+                  className="tag-chip text-xs"
                 >
                   {tag}
-                </Badge>
+                </span>
               ))}
-              {character.tags.length > 2 && (
-                <Badge 
-                  variant="secondary"
-                  className="text-xs bg-gray-700 text-gray-300 border-0"
-                >
-                  +{character.tags.length - 2}
-                </Badge>
+              {character.tags.length > 3 && (
+                <span className="tag-chip text-xs">
+                  +{character.tags.length - 3}
+                </span>
               )}
             </div>
           )}
 
           {messageCount !== undefined && messageCount > 0 && (
-            <div className="flex items-center text-xs text-gray-500 pt-1">
-              <MessageSquare className="w-3 h-3 mr-1" />
-              {messageCount} 条消息
+            <div className="flex items-center text-xs text-gray-500 pt-1.5 border-t border-gray-700/50">
+              <MessageSquare className="w-3.5 h-3.5 mr-1.5 text-blue-400" />
+              <span>{messageCount} 条消息</span>
             </div>
           )}
         </div>
