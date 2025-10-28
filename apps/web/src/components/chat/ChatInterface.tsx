@@ -1,4 +1,4 @@
-/**
+wei zhi/**
  * Main chat interface component
  */
 
@@ -31,7 +31,6 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     isLoading,
     isGenerating,
     error,
-    canGenerate,
     setCurrentChat,
     setCharacter,
     setLoading,
@@ -44,6 +43,9 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     reset
   } = useChatStore()
 
+  // Calculate canGenerate directly in component to ensure proper reactivity
+  const canGenerate = !isGenerating && currentChat !== null && character !== null
+
   const { characters, createCharacter } = useCharacterStore()
   const { activeModel, fetchModels, hydrated } = useAIModelStore()
   const hasActiveModel = activeModel !== null
@@ -54,6 +56,19 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const [appSettings, setAppSettings] = useState<{ userName?: string; autoSendGreeting?: boolean; openerTemplate?: string }>({})
+
+  // Debug: log state changes
+  useEffect(() => {
+    console.log('[ChatInterface] State updated:', {
+      hasCurrentChat: !!currentChat,
+      hasCharacter: !!character,
+      characterName: character?.name,
+      messageCount: messages.length,
+      canGenerate,
+      isLoading,
+      isGenerating
+    })
+  }, [currentChat, character, messages.length, canGenerate, isLoading, isGenerating])
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -72,6 +87,25 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     }
     loadModels()
   }, [])
+
+  // Auto-create chat if none exists and we have a model
+  useEffect(() => {
+    const autoCreateChat = async () => {
+      // Only auto-create if:
+      // 1. Models are initialized
+      // 2. We have an active model
+      // 3. We don't have a current chat
+      // 4. Store is hydrated
+      if (modelsInitialized && hydrated && hasActiveModel && !currentChat && !characterId) {
+        console.log('[ChatInterface] Auto-creating initial chat...')
+        await handleNewChat()
+      }
+    }
+
+    // Add a small delay to ensure everything is loaded
+    const timer = setTimeout(autoCreateChat, 500)
+    return () => clearTimeout(timer)
+  }, [modelsInitialized, hydrated, hasActiveModel, currentChat, characterId])
 
   // Listen for new chat event from sidebar
   useEffect(() => {
@@ -97,6 +131,11 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
 
   // Handle character selection from URL parameter
   useEffect(() => {
+    // Skip if characterId is not present - prevent re-triggering after URL cleanup
+    if (!characterId) {
+      return
+    }
+
     const loadCharacterAndCreateChat = async () => {
       console.log('[ChatInterface] Loading character - State:', {
         characterId,
@@ -112,11 +151,6 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
         return
       }
       
-      if (!characterId) {
-        console.log('[ChatInterface] No characterId in URL')
-        return
-      }
-      
       // Wait for store hydration to avoid false negatives
       if (!hydrated) {
         console.log('[ChatInterface] Waiting for store hydration...')
@@ -128,6 +162,8 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
         toast.error('请先配置 AI 模型')
         // 打开右侧设置抽屉，而不是跳转页面
         window.dispatchEvent(new CustomEvent('open-settings'))
+        // Clean up URL parameter even on error
+        setTimeout(() => router.replace('/chat'), 100)
         return
       }
       
@@ -143,29 +179,46 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
         }
         
         const characterData = await response.json()
-        setCharacter(characterData)
+        console.log('[ChatInterface] Character data loaded:', characterData.name)
 
         // Check if there's an existing chat for this character
         const chatsResponse = await fetch(`/api/chats?characterId=${characterId}&limit=1`)
         if (chatsResponse.ok) {
           const chatsData = await chatsResponse.json()
-          if (chatsData.chats && chatsData.chats.length > 0) {
+          if (chatsData.chats && Array.isArray(chatsData.chats) && chatsData.chats.length > 0) {
             // Load the most recent chat for this character
             const existingChat = chatsData.chats[0]
-            setCurrentChat(existingChat)
             
             // Load messages for this chat
             const messagesResponse = await fetch(`/api/chats/${existingChat.id}/messages`)
+            let loadedMessages: Message[] = []
             if (messagesResponse.ok) {
               const messagesData = await messagesResponse.json()
-              // Clear existing messages and add new ones
-              clearMessages()
-              messagesData.messages.forEach((msg: Message) => addMessage(msg))
+              if (messagesData.messages && Array.isArray(messagesData.messages)) {
+                loadedMessages = messagesData.messages
+              }
             }
             
+            // Update state in correct order: setCurrentChat clears messages and character
+            // So we must call it first, then set character and messages
+            setCurrentChat(existingChat)
+            setCharacter(characterData)
+            loadedMessages.forEach((msg: Message) => addMessage(msg))
+            
+            console.log('[ChatInterface] Loaded existing chat with', loadedMessages.length, 'messages')
+            console.log('[ChatInterface] State after loading:', {
+              hasChat: !!existingChat,
+              hasCharacter: !!characterData,
+              characterName: characterData.name,
+              messageCount: loadedMessages.length
+            })
             toast.success(`已加载与 ${characterData.name} 的对话`)
-            // Clean up URL parameter
-            router.replace('/chat')
+            
+            // Clean up URL parameter after state is set - use longer delay to ensure state updates complete
+            setTimeout(() => {
+              console.log('[ChatInterface] Cleaning up URL parameter')
+              router.replace('/chat')
+            }, 300)
             return
           }
         }
@@ -184,14 +237,17 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
           }
         })
 
+        console.log('[ChatInterface] Created new chat:', newChat.id)
+        
+        // Set chat first (which clears character and messages), then set character
         setCurrentChat(newChat)
-        toast.success(`已创建与 ${characterData.name} 的新对话`)
+        setCharacter(characterData)
 
         // Auto-send greeting if enabled
         const flagsEnabled = (process.env.NEXT_PUBLIC_ST_PARITY_GREETING_ENABLED ?? 'true') !== 'false'
         const shouldAutoSend = flagsEnabled && appSettings.autoSendGreeting !== false
         const greeting = characterData.firstMessage || ''
-        if (shouldAutoSend && greeting.trim()) {
+        if (shouldAutoSend && greeting && typeof greeting === 'string' && greeting.trim()) {
           const greetMsg = await chatService.addMessage(newChat.id, {
             role: 'assistant',
             content: greeting.trim(),
@@ -209,13 +265,23 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
           inputRef.current?.focus()
         }
 
-        // Clean up URL parameter
-        router.replace('/chat')
+        console.log('[ChatInterface] State after creating new chat:', {
+          hasChat: !!newChat,
+          hasCharacter: !!characterData,
+          characterName: characterData.name
+        })
+        toast.success(`已创建与 ${characterData.name} 的新对话`)
+        
+        // Clean up URL parameter after all state updates - use longer delay to ensure completion
+        setTimeout(() => {
+          console.log('[ChatInterface] Cleaning up URL parameter')
+          router.replace('/chat')
+        }, 300)
 
       } catch (error) {
         console.error('Error loading character and creating chat:', error)
         toast.error('加载角色失败，请重试')
-        router.replace('/characters')
+        setTimeout(() => router.replace('/characters'), 100)
       } finally {
         setLoading(false)
       }
@@ -350,7 +416,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
       let characterToUse = characters[0]
       
       if (!characterToUse) {
-        // Create a default assistant character if none exists
+        // Try to create a default assistant character
         const newCharacter = await createCharacter({
           name: 'AI Assistant',
           description: 'A helpful AI assistant',
@@ -368,7 +434,24 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
         if (newCharacter) {
           characterToUse = newCharacter
         } else {
-          throw new Error('Failed to create default character')
+          // If creation failed (likely 409 conflict), try to find existing AI Assistant
+          console.log('[ChatInterface] Character creation failed, searching for existing AI Assistant...')
+          try {
+            const response = await fetch('/api/characters?search=AI Assistant&limit=1')
+            if (response.ok) {
+              const data = await response.json()
+              if (data.characters && data.characters.length > 0) {
+                characterToUse = data.characters[0]
+                console.log('[ChatInterface] Using existing AI Assistant character:', characterToUse.id)
+              }
+            }
+          } catch (err) {
+            console.error('[ChatInterface] Failed to fetch existing character:', err)
+          }
+          
+          if (!characterToUse) {
+            throw new Error('Failed to create or find default character')
+          }
         }
       }
 
@@ -393,7 +476,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
       const flagsEnabled = (process.env.NEXT_PUBLIC_ST_PARITY_GREETING_ENABLED ?? 'true') !== 'false'
       const shouldAutoSend = flagsEnabled && appSettings.autoSendGreeting !== false
       const greeting = characterToUse.firstMessage || ''
-      if (shouldAutoSend && greeting.trim()) {
+      if (shouldAutoSend && greeting && typeof greeting === 'string' && greeting.trim()) {
         const greetMsg = await chatService.addMessage(newChat.id, {
           role: 'assistant',
           content: greeting.trim(),

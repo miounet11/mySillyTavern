@@ -130,11 +130,13 @@ export default function ChatHeader({
 
   const getChatStats = () => {
     if (!currentChat) return null
-
-    const messageCount = currentChat.messages.length
-    const userMessages = currentChat.messages.filter((m: any) => m.role === 'user').length
-    const aiMessages = currentChat.messages.filter((m: any) => m.role === 'assistant').length
-    const lastMessage = currentChat.messages[currentChat.messages.length - 1]
+    
+    // Safely handle messages array - it might be undefined
+    const messages = currentChat.messages || []
+    const messageCount = messages.length
+    const userMessages = messages.filter((m: any) => m.role === 'user').length
+    const aiMessages = messages.filter((m: any) => m.role === 'assistant').length
+    const lastMessage = messages[messages.length - 1]
 
     return {
       total: messageCount,
@@ -254,7 +256,7 @@ export default function ChatHeader({
                     <div className="px-2 py-1.5 text-sm text-gray-400 border-b border-gray-800">
                       <div className="font-medium text-gray-300">{currentCharacter.name}</div>
                       <div className="truncate">{currentCharacter.description}</div>
-                      {currentCharacter.tags && currentCharacter.tags.length > 0 && (
+                      {currentCharacter.tags && Array.isArray(currentCharacter.tags) && currentCharacter.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {currentCharacter.tags.slice(0, 3).map((tag: string) => (
                             <Badge key={tag} variant="secondary" className="text-xs">

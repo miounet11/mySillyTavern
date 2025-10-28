@@ -44,7 +44,7 @@ export default function ChatSettingsPanel({
     return (
       <button
         onClick={onToggle}
-        className="fixed left-4 top-24 z-30 p-2 rounded-lg bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 text-gray-300 hover:text-white hover:bg-gray-700/80 transition-all"
+        className="fixed left-4 top-20 z-30 p-2 rounded-lg bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 text-gray-300 hover:text-white hover:bg-gray-700/80 transition-all shadow-lg"
         title="展开侧边栏"
       >
         <PanelLeftOpen className="w-5 h-5" />

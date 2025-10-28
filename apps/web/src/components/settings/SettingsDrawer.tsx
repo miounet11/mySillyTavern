@@ -20,12 +20,6 @@ import {
   Power,
   X,
 } from 'lucide-react'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -276,30 +270,45 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
     input.click()
   }
 
+  // Don't render if not open
+  if (!isOpen) return null
+
   return (
     <>
-      <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent 
-          side="right" 
-          className="w-[600px] p-0 flex flex-col overflow-hidden bg-gray-900/98 backdrop-blur-md border-l border-gray-800"
-        >
-          <SheetHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
-                  <Settings className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <SheetTitle className="text-xl font-semibold text-gray-100">
-                    设置中心
-                  </SheetTitle>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    配置应用程序和个人偏好
-                  </p>
-                </div>
+      {/* Semi-transparent backdrop (non-blocking) */}
+      <div 
+        className="fixed inset-0 top-16 bg-black/20 z-40 pointer-events-none animate-in fade-in duration-300"
+        aria-hidden="true"
+      />
+
+      {/* Right side drawer */}
+      <div className="fixed right-0 top-16 bottom-0 w-[600px] bg-gray-900/98 backdrop-blur-md border-l border-gray-800 shadow-2xl z-50 flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-800 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
+                <Settings className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-100">
+                  设置中心
+                </h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  配置应用程序和个人偏好
+                </p>
               </div>
             </div>
-          </SheetHeader>
+            {/* Close Button */}
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+              title="关闭设置"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <TabsList className="mx-6 mt-3 grid w-[calc(100%-3rem)] grid-cols-4 flex-shrink-0">
@@ -623,8 +632,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               </div>
             </TabsContent>
           </Tabs>
-        </SheetContent>
-      </Sheet>
+      </div>
 
       {/* AI Model Configuration Drawer - Higher z-index to appear above settings */}
       <div className={isModelDrawerOpen ? "model-drawer-wrapper" : ""}>

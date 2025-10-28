@@ -201,7 +201,7 @@ export default function MessageInput({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  const canRegenerate = currentChat && currentChat.messages.length > 0
+  const canRegenerate = currentChat && currentChat.messages && Array.isArray(currentChat.messages) && currentChat.messages.length > 0
 
   const handleSetMessage = (msg: string) => {
     if (onChange) {
@@ -221,12 +221,22 @@ export default function MessageInput({
   return (
     <div className={`border-t border-gray-800 bg-gray-900 ${className}`}>
       <div className="p-4">
-        {/* Character Context */}
+        {/* Character Context and Status */}
         {currentCharacter && (
           <div className="flex items-center space-x-2 mb-3 text-sm text-gray-400">
             <span>正在与</span>
             <span className="font-medium text-gray-300">{currentCharacter.name}</span>
             <span>对话</span>
+          </div>
+        )}
+        
+        {/* Status Message when input is disabled */}
+        {(!currentChat && !isLoading) && (
+          <div className="mb-3 p-3 bg-blue-900/20 border border-blue-800 rounded-lg text-sm text-blue-300">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+              <span>正在初始化对话...</span>
+            </div>
           </div>
         )}
 

@@ -30,7 +30,7 @@ export default function DashboardLayout({
         {children}
       </main>
       
-      {/* Settings Drawer */}
+      {/* Settings Drawer - Fixed on right as overlay */}
       <SettingsDrawer 
         isOpen={isSettingsOpen} 
         onClose={() => setIsSettingsOpen(false)} 

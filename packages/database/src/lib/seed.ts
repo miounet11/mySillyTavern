@@ -177,9 +177,13 @@ export async function seedDatabase() {
       return
     }
 
-    // Seed characters using the new seed-characters module
-    console.log('📝 Creating high-quality character cards...')
-    await seedCharacters()
+    // Characters are no longer seeded automatically
+    // Users start with an empty character list and can:
+    // 1. Create their own characters
+    // 2. Download from community
+    // 3. Import from files (.json/.png)
+    // console.log('📝 Creating high-quality character cards...')
+    // await seedCharacters()
 
     // Seed default world info
     console.log('🌍 Creating default world info entries...')
@@ -237,10 +241,9 @@ export async function seedDatabase() {
     })
 
     console.log('✅ Database seeding completed successfully!')
-    const characterCount = await prisma.character.count()
-    console.log(`Created ${characterCount} characters`)
     console.log(`Created ${defaultWorldInfo.length} world info entries`)
     console.log(`Created ${defaultAIModels.length} AI model configurations`)
+    console.log('💡 Character list starts empty - users can create or import their own')
 
   } catch (error) {
     console.error('❌ Error seeding database:', error)

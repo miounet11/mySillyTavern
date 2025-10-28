@@ -59,6 +59,11 @@ export const useCharacterStore = create<CharacterState>()(
           })
 
           if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            console.error('Character creation failed:', { 
+              status: response.status, 
+              error: errorData 
+            })
             throw new Error('Failed to create character')
           }
 
