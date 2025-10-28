@@ -45,8 +45,8 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   } = useChatStore()
 
   const { characters, createCharacter } = useCharacterStore()
-  const aiModelStore = useAIModelStore()
-  const { activeModel, hasActiveModel, fetchModels } = aiModelStore
+  const { activeModel, fetchModels, hydrated } = useAIModelStore()
+  const hasActiveModel = activeModel !== null
 
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
@@ -98,22 +98,40 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   // Handle character selection from URL parameter
   useEffect(() => {
     const loadCharacterAndCreateChat = async () => {
+      console.log('[ChatInterface] Loading character - State:', {
+        characterId,
+        modelsInitialized,
+        hydrated,
+        hasActiveModel,
+        activeModel: activeModel ? { id: activeModel.id, name: activeModel.name, provider: activeModel.provider } : null
+      })
+      
       // Wait for models to be initialized first
-      if (!modelsInitialized) return
+      if (!modelsInitialized) {
+        console.log('[ChatInterface] Waiting for models to initialize...')
+        return
+      }
       
-      if (!characterId) return
+      if (!characterId) {
+        console.log('[ChatInterface] No characterId in URL')
+        return
+      }
       
-      // Re-fetch models to ensure we have the latest state
-      await fetchModels()
-      
-      // Check again after fetching - use store getter to get fresh state
-      const currentActiveModel = aiModelStore.getState().activeModel
-      if (!currentActiveModel) {
+      // Wait for store hydration to avoid false negatives
+      if (!hydrated) {
+        console.log('[ChatInterface] Waiting for store hydration...')
+        return
+      }
+      // Check if we have an active model (from localStorage)
+      if (!hasActiveModel || !activeModel) {
+        console.error('[ChatInterface] No active model configured!', { hasActiveModel, activeModel })
         toast.error('请先配置 AI 模型')
         // 打开右侧设置抽屉，而不是跳转页面
         window.dispatchEvent(new CustomEvent('open-settings'))
         return
       }
+      
+      console.log('[ChatInterface] All checks passed, loading character...')
 
       try {
         setLoading(true)
@@ -162,7 +180,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
           })}`,
           characterId: characterData.id,
           settings: {
-            modelId: currentActiveModel.id
+            modelId: activeModel.id
           }
         })
 
@@ -204,7 +222,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     }
 
     loadCharacterAndCreateChat()
-  }, [characterId, modelsInitialized, hasActiveModel, activeModel, router, setCharacter, setCurrentChat, setLoading, addMessage, clearMessages, appSettings])
+  }, [characterId, modelsInitialized, hydrated, hasActiveModel, activeModel, router, setCharacter, setCurrentChat, setLoading, addMessage, clearMessages, appSettings])
 
   // Handle sending a message
   const handleSendMessage = async (content: string) => {
@@ -257,7 +275,16 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   const generateAIResponse = async () => {
     try {
       const response = await chatService.generateResponse(currentChat!.id, {
-        modelId: activeModel?.id
+        modelId: activeModel?.id,
+        clientModel: activeModel
+          ? {
+              provider: activeModel.provider,
+              model: activeModel.model,
+              apiKey: activeModel.apiKey,
+              baseUrl: activeModel.baseUrl,
+              settings: activeModel.settings || {},
+            }
+          : undefined,
       })
 
       // Add AI message to UI
@@ -308,19 +335,12 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
 
   // Create new chat
   const handleNewChat = async () => {
-    // 确保模型已加载，必要时刷新一次模型列表
-    if (!hasActiveModel) {
-      try {
-        await fetchModels()
-      } catch {}
-
-      const hasModelNow = useAIModelStore.getState().hasActiveModel
-      if (!hasModelNow) {
-        toast.error('请先配置 AI 模型')
-        // 打开右侧设置抽屉，而不是跳转页面
-        window.dispatchEvent(new CustomEvent('open-settings'))
-        return
-      }
+    // Check if we have an active model configured (from localStorage)
+    if (!hasActiveModel || !activeModel) {
+      toast.error('请先配置 AI 模型')
+      // 打开右侧设置抽屉，而不是跳转页面
+      window.dispatchEvent(new CustomEvent('open-settings'))
+      return
     }
 
     try {
@@ -361,7 +381,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
         })}`,
         characterId: characterToUse.id,
         settings: {
-          modelId: activeModel?.id
+          modelId: activeModel.id
         }
       })
 
@@ -420,8 +440,8 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
         {!currentChat ? (
           <div className="flex-1 flex items-center justify-center text-gray-500 p-4">
             <div className="max-w-md w-full">
-              {/* 首次使用引导 - 未配置 AI 模型 */}
-              {!hasActiveModel && (
+              {/* 首次使用引导 - 未配置 AI 模型（等到 store hydration 完成再判断） */}
+              {hydrated && !hasActiveModel && (
                 <div className="mb-6 bg-amber-900/20 border-2 border-amber-600/50 rounded-lg p-6">
                   <div className="flex items-start gap-3">
                     <AlertCircle className="w-6 h-6 text-amber-500 flex-shrink-0 mt-1" />

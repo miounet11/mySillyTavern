@@ -8,13 +8,11 @@ import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import ExternalPromptsDialog from '@/components/prompts/ExternalPromptsDialog'
 import TemplateVariablePicker from '@/components/prompts/TemplateVariablePicker'
-import ChatList from '@/components/chat/ChatList'
 import ChatInterface from '@/components/chat/ChatInterface'
 import ChatSettingsPanel from '@/components/chat/ChatSettingsPanel'
 import WorldInfoPanel from '@/components/chat/WorldInfoPanel'
 import RegexScriptEditor from '@/components/chat/RegexScriptEditor'
 import PresetEditor from '@/components/chat/PresetEditor'
-import AIModelDrawer from '@/components/ai/AIModelDrawer'
 import ChatBranchVisualization from '@/components/chat/ChatBranchVisualization'
 import ChatNodeEditor from '@/components/chat/ChatNodeEditor'
 import { Loader2 } from 'lucide-react'
@@ -25,7 +23,6 @@ function ChatPageContent() {
   const searchParams = useSearchParams()
   const characterId = searchParams.get('characterId')
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(true)
-  const [isModelDrawerOpen, setIsModelDrawerOpen] = useState(false)
   const [isWorldInfoOpen, setIsWorldInfoOpen] = useState(false)
   const [isExternalPromptsOpen, setIsExternalPromptsOpen] = useState(false)
   const [isTemplateVarsOpen, setIsTemplateVarsOpen] = useState(false)
@@ -36,12 +33,8 @@ function ChatPageContent() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const { character } = useChatStore()
 
-  // 监听 open-settings 事件，打开右侧 AI 模型抽屉
-  useEffect(() => {
-    const handler = () => setIsModelDrawerOpen(true)
-    window.addEventListener('open-settings', handler as EventListener)
-    return () => window.removeEventListener('open-settings', handler as EventListener)
-  }, [])
+  // 注意：全局 SettingsDrawer 已监听 open-settings 并处理模型配置，
+  // 这里不再重复监听以避免重复弹出。
 
   const handleSelectNode = (nodeId: string) => {
     toast.success(`跳转到节点: ${nodeId}`)
@@ -63,33 +56,30 @@ function ChatPageContent() {
   }
 
   return (
-    <div className="flex h-full relative">
-      {/* Settings Panel */}
-      <ChatSettingsPanel
-        isOpen={isSettingsPanelOpen}
-        onToggle={() => setIsSettingsPanelOpen(!isSettingsPanelOpen)}
-        onOpenWorldInfo={() => setIsWorldInfoOpen(true)}
-        onOpenExternalPrompts={() => setIsExternalPromptsOpen(true)}
-        onOpenTemplateVariables={() => setIsTemplateVarsOpen(true)}
-        onOpenRegexEditor={() => setIsRegexEditorOpen(true)}
-        onOpenPresetEditor={() => setIsPresetEditorOpen(true)}
-        onOpenBranchView={() => setIsBranchViewOpen(true)}
-        characterName={character?.name}
-      />
-
-      {/* Chat List Sidebar */}
-      <div className="w-80 border-r border-gray-800/50 flex flex-col bg-gray-900/40 backdrop-blur-sm">
-        <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin" /></div>}>
-          <ChatList />
-        </Suspense>
-      </div>
-
-      {/* Main chat interface */}
-      <div className="flex-1 flex flex-col">
-        <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin" /></div>}>
+    <div className="min-h-screen bg-gray-950">
+      <div className="container mx-auto max-w-6xl px-4 py-6">
+        {/* Main chat interface */}
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center min-h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-teal-400" /></div>}>
           <ChatInterface characterId={characterId} />
         </Suspense>
       </div>
+
+      {/* Settings Panel (collapsible side panel) */}
+      {isSettingsPanelOpen && (
+        <div className="fixed right-0 top-16 bottom-0 w-80 bg-gray-900 border-l border-gray-800 shadow-2xl z-40 overflow-y-auto">
+          <ChatSettingsPanel
+            isOpen={isSettingsPanelOpen}
+            onToggle={() => setIsSettingsPanelOpen(!isSettingsPanelOpen)}
+            onOpenWorldInfo={() => setIsWorldInfoOpen(true)}
+            onOpenExternalPrompts={() => setIsExternalPromptsOpen(true)}
+            onOpenTemplateVariables={() => setIsTemplateVarsOpen(true)}
+            onOpenRegexEditor={() => setIsRegexEditorOpen(true)}
+            onOpenPresetEditor={() => setIsPresetEditorOpen(true)}
+            onOpenBranchView={() => setIsBranchViewOpen(true)}
+            characterName={character?.name}
+          />
+        </div>
+      )}
 
       {/* Modals */}
       <WorldInfoPanel
@@ -118,11 +108,7 @@ function ChatPageContent() {
         onClose={() => setIsPresetEditorOpen(false)}
       />
 
-      {/* AI Model Drawer (in-app settings) */}
-      <AIModelDrawer
-        isOpen={isModelDrawerOpen}
-        onClose={() => setIsModelDrawerOpen(false)}
-      />
+      {/* 模型配置由全局 SettingsDrawer 负责，避免重复抽屉 */}
 
       <ChatBranchVisualization
         isOpen={isBranchViewOpen}

@@ -55,80 +55,19 @@
   }
   body {
     @apply bg-background text-foreground;
-    position: relative;
-    overflow-x: hidden;
-  }
-  
-  /* Starfield background */
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: 
-      radial-gradient(2px 2px at 20% 30%, white, transparent),
-      radial-gradient(2px 2px at 60% 70%, white, transparent),
-      radial-gradient(1px 1px at 50% 50%, white, transparent),
-      radial-gradient(1px 1px at 80% 10%, white, transparent),
-      radial-gradient(2px 2px at 90% 60%, white, transparent),
-      radial-gradient(1px 1px at 33% 80%, white, transparent),
-      radial-gradient(1px 1px at 70% 40%, white, transparent);
-    background-size: 200% 200%, 180% 180%, 220% 220%, 250% 250%, 190% 190%, 230% 230%, 210% 210%;
-    background-position: 0% 0%, 50% 50%, 100% 100%, 0% 100%, 100% 0%, 50% 0%, 0% 50%;
-    animation: starfieldMove 120s linear infinite;
-    opacity: 0.4;
-    pointer-events: none;
-    z-index: 0;
-  }
-  
-  /* Radial gradient overlay for depth */
-  body::after {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(ellipse at center, transparent 0%, rgba(10, 10, 15, 0.8) 100%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  @keyframes starfieldMove {
-    0% {
-      background-position: 0% 0%, 50% 50%, 100% 100%, 0% 100%, 100% 0%, 50% 0%, 0% 50%;
-    }
-    100% {
-      background-position: 100% 100%, 0% 0%, 0% 0%, 100% 0%, 0% 100%, 50% 100%, 100% 50%;
-    }
+    background: linear-gradient(to bottom, #0a0a0f 0%, #030712 100%);
   }
 }
 
 @layer components {
   /* SillyTavern specific styles */
   .tavern-container {
-    @apply min-h-screen text-gray-100 relative;
-    background: linear-gradient(to bottom, #0a0a0f 0%, #0f0f1e 50%, #0a0a0f 100%);
-    z-index: 1;
-  }
-
-  .tavern-sidebar {
-    @apply border-r border-gray-800/50 flex flex-col relative;
-    background: rgba(15, 15, 30, 0.8);
-    backdrop-filter: blur(10px);
+    @apply min-h-screen text-gray-100;
+    background: linear-gradient(to bottom, #0a0a0f 0%, #030712 100%);
   }
 
   .tavern-main {
-    @apply flex-1 flex flex-col relative;
-    background: transparent;
-  }
-
-  .tavern-header {
-    @apply border-b border-gray-800/50 px-4 py-3 relative;
-    background: rgba(15, 15, 30, 0.6);
-    backdrop-filter: blur(10px);
+    @apply flex-1 flex flex-col;
   }
 
   .tavern-chat-container {
@@ -161,51 +100,29 @@
   }
 
   .tavern-button {
-    @apply px-4 py-2 text-white rounded-lg focus:outline-none focus:ring-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden;
+    @apply px-4 py-2 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
     background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
-    box-shadow: 0 0 20px rgba(20, 184, 166, 0.3);
   }
   
   .tavern-button:hover:not(:disabled) {
-    box-shadow: 0 0 30px rgba(20, 184, 166, 0.5);
-    transform: translateY(-1px);
+    background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
   }
 
   .tavern-button-secondary {
-    @apply text-gray-100 relative;
-    background: rgba(55, 65, 81, 0.5);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(75, 85, 99, 0.5);
-    box-shadow: none;
-  }
-  
-  .tavern-button-secondary:hover:not(:disabled) {
-    background: rgba(75, 85, 99, 0.6);
-    box-shadow: 0 0 20px rgba(75, 85, 99, 0.3);
+    @apply text-gray-100 bg-gray-700 hover:bg-gray-600 border border-gray-600 transition-colors;
   }
 
   .tavern-button-danger {
-    @apply text-white;
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-    box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
-  }
-  
-  .tavern-button-danger:hover:not(:disabled) {
-    box-shadow: 0 0 30px rgba(220, 38, 38, 0.5);
+    @apply text-white bg-red-600 hover:bg-red-700 transition-colors;
   }
 
   /* Character card styles */
   .character-card {
-    @apply rounded-lg p-0 transition-all cursor-pointer relative overflow-hidden;
-    background: rgba(30, 41, 59, 0.4);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(71, 85, 105, 0.3);
+    @apply rounded-lg p-0 transition-all cursor-pointer overflow-hidden bg-gray-800 border border-gray-700;
   }
   
   .character-card:hover {
-    border-color: rgba(20, 184, 166, 0.5);
-    box-shadow: 0 0 30px rgba(20, 184, 166, 0.2);
-    transform: translateY(-4px);
+    @apply border-teal-500 shadow-lg shadow-teal-500/20 -translate-y-1;
   }
 
   .character-card-avatar {
@@ -255,6 +172,16 @@
     @apply bg-gray-600;
   }
 
+  /* Hide scrollbar for horizontal scroll */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Modal styles */
   .tavern-modal-overlay {
     @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
@@ -274,15 +201,7 @@
   }
 
   .tavern-input {
-    @apply w-full px-3 py-2 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent transition-all;
-    background: rgba(30, 41, 59, 0.5);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(71, 85, 105, 0.5);
-  }
-  
-  .tavern-input:focus {
-    border-color: rgba(20, 184, 166, 0.5);
-    box-shadow: 0 0 20px rgba(20, 184, 166, 0.2);
+    @apply w-full px-3 py-2 rounded-md text-gray-100 placeholder-gray-500 bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors;
   }
 
   .tavern-textarea {

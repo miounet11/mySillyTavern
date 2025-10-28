@@ -44,6 +44,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
   const [activeTab, setActiveTab] = useState('models')
   const [isModelDrawerOpen, setIsModelDrawerOpen] = useState(false)
   const [editingModel, setEditingModel] = useState<any>(null)
+  const [wasSettingsOpen, setWasSettingsOpen] = useState(false) // Track if settings was open before model drawer
   
   // AI Models
   const [aiModels, setAiModels] = useState<any[]>([])
@@ -144,12 +145,16 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
 
   const handleAddModel = () => {
     setEditingModel(null)
+    setWasSettingsOpen(isOpen) // Remember if settings was open
     setIsModelDrawerOpen(true)
+    // Don't close settings drawer, let them stack with proper z-index
   }
 
   const handleEditModel = (model: any) => {
     setEditingModel(model)
+    setWasSettingsOpen(isOpen) // Remember if settings was open
     setIsModelDrawerOpen(true)
+    // Don't close settings drawer, let them stack with proper z-index
   }
 
   const handleModelSaved = async () => {
@@ -157,6 +162,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
     setEditingModel(null)
     await fetchAIModels()
     await fetchModels()
+    // Settings drawer will remain open if it was open before
   }
 
   const handleSetActiveModel = async (modelId: string) => {
@@ -620,14 +626,25 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
         </SheetContent>
       </Sheet>
 
-      {/* AI Model Configuration Drawer (nested) */}
-      <AIModelDrawer
-        isOpen={isModelDrawerOpen}
-        onClose={() => setIsModelDrawerOpen(false)}
-        editingModel={editingModel}
-        onModelCreated={handleModelSaved}
-        onModelUpdated={handleModelSaved}
-      />
+      {/* AI Model Configuration Drawer - Higher z-index to appear above settings */}
+      <div className={isModelDrawerOpen ? "model-drawer-wrapper" : ""}>
+        <AIModelDrawer
+          isOpen={isModelDrawerOpen}
+          onClose={() => setIsModelDrawerOpen(false)}
+          editingModel={editingModel}
+          onModelCreated={handleModelSaved}
+          onModelUpdated={handleModelSaved}
+        />
+      </div>
+      
+      <style jsx global>{`
+        .model-drawer-wrapper [data-radix-dialog-overlay] {
+          z-index: 60 !important;
+        }
+        .model-drawer-wrapper [data-radix-dialog-content] {
+          z-index: 60 !important;
+        }
+      `}</style>
     </>
   )
 }

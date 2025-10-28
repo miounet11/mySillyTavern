@@ -180,7 +180,7 @@ function AIModelModal({
           name: editingModel.name,
           provider: editingModel.provider as any,
           model: editingModel.model,
-          apiKey: '', // Never pre-fill API keys for security
+          apiKey: editingModel.apiKey || '', // Pre-fill API key for easier editing
           baseUrl: editingModel.baseUrl || '',
           settings: {
             temperature: editingModel.settings?.temperature ?? 0.7,
@@ -233,7 +233,9 @@ function AIModelModal({
       return
     }
 
-    if (!formData.apiKey.trim() && formData.provider !== 'local') {
+    // When editing, API key is optional (we keep the existing one if not changed)
+    // When creating new, API key is required (except for local models)
+    if (!editingModel && !formData.apiKey.trim() && formData.provider !== 'local') {
       toast.error('API密钥是必填项')
       return
     }
@@ -289,7 +291,9 @@ function AIModelModal({
       return
     }
 
-    if (!formData.apiKey.trim() && formData.provider !== 'local') {
+    // For new models, API key is required
+    // For editing, we can use the existing API key if user hasn't provided a new one
+    if (!formData.apiKey.trim() && formData.provider !== 'local' && !editingModel) {
       toast.error('请先输入API密钥')
       return
     }

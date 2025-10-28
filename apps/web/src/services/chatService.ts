@@ -8,7 +8,7 @@ import { API_ENDPOINTS, HTTP_METHODS, HTTP_STATUS } from '@sillytavern-clone/sha
 
 // Create axios instance with default configuration
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || '', // API_ENDPOINTS already include /api prefix
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -180,7 +180,7 @@ class ChatService {
    */
   async generateResponse(
     chatId: string,
-    options?: GenerationOptions
+    options?: any // allow clientModel passthrough
   ): Promise<ChatGenerationResponse> {
     try {
       const response = await apiClient.post<ChatGenerationResponse>(

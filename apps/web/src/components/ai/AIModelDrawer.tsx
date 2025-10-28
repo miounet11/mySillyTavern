@@ -12,6 +12,8 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetPortal,
+  SheetOverlay,
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -179,7 +181,7 @@ function AIModelDrawer({
           name: editingModel.name,
           provider: editingModel.provider as any,
           model: editingModel.model,
-          apiKey: '',
+          apiKey: editingModel.apiKey || '', // Pre-fill API key for easier editing
           baseUrl: editingModel.baseUrl || '',
           settings: {
             temperature: editingModel.settings?.temperature ?? 0.7,
@@ -236,7 +238,9 @@ function AIModelDrawer({
       return
     }
 
-    if (!formData.apiKey.trim() && formData.provider !== 'local') {
+    // When editing, API key is optional (we keep the existing one if not changed)
+    // When creating new, API key is required (except for local models)
+    if (!editingModel && !formData.apiKey.trim() && formData.provider !== 'local') {
       toast.error('API密钥是必填项')
       return
     }
@@ -289,7 +293,9 @@ function AIModelDrawer({
       return
     }
 
-    if (!formData.apiKey.trim() && formData.provider !== 'local') {
+    // For new models, API key is required
+    // For editing, we can use the existing API key if user hasn't provided a new one
+    if (!formData.apiKey.trim() && formData.provider !== 'local' && !editingModel) {
       toast.error('请先输入API密钥')
       return
     }
@@ -419,7 +425,7 @@ function AIModelDrawer({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-[500px] p-0 flex flex-col overflow-hidden">
+      <SheetContent side="right" className="w-[500px] p-0 flex flex-col overflow-hidden !z-[60]">
         <SheetHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0">
           <SheetTitle className="text-xl font-semibold text-gray-100">
             {editingModel ? '编辑模型' : '新建配置'}

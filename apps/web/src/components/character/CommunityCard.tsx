@@ -28,12 +28,13 @@ export default function CommunityCard({
   return (
     <div className="character-card group">
       {/* Character Image */}
-      <div className="relative w-full aspect-[3/4] bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
+      <div className="relative w-full aspect-[3/4] bg-gray-900 overflow-hidden">
         {character.avatar ? (
           <img
             src={character.avatar}
             alt={character.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+            loading="lazy"
             onError={(e) => {
               e.currentTarget.style.display = 'none'
               const fallback = e.currentTarget.nextElementSibling as HTMLElement
@@ -42,37 +43,31 @@ export default function CommunityCard({
           />
         ) : null}
         <div 
-          className="w-full h-full flex items-center justify-center text-6xl text-gray-600"
+          className="w-full h-full flex items-center justify-center text-6xl font-bold text-gray-600"
           style={{ display: character.avatar ? 'none' : 'flex' }}
         >
           {character.name.charAt(0).toUpperCase()}
         </div>
         
-        {/* Category badge */}
-        <div className="absolute top-3 right-3">
-          <Badge className="bg-teal-500/90 text-white border-0 backdrop-blur-sm">
+        {/* Stats badge */}
+        <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+          <Badge className="bg-teal-500 text-white border-0 text-xs">
             {character.category}
           </Badge>
-        </div>
-
-        {/* Stats overlay */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-          <div className="flex items-center justify-between text-xs text-gray-300">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1">
-                <Download className="w-3 h-3" />
-                {character.downloads}
-              </span>
-              <span className="flex items-center gap-1">
-                <Heart className="w-3 h-3" />
-                {character.likes}
-              </span>
-            </div>
+          <div className="flex items-center gap-2 text-xs text-white bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full">
+            <span className="flex items-center gap-1">
+              <Download className="w-3 h-3" />
+              {character.downloads}
+            </span>
+            <span className="flex items-center gap-1">
+              <Heart className="w-3 h-3" />
+              {character.likes}
+            </span>
           </div>
         </div>
         
         {/* Hover overlay with download button */}
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center p-4">
           <Button
             onClick={(e) => {
               e.stopPropagation()
@@ -89,7 +84,7 @@ export default function CommunityCard({
 
       {/* Character Info */}
       <div className="p-4 space-y-2">
-        <h3 className="text-lg font-bold text-gray-100 truncate">{character.name}</h3>
+        <h3 className="text-base font-semibold text-gray-100 truncate">{character.name}</h3>
         
         {character.description && (
           <p className="text-sm text-gray-400 line-clamp-2 min-h-[2.5rem]">
@@ -104,22 +99,22 @@ export default function CommunityCard({
         )}
 
         {character.tags && character.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 pt-1">
-            {character.tags.slice(0, 3).map((tag: string, index: number) => (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {character.tags.slice(0, 2).map((tag: string, index: number) => (
               <Badge 
                 key={index} 
                 variant="secondary"
-                className="text-xs bg-gray-700/50 text-gray-300 border-gray-600/50"
+                className="text-xs bg-gray-700 text-gray-300 border-0"
               >
                 {tag}
               </Badge>
             ))}
-            {character.tags.length > 3 && (
+            {character.tags.length > 2 && (
               <Badge 
                 variant="secondary"
-                className="text-xs bg-gray-700/50 text-gray-300 border-gray-600/50"
+                className="text-xs bg-gray-700 text-gray-300 border-0"
               >
-                +{character.tags.length - 3}
+                +{character.tags.length - 2}
               </Badge>
             )}
           </div>

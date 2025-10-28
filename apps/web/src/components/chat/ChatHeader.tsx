@@ -284,10 +284,7 @@ export default function ChatHeader({
                   分享对话
                 </DropdownMenuItem>
 
-                <DropdownMenuItem
-                  onClick={handleExportChat}
-                  disabled={isExporting}
-                >
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={handleExportChat} disabled={isExporting}>
                   <Download className="w-4 h-4 mr-2" />
                   {isExporting ? '导出中...' : '导出对话'}
                 </DropdownMenuItem>
@@ -302,10 +299,7 @@ export default function ChatHeader({
                 <DropdownMenuSeparator />
 
                 {/* Destructive Actions */}
-                <DropdownMenuItem
-                  onClick={handleDeleteChat}
-                  className="text-red-500 hover:text-red-400 focus:text-red-400"
-                >
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={handleDeleteChat} className="text-red-500 hover:text-red-400 focus:text-red-400">
                   <Trash2 className="w-4 h-4 mr-2" />
                   删除对话
                 </DropdownMenuItem>

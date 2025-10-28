@@ -1,9 +1,9 @@
 /**
- * AI Model state management using Zustand
+ * AI Model state management using Zustand with localStorage persistence
  */
 
 import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
+import { devtools, persist } from 'zustand/middleware'
 import { AIModelConfig } from '@sillytavern-clone/shared'
 
 interface AIModelState {
@@ -12,6 +12,7 @@ interface AIModelState {
   activeModel: AIModelConfig | null
   isLoading: boolean
   error: string | null
+  hydrated: boolean
 
   // Actions
   setModels: (models: AIModelConfig[]) => void
@@ -29,18 +30,19 @@ interface AIModelState {
 
   // Utility
   getModelsByProvider: (provider: string) => AIModelConfig[]
-  hasActiveModel: boolean
   getActiveModelSettings: () => any
 }
 
 export const useAIModelStore = create<AIModelState>()(
-  devtools(
-    (set, get) => ({
+  persist(
+    devtools(
+      (set, get) => ({
       // Initial state
       models: [],
       activeModel: null,
       isLoading: false,
       error: null,
+      hydrated: false,
 
       // Actions
       setModels: (models) => set({ models }),
@@ -48,23 +50,44 @@ export const useAIModelStore = create<AIModelState>()(
       setLoading: (loading) => set({ isLoading: loading }),
       setError: (error) => set({ error }),
       clearError: () => set({ error: null }),
+      // Mark store hydrated once state is rehydrated from localStorage (handled in persist.onRehydrateStorage)
 
       // CRUD operations
       fetchModels: async () => {
         try {
           set({ isLoading: true, error: null })
 
-          const response = await fetch('/api/ai-models')
-          if (!response.ok) {
-            throw new Error('Failed to fetch AI models')
+          // Try to fetch from API, but don't fail if it doesn't work
+          // The localStorage persistence will handle local models
+          try {
+            const response = await fetch('/api/ai-models')
+            if (response.ok) {
+              const { models } = await response.json()
+              // Merge server models with local models
+              const currentModels = get().models
+              const mergedModels = [...currentModels]
+              
+              models.forEach((serverModel: AIModelConfig) => {
+                const existingIndex = mergedModels.findIndex(m => m.id === serverModel.id)
+                if (existingIndex >= 0) {
+                  mergedModels[existingIndex] = serverModel
+                } else {
+                  mergedModels.push(serverModel)
+                }
+              })
+              
+              set({ models: mergedModels })
+              
+              // Sync active model
+              const active = mergedModels.find((model: any) => model.isActive)
+              if (active) {
+                set({ activeModel: active })
+              }
+            }
+          } catch (apiError) {
+            // API failed, but we still have localStorage data
+            console.log('API unavailable, using local models only')
           }
-
-          const { models } = await response.json()
-          set({ models })
-
-          // Always sync activeModel with server state
-          const active = models.find((model: any) => model.isActive)
-          set({ activeModel: active || null })
 
         } catch (error) {
           console.error('Error fetching AI models:', error)
@@ -78,27 +101,46 @@ export const useAIModelStore = create<AIModelState>()(
         try {
           set({ isLoading: true, error: null })
 
-          const response = await fetch('/api/ai-models', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(params)
-          })
-
-          if (!response.ok) {
-            throw new Error('Failed to create AI model')
+          // Create model locally first
+          const newModel: AIModelConfig = {
+            id: `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: params.name,
+            provider: params.provider,
+            model: params.model,
+            apiKey: params.apiKey,
+            baseUrl: params.baseUrl,
+            settings: params.settings || {},
+            isActive: params.isActive !== undefined ? params.isActive : false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
           }
 
-          const model = await response.json()
+          // If this model is set as active, deactivate all other models
+          if (newModel.isActive) {
+            set((state) => ({
+              models: state.models.map(m => ({ ...m, isActive: false }))
+            }))
+          }
+
+          // Add to local state (will be persisted to localStorage automatically)
           set((state) => ({
-            models: [...state.models, model]
+            models: [...state.models, newModel],
+            activeModel: newModel.isActive ? newModel : state.activeModel
           }))
 
-          // If this model is created as active, update activeModel immediately
-          if ((model as any).isActive) {
-            set({ activeModel: model })
+          // Try to sync with server in background (optional)
+          try {
+            await fetch('/api/ai-models', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(params)
+            })
+          } catch (apiError) {
+            // Server sync failed, but local model is saved
+            console.log('Server sync failed, model saved locally only')
           }
 
-          return model
+          return newModel
         } catch (error) {
           console.error('Error creating AI model:', error)
           set({ error: error instanceof Error ? error.message : 'Failed to create AI model' })
@@ -112,32 +154,59 @@ export const useAIModelStore = create<AIModelState>()(
         try {
           set({ isLoading: true, error: null })
 
-          const response = await fetch(`/api/ai-models/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updates)
-          })
-
-          if (!response.ok) {
-            throw new Error('Failed to update AI model')
+          // Update model locally first
+          const currentModels = get().models
+          const modelIndex = currentModels.findIndex(m => m.id === id)
+          
+          if (modelIndex === -1) {
+            throw new Error('Model not found')
           }
 
-          const model = await response.json()
-          set((state) => {
-            const updatedModels = state.models.map(m => m.id === id ? model : m)
-            // If this model is active after update, set it as activeModel
-            if ((model as any).isActive) {
-              return { models: updatedModels, activeModel: model }
-            }
-            // If we just deactivated the previously active model, try to pick another active
-            if (state.activeModel?.id === id && !(model as any).isActive) {
-              const nextActive = updatedModels.find((m: any) => m.isActive) || null
-              return { models: updatedModels, activeModel: nextActive }
-            }
-            return { models: updatedModels }
-          })
+          const updatedModel: AIModelConfig = {
+            ...currentModels[modelIndex],
+            ...updates,
+            updatedAt: new Date(),
+          }
 
-          return model
+          // If this model is being set as active, deactivate all others
+          if (updates.isActive) {
+            set((state) => ({
+              models: state.models.map((m, idx) => 
+                idx === modelIndex 
+                  ? updatedModel 
+                  : { ...m, isActive: false }
+              ),
+              activeModel: updatedModel
+            }))
+          } else {
+            set((state) => {
+              const updatedModels = state.models.map((m, idx) => 
+                idx === modelIndex ? updatedModel : m
+              )
+              // If we just deactivated the active model, clear it
+              const newActiveModel = state.activeModel?.id === id && !updates.isActive
+                ? updatedModels.find((m: any) => m.isActive) || null
+                : state.activeModel
+              
+              return { 
+                models: updatedModels,
+                activeModel: newActiveModel
+              }
+            })
+          }
+
+          // Try to sync with server in background (optional)
+          try {
+            await fetch(`/api/ai-models/${id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updates)
+            })
+          } catch (apiError) {
+            console.log('Server sync failed, model updated locally only')
+          }
+
+          return updatedModel
         } catch (error) {
           console.error('Error updating AI model:', error)
           set({ error: error instanceof Error ? error.message : 'Failed to update AI model' })
@@ -151,14 +220,7 @@ export const useAIModelStore = create<AIModelState>()(
         try {
           set({ isLoading: true, error: null })
 
-          const response = await fetch(`/api/ai-models/${id}`, {
-            method: 'DELETE'
-          })
-
-          if (!response.ok) {
-            throw new Error('Failed to delete AI model')
-          }
-
+          // Delete from local state first
           set((state) => {
             const remaining = state.models.filter(m => m.id !== id)
             let nextActive = state.activeModel
@@ -167,6 +229,15 @@ export const useAIModelStore = create<AIModelState>()(
             }
             return { models: remaining, activeModel: nextActive }
           })
+
+          // Try to delete from server in background (optional)
+          try {
+            await fetch(`/api/ai-models/${id}`, {
+              method: 'DELETE'
+            })
+          } catch (apiError) {
+            console.log('Server sync failed, model deleted locally only')
+          }
 
           return true
         } catch (error) {
@@ -206,17 +277,42 @@ export const useAIModelStore = create<AIModelState>()(
         return get().models.filter(model => model.provider === provider)
       },
 
-      get hasActiveModel() {
-        return get().activeModel !== null
-      },
-
       getActiveModelSettings() {
         const { activeModel } = get()
         return activeModel ? activeModel.settings : {}
       },
-    }),
+      }),
+      {
+        name: 'ai-model-store',
+      }
+    ),
     {
-      name: 'ai-model-store',
+      name: 'ai-models-storage',
+      // Only persist models and activeModel to localStorage
+      partialize: (state) => ({
+        models: state.models,
+        activeModel: state.activeModel,
+      }),
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('[AIModelStore] Rehydration error:', error)
+          return
+        }
+        console.log('[AIModelStore] Rehydrating from localStorage...', {
+          models: state?.models?.length || 0,
+          activeModel: state?.activeModel ? { id: state.activeModel.id, name: state.activeModel.name } : null
+        })
+        // Delay setting hydrated to next tick to ensure subscribers update
+        setTimeout(() => {
+          try {
+            // set hydrated true without overwriting other state
+            ;(useAIModelStore as any).setState({ hydrated: true }, false)
+            console.log('[AIModelStore] Hydration complete ✓')
+          } catch (err) {
+            console.error('[AIModelStore] Failed to set hydrated flag:', err)
+          }
+        }, 0)
+      },
     }
   )
 )
