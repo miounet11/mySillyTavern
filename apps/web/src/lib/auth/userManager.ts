@@ -54,7 +54,7 @@ export async function createUser(username?: string) {
 /**
  * 更新用户信息
  */
-export async function updateUser(userId: string, data: { username?: string; email?: string; settings?: string }) {
+export async function updateUser(userId: string, data: { username?: string; email?: string | null; settings?: string }) {
   try {
     const user = await prisma.user.update({
       where: { id: userId },

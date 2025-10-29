@@ -424,12 +424,12 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
         }
         addMessage(tempMessage)
 
-        // Create abort controller
+        // Create abort controller (keep it in store so cancel button can abort)
         const abortController = new AbortController()
         setAbortController(abortController)
 
-        // Reset progress
-        resetGenerationState()
+        // Reset only progress at start; do NOT clear abortController here
+        setGenerationProgress(0)
 
         await chatService.generateResponseStreaming(currentChat!.id, {
           modelId: activeModel?.id,
@@ -520,7 +520,8 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
 
         const abortController = new AbortController()
         setAbortController(abortController)
-        resetGenerationState()
+        // Reset only progress at start; do NOT clear abortController here
+        setGenerationProgress(0)
 
         const startedAt = Date.now()
         const progressInterval = setInterval(() => {
@@ -618,6 +619,9 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
       console.error('Error continuing incomplete interaction:', error)
       setError('继续生成失败')
       toast.error('继续生成失败')
+    } finally {
+      // 确保结束继续生成流程时关闭 Loading 状态
+      setGenerating(false)
     }
   }
 

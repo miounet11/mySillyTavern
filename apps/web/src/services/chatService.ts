@@ -219,11 +219,18 @@ class ChatService {
       onFallback?: () => void // 当检测到不支持SSE时回退的通知
     }
   ): Promise<void> {
-    const timeoutMs = options.timeout || 180000 // 默认180秒（3分钟），适配 grok-3 复杂场景
+    // 双阶段超时（握手+空闲）与总上限
+    const maxDurationMs = options.timeout || 180000
+    const handshakeTimeoutMs = 90000
+    const idleTimeoutMs = 60000
     const controller = new AbortController()
-    let timeoutId: NodeJS.Timeout | null = null
+    let handshakeTimer: NodeJS.Timeout | null = null
+    let idleTimer: NodeJS.Timeout | null = null
+    let maxTimer: NodeJS.Timeout | null = null
     let progressInterval: NodeJS.Timeout | null = null
     const startTime = Date.now()
+    let gotFirstChunk = false
+    let timeoutReason: 'handshake' | 'idle' | 'max' | null = null
 
     try {
       // 合并外部取消信号
@@ -233,10 +240,26 @@ class ChatService {
         })
       }
 
-      // 设置超时
-      timeoutId = setTimeout(() => {
+      // 设置握手/空闲/总时长超时
+      handshakeTimer = setTimeout(() => {
+        if (!gotFirstChunk) {
+          timeoutReason = 'handshake'
+          controller.abort()
+        }
+      }, handshakeTimeoutMs)
+
+      const armIdleTimer = () => {
+        if (idleTimer) clearTimeout(idleTimer)
+        idleTimer = setTimeout(() => {
+          timeoutReason = 'idle'
+          controller.abort()
+        }, idleTimeoutMs)
+      }
+
+      maxTimer = setTimeout(() => {
+        timeoutReason = 'max'
         controller.abort()
-      }, timeoutMs)
+      }, maxDurationMs)
 
       // 进度报告（每秒更新）
       if (options.onProgress) {
@@ -250,7 +273,7 @@ class ChatService {
         modelId: options.modelId,
         fastMode: options.fastMode,
         creativeDirectives: options.creativeDirectives || null,
-        timeoutMs,
+        timeoutMs: maxDurationMs,
         hasAbortSignal: !!options.abortSignal,
         clientModel: options.clientModel
           ? {
@@ -263,16 +286,29 @@ class ChatService {
       }
       console.log('[chatService] generateResponseStreaming payload:', sanitizedOptions)
 
+      // 仅发送必要字段，避免函数/信号被序列化
+      const requestBody: any = {
+        streaming: true,
+        modelId: options.modelId,
+        fastMode: options.fastMode,
+        creativeDirectives: options.creativeDirectives || null,
+      }
+      if (options.clientModel) {
+        requestBody.clientModel = {
+          provider: options.clientModel.provider,
+          model: options.clientModel.model,
+          apiKey: options.clientModel.apiKey,
+          baseUrl: options.clientModel.baseUrl,
+          settings: options.clientModel.settings || {},
+        }
+      }
+
       const response = await fetch(API_ENDPOINTS.CHAT_GENERATE(chatId), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...options,
-          streaming: true, // 确保启用流式（API 期望 "streaming" 参数）
-          creativeDirectives: options.creativeDirectives || null,
-        }),
+        body: JSON.stringify(requestBody),
         signal: controller.signal,
       })
 
@@ -309,7 +345,7 @@ class ChatService {
           } else {
             options.onError?.(e?.message || '服务器错误', 'server')
           }
-          throw e
+          return
         }
       }
 
@@ -321,6 +357,14 @@ class ChatService {
         if (done) break
 
         buffer += decoder.decode(value, { stream: true })
+        if (!gotFirstChunk && buffer.length > 0) {
+          gotFirstChunk = true
+          if (handshakeTimer) clearTimeout(handshakeTimer)
+          armIdleTimer()
+        } else {
+          // 每次数据到达，重置空闲计时
+          armIdleTimer()
+        }
         const lines = buffer.split('\n\n')
         buffer = lines.pop() || ''
 
@@ -356,11 +400,13 @@ class ChatService {
       // 判断错误类型
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          // 检查是超时还是手动取消
-          const elapsed = Date.now() - startTime
-          if (elapsed >= timeoutMs - 100) { // 容忍100ms误差
-            const errorMsg = `请求超时 (${Math.floor(timeoutMs / 1000)}秒)，模型响应时间较长`
-            options.onError?.(errorMsg, 'timeout')
+          if (timeoutReason === 'handshake') {
+            options.onError?.('请求超时（连接建立过慢）', 'timeout')
+          } else if (timeoutReason === 'idle') {
+            options.onError?.('连接空闲超时（模型长时间未输出）', 'timeout')
+          } else if (timeoutReason === 'max') {
+            const secs = Math.floor(maxDurationMs / 1000)
+            options.onError?.(`请求超时 (${secs}秒)，模型响应时间较长`, 'timeout')
           } else {
             options.onError?.('已取消生成', 'cancelled')
           }
@@ -372,11 +418,13 @@ class ChatService {
       } else {
         options.onError?.('Unknown error', 'server')
       }
-      
-      throw this.handleError(error)
+      // 已通过回调通知错误，不再抛出以避免冗余错误日志
+      return
     } finally {
       // 清理定时器
-      if (timeoutId) clearTimeout(timeoutId)
+      if (handshakeTimer) clearTimeout(handshakeTimer)
+      if (idleTimer) clearTimeout(idleTimer)
+      if (maxTimer) clearTimeout(maxTimer)
       if (progressInterval) clearInterval(progressInterval)
     }
   }
