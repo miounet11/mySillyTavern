@@ -50,7 +50,7 @@ function AIModelDrawer({
   onModelUpdated,
   editingModel
 }: AIModelDrawerProps) {
-  const { createModel, updateModel, testModel, testModelConfig, setActiveModel } = useAIModelStore()
+  const { createModel, updateModel, testModel, testModelConfig, setActiveModel, fetchModels } = useAIModelStore()
   const [isLoading, setIsLoading] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const [testResult, setTestResult] = useState<TestResult | null>(null)
@@ -266,7 +266,12 @@ function AIModelDrawer({
         if (updatedModel) {
           toast.success('AI模型更新成功')
           onModelUpdated?.(updatedModel)
-          if (formData.isActive) {
+          
+          // 关键修复：强制从服务器刷新所有模型，确保数据同步
+          await fetchModels()
+          
+          // 如果是激活模型，确保使用服务器返回的最新数据
+          if (updatedModel.isActive) {
             setActiveModel(updatedModel)
           }
           onClose()
@@ -276,6 +281,11 @@ function AIModelDrawer({
         if (newModel) {
           toast.success('AI模型创建成功')
           onModelCreated?.(newModel)
+          
+          // 关键修复：强制从服务器刷新所有模型，确保数据同步
+          await fetchModels()
+          
+          // 如果是激活模型，确保使用服务器返回的最新数据
           if (submitData.isActive) {
             setActiveModel(newModel)
           }

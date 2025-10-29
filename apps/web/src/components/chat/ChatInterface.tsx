@@ -405,6 +405,27 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
           }
         : undefined
 
+      // 关键修复：添加配置验证
+      if (!clientModel?.model) {
+        console.error('[ChatInterface] Invalid model config - missing model:', clientModel)
+        toast.error('模型配置不完整：缺少模型名称')
+        resetGenerationState()
+        return
+      }
+      
+      if (!clientModel?.apiKey && clientModel?.provider !== 'local') {
+        console.error('[ChatInterface] Invalid model config - missing API key:', clientModel)
+        toast.error('模型配置不完整：缺少 API 密钥，请重新配置')
+        resetGenerationState()
+        // 尝试重新加载模型
+        try {
+          await fetchModels()
+        } catch (e) {
+          console.error('[ChatInterface] Failed to refresh models:', e)
+        }
+        return
+      }
+
       // Decide streaming based on user setting and capability detection
       const shouldStream = isStreamingEnabled && !streamingUnsupported
       const creativeDirectives = {

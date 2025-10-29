@@ -39,6 +39,7 @@ interface AIModelState {
   // Utility
   getModelsByProvider: (provider: string) => AIModelConfig[]
   getActiveModelSettings: () => any
+  refreshActiveModel: () => Promise<void>
 }
 
 export const useAIModelStore = create<AIModelState>()(
@@ -92,14 +93,17 @@ export const useAIModelStore = create<AIModelState>()(
                 }
               }
 
-              // Decide active model: prefer existing active if present, otherwise server isActive
+              // Decide active model: 优先使用服务器的最新数据更新 activeModel
               const prevActive = get().activeModel
               let nextActive: AIModelConfig | null = null
               if (prevActive) {
-                const matchByKey = deduped.find(m => m.provider === (prevActive as any).provider && m.model === (prevActive as any).model)
-                nextActive = matchByKey || prevActive
+                // 关键修复：优先从服务器数据中查找匹配的模型（使用 ID 匹配）
+                const serverMatch = deduped.find(m => m.id === prevActive.id)
+                // 如果找到服务器版本，使用服务器版本；否则回退到本地缓存
+                nextActive = serverMatch || prevActive
               }
               if (!nextActive) {
+                // 如果没有之前的激活模型，查找服务器标记为激活的模型
                 nextActive = deduped.find((m: any) => (m as any).isActive) || null
               }
 
@@ -214,7 +218,9 @@ export const useAIModelStore = create<AIModelState>()(
               console.log('[AIModelStore] 更新状态 - 模型总数:', replaced.length)
               return {
                 models: replaced,
-                activeModel: serverUpdated.isActive ? serverUpdated : state.activeModel
+                // 关键修复：如果更新的是当前激活模型，使用服务器返回的最新数据
+                activeModel: state.activeModel?.id === id ? serverUpdated :
+                            serverUpdated.isActive ? serverUpdated : state.activeModel
               }
             })
             
@@ -245,9 +251,11 @@ export const useAIModelStore = create<AIModelState>()(
             } else {
               set((state) => ({
                 models: state.models.map(m => m.id === id ? updatedModel : m),
-                activeModel: state.activeModel?.id === id && !updates.isActive
-                  ? state.models.find((m: any) => (m as any).isActive) || null
-                  : state.activeModel
+                // 关键修复：如果更新的是当前激活模型，使用更新后的数据
+                activeModel: state.activeModel?.id === id ? updatedModel :
+                            (state.activeModel?.id === id && !updates.isActive
+                              ? state.models.find((m: any) => (m as any).isActive) || null
+                              : state.activeModel)
               }))
             }
             
@@ -348,6 +356,31 @@ export const useAIModelStore = create<AIModelState>()(
       getActiveModelSettings() {
         const { activeModel } = get()
         return activeModel ? activeModel.settings : {}
+      },
+
+      refreshActiveModel: async () => {
+        const { activeModel } = get()
+        if (!activeModel?.id) {
+          console.log('[AIModelStore] No active model to refresh')
+          return
+        }
+        
+        try {
+          console.log('[AIModelStore] Refreshing active model:', activeModel.id)
+          const response = await fetch(`/api/ai-models/${activeModel.id}`)
+          if (response.ok) {
+            const refreshedModel: AIModelConfig = await response.json()
+            set((state) => ({
+              models: state.models.map(m => m.id === activeModel.id ? refreshedModel : m),
+              activeModel: refreshedModel
+            }))
+            console.log('[AIModelStore] Active model refreshed successfully')
+          } else {
+            console.warn('[AIModelStore] Failed to refresh active model, keeping current')
+          }
+        } catch (error) {
+          console.error('[AIModelStore] Error refreshing active model:', error)
+        }
       },
       }),
       {
