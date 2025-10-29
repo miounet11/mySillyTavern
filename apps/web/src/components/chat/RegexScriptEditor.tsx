@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -16,18 +16,19 @@ import {
   Code,
   Upload,
   Download,
-  Play
+  Play,
+  RefreshCw
 } from 'lucide-react'
-
-interface RegexScript {
-  id: string
-  name: string
-  enabled: boolean
-  findRegex: string
-  replaceWith: string
-  priority: number
-  scriptType: 'input' | 'output' | 'display' | 'all'
-}
+import { 
+  getDefaultRegexRules, 
+  hasDefaultRulesInitialized, 
+  markDefaultRulesInitialized,
+  RegexScript 
+} from '@/lib/defaultRegexRules'
+import {
+  getRegexScripts,
+  saveRegexScripts
+} from '@/lib/regexScriptStorage'
 
 interface RegexScriptEditorProps {
   isOpen: boolean
@@ -54,6 +55,36 @@ export default function RegexScriptEditor({
     scriptType: 'all' as RegexScript['scriptType'],
     enabled: true
   })
+
+  // Load scripts from localStorage on mount
+  useEffect(() => {
+    if (isOpen) {
+      loadScripts()
+    }
+  }, [isOpen])
+
+  const loadScripts = () => {
+    const stored = getRegexScripts()
+    
+    // Auto-initialize with default rules if first time
+    if (stored.length === 0 && !hasDefaultRulesInitialized()) {
+      const defaultRules = getDefaultRegexRules()
+      saveRegexScripts(defaultRules)
+      markDefaultRulesInitialized()
+      setScripts(defaultRules)
+    } else {
+      setScripts(stored)
+    }
+  }
+
+  const handleLoadDefaults = () => {
+    if (confirm('这将用默认规则替换现有规则。确定继续吗？')) {
+      const defaultRules = getDefaultRegexRules()
+      saveRegexScripts(defaultRules)
+      setScripts(defaultRules)
+      markDefaultRulesInitialized()
+    }
+  }
 
   if (!isOpen) return null
 
@@ -85,14 +116,20 @@ export default function RegexScriptEditor({
   const handleSave = () => {
     // Validate regex
     try {
-      new RegExp(formData.findRegex)
+      // Try to parse regex with or without slashes
+      const regexMatch = formData.findRegex.match(/^\/(.+)\/([gimsuvy]*)$/)
+      if (regexMatch) {
+        new RegExp(regexMatch[1], regexMatch[2])
+      } else {
+        new RegExp(formData.findRegex)
+      }
     } catch (e) {
       alert('正则表达式格式错误')
       return
     }
 
     const newScript: RegexScript = {
-      id: editingScript?.id || Date.now().toString(),
+      id: editingScript?.id || `custom-${Date.now()}`,
       name: formData.name,
       enabled: formData.enabled,
       findRegex: formData.findRegex,
@@ -101,12 +138,15 @@ export default function RegexScriptEditor({
       scriptType: formData.scriptType
     }
 
+    let updatedScripts: RegexScript[]
     if (editingScript) {
-      setScripts(scripts.map(s => s.id === editingScript.id ? newScript : s))
+      updatedScripts = scripts.map(s => s.id === editingScript.id ? newScript : s)
     } else {
-      setScripts([...scripts, newScript])
+      updatedScripts = [...scripts, newScript]
     }
 
+    setScripts(updatedScripts)
+    saveRegexScripts(updatedScripts)
     setIsEditing(false)
     setEditingScript(null)
   }
@@ -128,14 +168,18 @@ export default function RegexScriptEditor({
 
   const handleDelete = (id: string) => {
     if (confirm('确定要删除这个脚本吗？')) {
-      setScripts(scripts.filter(s => s.id !== id))
+      const updated = scripts.filter(s => s.id !== id)
+      setScripts(updated)
+      saveRegexScripts(updated)
     }
   }
 
   const toggleScript = (id: string) => {
-    setScripts(scripts.map(s =>
+    const updated = scripts.map(s =>
       s.id === id ? { ...s, enabled: !s.enabled } : s
-    ))
+    )
+    setScripts(updated)
+    saveRegexScripts(updated)
   }
 
   const handleTest = () => {
@@ -252,6 +296,15 @@ export default function RegexScriptEditor({
                   >
                     <Download className="w-4 h-4" />
                     导出
+                  </Button>
+
+                  <Button
+                    onClick={handleLoadDefaults}
+                    variant="outline"
+                    className="tavern-button-secondary gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    加载默认规则
                   </Button>
 
                   <Button

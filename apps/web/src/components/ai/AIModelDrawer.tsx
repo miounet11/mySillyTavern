@@ -50,7 +50,7 @@ function AIModelDrawer({
   onModelUpdated,
   editingModel
 }: AIModelDrawerProps) {
-  const { createModel, updateModel, testModel } = useAIModelStore()
+  const { createModel, updateModel, testModel, testModelConfig, setActiveModel } = useAIModelStore()
   const [isLoading, setIsLoading] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const [testResult, setTestResult] = useState<TestResult | null>(null)
@@ -160,7 +160,7 @@ function AIModelDrawer({
   }
 
   const defaultBaseUrls = {
-    openai: 'https://api.openai.com/v1',
+    openai: 'https://api.x.ai/v1',
     anthropic: 'https://api.anthropic.com/v1',
     google: 'https://generativelanguage.googleapis.com/v1beta',
     azure: 'https://YOUR_RESOURCE.openai.azure.com',
@@ -269,6 +269,9 @@ function AIModelDrawer({
         if (updatedModel) {
           toast.success('AI模型更新成功')
           onModelUpdated?.(updatedModel)
+          if (formData.isActive) {
+            setActiveModel(updatedModel)
+          }
           onClose()
         }
       } else {
@@ -276,6 +279,9 @@ function AIModelDrawer({
         if (newModel) {
           toast.success('AI模型创建成功')
           onModelCreated?.(newModel)
+          if (submitData.isActive) {
+            setActiveModel(newModel)
+          }
           onClose()
         }
       }
@@ -304,39 +310,28 @@ function AIModelDrawer({
     setTestResult(null)
 
     try {
-      const testData = {
-        model: formData.model,
-        provider: formData.provider,
-        apiKey: formData.apiKey,
-        baseUrl: formData.baseUrl || defaultBaseUrls[formData.provider],
-        settings: formData.settings,
-        testMessage
-      }
-
-      const tempModelId = editingModel?.id || 'temp-test'
-
-      if (editingModel && formData.apiKey) {
-        await updateModel(editingModel.id, testData)
-      }
-
-      const success = await testModel(editingModel?.id || tempModelId)
-
-      if (success) {
-        const data: any = success as any
-        setTestResult({
-          success: true,
-          response: 'Connection successful! The model responded correctly.',
-          latency: (data && data.latency) ? data.latency : 0
-        })
-        toast.success('连接测试成功')
+      if (editingModel) {
+        const ok = await testModel(editingModel.id)
+        if (ok) {
+          setTestResult({ success: true, response: '连接成功' })
+          toast.success('连接测试成功')
+        } else {
+          setTestResult({ success: false, error: '连接失败' })
+          toast.error('连接测试失败')
+        }
       } else {
-        setTestResult({
-          success: false,
-          error: 'Failed to connect to the AI model. Please check your configuration.'
+        const result = await testModelConfig({
+          provider: formData.provider as any,
+          model: formData.model,
+          apiKey: formData.apiKey,
+          baseUrl: formData.baseUrl || defaultBaseUrls[formData.provider as keyof typeof defaultBaseUrls],
+          settings: formData.settings,
+          testMessage
         })
-        toast.error('连接测试失败')
+        setTestResult(result)
+        if (result.success) toast.success('连接测试成功')
+        else toast.error(result.error || '连接测试失败')
       }
-
     } catch (error) {
       console.error('Error testing AI model:', error)
       setTestResult({
@@ -408,13 +403,14 @@ function AIModelDrawer({
       }
 
       if (models.length === 0) {
-        toast.error('未找到可用模型')
-        return
+        setAvailableModels([])
+        setModelInputMode('input')
+        toast('未获取到模型，已切换为手动输入', { icon: '✍️' })
+      } else {
+        setAvailableModels(models)
+        setModelInputMode('select')
+        toast.success(`成功获取 ${models.length} 个模型`)
       }
-
-      setAvailableModels(models)
-      setModelInputMode('select')
-      toast.success(`成功获取 ${models.length} 个模型`)
     } catch (error) {
       console.error('Error fetching models:', error)
       toast.error(`获取模型列表失败: ${error instanceof Error ? error.message : '未知错误'}`)
@@ -594,7 +590,7 @@ function AIModelDrawer({
                               ))
                             ) : (
                               <div className="px-2 py-1.5 text-xs text-gray-500">
-                                暂无预设模型
+                                暂无预设模型，请切换为手动输入
                               </div>
                             )
                           )}
@@ -612,20 +608,12 @@ function AIModelDrawer({
                             name: prev.name || value
                           }))
                         }}
-                        placeholder="gpt-4o"
+                        placeholder={formData.provider === 'openai' ? 'grok-4' : 'gpt-4o'}
                         className="tavern-input h-9 text-sm"
                       />
                     )}
                   </div>
-
-                  <div className="mb-2">
-                    <Label className="text-xs text-gray-400">Model List</Label>
-                    <Select disabled>
-                      <SelectTrigger className="tavern-input h-9 mt-1">
-                        <SelectValue placeholder="Select a model..." />
-                      </SelectTrigger>
-                    </Select>
-                  </div>
+                  
                 </div>
               </div>
 

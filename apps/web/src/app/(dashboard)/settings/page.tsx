@@ -6,9 +6,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select } from '@/components/ui/select'
-import { Settings, Database, Puzzle, Globe } from 'lucide-react'
+import { Settings, Database, Puzzle, Globe, User } from 'lucide-react'
 import AIModelDrawer from '@/components/ai/AIModelDrawer'
 import { useAIModelStore } from '@/stores/aiModelStore'
+import { useUserStore } from '@/stores/userStore'
+import { UserProfile } from '@/components/user/UserProfile'
+import { RecoverAccount } from '@/components/user/RecoverAccount'
 import toast from 'react-hot-toast'
 
 export default function SettingsPage() {
@@ -18,9 +21,10 @@ export default function SettingsPage() {
   const [isModelModalOpen, setIsModelModalOpen] = useState(false)
   const [editingModel, setEditingModel] = useState<any>(null)
   const { fetchModels } = useAIModelStore()
+  const { user, fetchCurrentUser } = useUserStore()
   
   // Tab state
-  const [activeTab, setActiveTab] = useState('general')
+  const [activeTab, setActiveTab] = useState('user')
   
   // General settings state
   const [userName, setUserName] = useState('User')
@@ -33,6 +37,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchData()
+    fetchCurrentUser()
   }, [])
 
   const fetchData = async () => {
@@ -152,6 +157,10 @@ export default function SettingsPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
+          <TabsTrigger value="user" className="gap-2">
+            <User className="w-4 h-4" />
+            用户信息
+          </TabsTrigger>
           <TabsTrigger value="general" className="gap-2">
             <Settings className="w-4 h-4" />
             常规
@@ -169,6 +178,17 @@ export default function SettingsPage() {
             界面
           </TabsTrigger>
         </TabsList>
+
+        {/* User Information */}
+        <TabsContent value="user" className="space-y-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">用户信息</h2>
+              <RecoverAccount />
+            </div>
+            <UserProfile />
+          </div>
+        </TabsContent>
 
         {/* General Settings */}
         <TabsContent value="general" className="space-y-4">

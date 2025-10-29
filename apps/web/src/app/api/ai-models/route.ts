@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { db } from '@sillytavern-clone/database'
 import { AIModelConfig } from '@sillytavern-clone/shared'
 import { nanoid } from 'nanoid'
+import { getUserIdFromCookie } from '@/lib/auth/cookies'
+import { ensureUser } from '@/lib/auth/userManager'
 
 const createModelSchema = z.object({
   name: z.string().min(1).max(50),
@@ -33,13 +35,19 @@ const querySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    // 获取或创建用户
+    const userId = await getUserIdFromCookie()
+    const user = await ensureUser(userId)
+
     const { searchParams } = new URL(request.url)
     const query = querySchema.parse(Object.fromEntries(searchParams))
 
     const offset = (query.page - 1) * query.limit
 
-    // Build where clause
-    const where: any = {}
+    // Build where clause - 只查询当前用户的 AI 模型
+    const where: any = {
+      userId: user.id,
+    }
 
     if (query.provider) {
       where.provider = query.provider
@@ -92,17 +100,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // 获取或创建用户
+    const userId = await getUserIdFromCookie()
+    const user = await ensureUser(userId)
+
     const body = await request.json()
     const validatedData = createModelSchema.parse(body)
 
-    // If this model is set as active, deactivate all other models
+    // If this model is set as active, deactivate all other models for this user
     if (validatedData.isActive) {
-      await db.updateMany('AIModelConfig', {}, { isActive: false })
+      await db.updateMany('AIModelConfig', { userId: user.id }, { isActive: false })
     }
 
     // Create AI model configuration
     const model = await db.create('AIModelConfig', {
       id: nanoid(),
+      userId: user.id,
       name: validatedData.name,
       provider: validatedData.provider,
       model: validatedData.model,

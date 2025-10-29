@@ -10,6 +10,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User table - stores user information
+model User {
+  id        String   @id @default(cuid())
+  username  String   // Auto-generated, can be modified by user
+  email     String?  @unique // Optional, for account recovery
+  settings  String?  // JSON string for user settings (theme, language, etc.)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  characters   Character[]
+  aiModels     AIModelConfig[]
+  promptTemplates PromptTemplate[]
+
+  @@index([email])
+  @@index([createdAt])
+}
+
 // Chats table - stores chat sessions
 model Chat {
   id          String   @id @default(cuid())
@@ -77,7 +95,8 @@ model ChatBranch {
 // Characters table - stores AI character definitions
 model Character {
   id                String   @id @default(cuid())
-  name              String   @unique
+  name              String
+  userId            String   // Owner of this character
   description       String?
   personality       String?
   scenario          String?  // V2 field
@@ -99,10 +118,13 @@ model Character {
   settings          String?  // JSON string for character settings
 
   // Relations
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   chats         Chat[]
   worldInfos    WorldInfoCharacter[]
   pluginSettings PluginSetting[]
 
+  @@unique([userId, name])
+  @@index([userId])
   @@index([name])
   @@index([createdAt])
 }
@@ -160,7 +182,8 @@ model WorldInfoVector {
 // AI Model Configs table - stores AI model configurations
 model AIModelConfig {
   id        String   @id @default(cuid())
-  name      String   @unique
+  name      String
+  userId    String   // Owner of this AI model config
   provider  String   // 'openai', 'anthropic', 'local', etc.
   model     String
   apiKey    String?  // Encrypted API key
@@ -170,6 +193,11 @@ model AIModelConfig {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+  @@index([userId])
   @@index([provider])
   @@index([isActive])
 }
@@ -268,11 +296,14 @@ model PromptTemplate {
   category    String   // 'external' for external prompts, 'variable' for template variables
   description String?  // Optional description
   isBuiltin   Boolean  @default(false) // Whether it's a system preset
-  userId      String?  @default("default") // User who created (null for builtin)
+  userId      String?  // User who created (null for builtin)
   isFavorite  Boolean  @default(false)
   usageCount  Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([category])
   @@index([userId])

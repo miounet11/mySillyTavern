@@ -7,6 +7,12 @@ const testSchema = z.object({
   testMessage: z.string().min(1).max(500).default('Hello! Can you respond with a simple greeting?'),
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().min(1).max(1000).default(100),
+  // Optional overrides
+  provider: z.enum(['openai', 'anthropic', 'google']).optional(),
+  model: z.string().optional(),
+  apiKey: z.string().optional(),
+  baseUrl: z.string().url().optional(),
+  settings: z.record(z.any()).optional(),
 })
 
 export async function POST(
@@ -30,9 +36,17 @@ export async function POST(
       )
     }
 
+    // Merge overrides (if provided) into the loaded model
     const parsedModel = {
       ...model,
-      settings: model.settings ? JSON.parse(model.settings as string) : {},
+      provider: (validatedData.provider || model.provider) as any,
+      model: validatedData.model || model.model,
+      apiKey: validatedData.apiKey || model.apiKey,
+      baseUrl: validatedData.baseUrl || model.baseUrl,
+      settings: {
+        ...(model.settings ? JSON.parse(model.settings as string) : {}),
+        ...(validatedData.settings || {}),
+      },
     }
 
     // Test the model by making a simple API call

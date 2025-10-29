@@ -203,12 +203,41 @@ class ChatService {
       modelId?: string
       clientModel?: any
       fastMode?: boolean
+      timeout?: number // 超时时间（毫秒），默认120秒
+      abortSignal?: AbortSignal // 外部取消信号
       onChunk?: (chunk: string, fullContent: string) => void
       onComplete?: (message: Message) => void
-      onError?: (error: string) => void
+      onError?: (error: string, errorType?: 'timeout' | 'cancelled' | 'network' | 'server') => void
+      onProgress?: (elapsedSeconds: number) => void // 进度回调
     }
   ): Promise<void> {
+    const timeoutMs = options.timeout || 120000 // 默认120秒，适配 grok-3
+    const controller = new AbortController()
+    let timeoutId: NodeJS.Timeout | null = null
+    let progressInterval: NodeJS.Timeout | null = null
+    const startTime = Date.now()
+
     try {
+      // 合并外部取消信号
+      if (options.abortSignal) {
+        options.abortSignal.addEventListener('abort', () => {
+          controller.abort()
+        })
+      }
+
+      // 设置超时
+      timeoutId = setTimeout(() => {
+        controller.abort()
+      }, timeoutMs)
+
+      // 进度报告（每秒更新）
+      if (options.onProgress) {
+        progressInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - startTime) / 1000)
+          options.onProgress?.(elapsed)
+        }, 1000)
+      }
+
       const response = await fetch(API_ENDPOINTS.CHAT_GENERATE(chatId), {
         method: 'POST',
         headers: {
@@ -216,8 +245,9 @@ class ChatService {
         },
         body: JSON.stringify({
           ...options,
-          streaming: true,
+          streaming: true, // 确保启用流式（API 期望 "streaming" 参数）
         }),
+        signal: controller.signal,
       })
 
       if (!response.ok) {
@@ -248,7 +278,7 @@ class ChatService {
               const data = JSON.parse(line.slice(6))
 
               if (data.error) {
-                options.onError?.(data.error)
+                options.onError?.(data.error, 'server')
                 return
               }
 
@@ -270,19 +300,48 @@ class ChatService {
       }
     } catch (error) {
       console.error('Error in streaming generation:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      options.onError?.(errorMessage)
+      
+      // 判断错误类型
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          // 检查是超时还是手动取消
+          const elapsed = Date.now() - startTime
+          if (elapsed >= timeoutMs - 100) { // 容忍100ms误差
+            const errorMsg = `请求超时 (${Math.floor(timeoutMs / 1000)}秒)，模型响应时间较长`
+            options.onError?.(errorMsg, 'timeout')
+          } else {
+            options.onError?.('已取消生成', 'cancelled')
+          }
+        } else if (error.message.includes('fetch') || error.message.includes('network')) {
+          options.onError?.('网络连接失败，请检查网络后重试', 'network')
+        } else {
+          options.onError?.(error.message, 'server')
+        }
+      } else {
+        options.onError?.('Unknown error', 'server')
+      }
+      
       throw this.handleError(error)
+    } finally {
+      // 清理定时器
+      if (timeoutId) clearTimeout(timeoutId)
+      if (progressInterval) clearInterval(progressInterval)
     }
   }
 
   /**
    * Regenerate last AI response
    */
-  async regenerateResponse(chatId: string): Promise<ChatGenerationResponse> {
+  async regenerateResponse(
+    chatId: string,
+    options?: any,
+    timeoutMs: number = 300000 // 默认 5 分钟，避免长回复超时
+  ): Promise<ChatGenerationResponse> {
     try {
       const response = await apiClient.post<ChatGenerationResponse>(
-        API_ENDPOINTS.CHAT_REGENERATE(chatId)
+        API_ENDPOINTS.CHAT_REGENERATE(chatId),
+        options || {},
+        { timeout: timeoutMs }
       )
       return response.data
     } catch (error) {

@@ -25,6 +25,10 @@ interface ChatState {
   isStreamingEnabled: boolean
   isFastModeEnabled: boolean
 
+  // Generation Control
+  generationProgress: number // 已等待秒数
+  abortController: AbortController | null // 用于取消请求
+
   // Computed
   hasMessages: boolean
   messageCount: number
@@ -62,6 +66,12 @@ interface ChatState {
   setStreaming: (enabled: boolean) => void
   toggleFastMode: () => void
   setFastMode: (enabled: boolean) => void
+
+  // Generation control actions
+  setGenerationProgress: (seconds: number) => void
+  setAbortController: (controller: AbortController | null) => void
+  cancelGeneration: () => void
+  resetGenerationState: () => void
 
   // Reset
   reset: () => void
@@ -104,6 +114,8 @@ export const useChatStore = create<ChatState>()(
         showWorldInfo: false,
         isStreamingEnabled: settings.isStreamingEnabled,
         isFastModeEnabled: settings.isFastModeEnabled,
+        generationProgress: 0,
+        abortController: null,
 
       // Computed getters
       get hasMessages() {
@@ -318,6 +330,27 @@ export const useChatStore = create<ChatState>()(
         set({ isFastModeEnabled: enabled })
       },
 
+      // Generation control actions
+      setGenerationProgress: (seconds) => {
+        set({ generationProgress: seconds })
+      },
+
+      setAbortController: (controller) => {
+        set({ abortController: controller })
+      },
+
+      cancelGeneration: () => {
+        const { abortController } = get()
+        if (abortController) {
+          abortController.abort()
+          set({ abortController: null, isGenerating: false, generationProgress: 0 })
+        }
+      },
+
+      resetGenerationState: () => {
+        set({ generationProgress: 0, abortController: null })
+      },
+
       // Reset
       reset: () => {
         const settings = loadSettings()
@@ -333,6 +366,8 @@ export const useChatStore = create<ChatState>()(
           showWorldInfo: false,
           isStreamingEnabled: settings.isStreamingEnabled,
           isFastModeEnabled: settings.isFastModeEnabled,
+          generationProgress: 0,
+          abortController: null,
         })
       },
     }}),

@@ -4,8 +4,8 @@ module.exports = {
     script: 'npm',
     args: 'start',
     cwd: '/www/wwwroot/jiuguanmama/mySillyTavern/apps/web',
-    instances: 2,  // Run 2 instances for better performance
-    exec_mode: 'cluster',  // Use cluster mode for load balancing
+    instances: 1,  // Single instance - Next.js doesn't support cluster mode
+    exec_mode: 'fork',  // Use fork mode for Next.js
     autorestart: true,
     watch: false,
     max_memory_restart: '1G',

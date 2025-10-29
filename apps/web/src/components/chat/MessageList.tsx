@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useTranslation } from '@/lib/i18n'
+import { applyRegexScripts } from '@/lib/regexScriptStorage'
 
 interface MessageListProps {
   className?: string
@@ -36,9 +37,10 @@ export default function MessageList({
   onDeleteMessage,
   onRegenerateMessage
 }: MessageListProps) {
-  const { currentChat, character } = useChatStore()
+  const { currentChat, character, generationProgress, cancelGeneration } = useChatStore()
   const { t } = useTranslation()
   const messages = propMessages || currentChat?.messages || []
+  const hasTempAI = Array.isArray(messages) && messages.some((m: Message) => typeof m.id === 'string' && m.id.startsWith('temp-ai-'))
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
@@ -92,15 +94,17 @@ export default function MessageList({
   }
 
   const formatMessageContent = (content: string) => {
-    // Enhanced markdown-like formatting with better styling
-    return content
-      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-blue-300">$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em class="italic text-gray-300">$1</em>')
-      .replace(/`(.*?)`/g, '<code class="bg-gray-800/60 text-teal-300 px-2 py-0.5 rounded text-sm font-mono border border-gray-700">$1</code>')
+    // Apply regex scripts from localStorage first
+    let formatted = applyRegexScripts(content)
+    
+    // Then apply basic formatting (these run after regex scripts)
+    formatted = formatted
       .replace(/\n/g, '<br />')
       .replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold text-blue-300 mt-4 mb-2">$1</h3>')
       .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-purple-300 mt-4 mb-2">$1</h2>')
       .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-purple-400 mt-4 mb-2">$1</h1>')
+    
+    return formatted
   }
 
   if (messages.length === 0 && !isLoading) {
@@ -120,7 +124,7 @@ export default function MessageList({
 
   return (
     <div className={`flex-1 overflow-y-auto tavern-scrollbar ${className}`}>
-      <div className="space-y-4 p-4">
+      <div className="space-y-6 p-4">
         {messages.map((message: Message, index: number) => {
           const isUser = message.role === 'user'
           const isEditing = editingMessageId === message.id
@@ -183,11 +187,12 @@ export default function MessageList({
                     isUser ? 'order-1' : 'order-2'
                   }`}>
                     <div
-                      className={`relative rounded-2xl px-5 py-4 shadow-2xl transition-all duration-300 hover:shadow-3xl ${
+                      className={`relative rounded-2xl px-6 py-5 shadow-2xl transition-all duration-300 hover:shadow-3xl ${
                         isUser
                           ? 'bg-gradient-to-br from-blue-600/90 to-blue-700/90 text-white rounded-br-md border border-blue-500/30 backdrop-blur-sm hover:from-blue-500/90 hover:to-blue-600/90'
                           : 'bg-gradient-to-br from-gray-800/90 to-gray-900/90 text-gray-100 rounded-bl-md border border-gray-700/50 backdrop-blur-sm hover:from-gray-700/90 hover:to-gray-800/90'
                       }`}
+                      style={{ boxShadow: isUser ? 'inset 0 1px 2px rgba(255,255,255,0.1)' : 'inset 0 1px 2px rgba(0,0,0,0.1)' }}
                     >
                       {isEditing ? (
                         <div className="space-y-3">
@@ -218,7 +223,7 @@ export default function MessageList({
                         </div>
                       ) : (
                         <div
-                          className="whitespace-pre-wrap break-words text-sm leading-relaxed"
+                          className="whitespace-pre-wrap break-words text-base leading-loose"
                           dangerouslySetInnerHTML={{
                             __html: formatMessageContent(message.content)
                           }}
@@ -287,19 +292,47 @@ export default function MessageList({
                       </div>
                     )}
                     
-                    {/* Streaming Indicator */}
-                    {!isUser && message.content && message.id.startsWith('temp-ai-') && (
-                      <div className={`flex items-center space-x-2 mt-2 text-xs ${
+                    {/* Streaming Indicator with Progress and Cancel Button */}
+                    {!isUser && message.id.startsWith('temp-ai-') && (
+                      <div className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-3 text-xs ${
                         isUser ? 'justify-end' : 'justify-start'
                       }`}>
-                        <div className="flex items-center space-x-1 px-2 py-1 bg-teal-500/20 rounded-full border border-teal-500/30">
+                        {/* Progress Indicator */}
+                        <div className="flex items-center space-x-2 px-3 py-2 bg-teal-500/20 rounded-full border border-teal-500/30 backdrop-blur-sm">
                           <div className="flex space-x-0.5">
-                            <div className="w-1 h-1 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                            <div className="w-1 h-1 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                            <div className="w-1 h-1 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            <div className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                            <div className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                            <div className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                           </div>
-                          <span className="text-teal-300">正在生成中...</span>
+                          <span className="text-teal-300 font-medium">
+                            正在生成中
+                            {generationProgress > 0 && ` (${generationProgress}s)`}
+                          </span>
                         </div>
+
+                        {/* Cancel Button */}
+                        <button
+                          onClick={cancelGeneration}
+                          className="flex items-center space-x-1.5 px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 rounded-full border border-red-500/30 hover:border-red-500/50 transition-all duration-200 backdrop-blur-sm"
+                          title="停止生成"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <rect x="6" y="6" width="12" height="12" strokeWidth="2" />
+                          </svg>
+                          <span className="font-medium">停止</span>
+                        </button>
+
+                        {/* Long Wait Warning */}
+                        {generationProgress > 30 && (
+                          <div className="flex items-center space-x-1.5 px-3 py-2 bg-amber-500/20 rounded-full border border-amber-500/30 backdrop-blur-sm">
+                            <svg className="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-amber-300 font-medium">
+                              {generationProgress > 60 ? '请耐心等待，即将完成' : '响应时间较长'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -309,8 +342,8 @@ export default function MessageList({
           )
         })}
 
-        {/* Loading Indicator */}
-        {isLoading && (
+        {/* Loading Indicator (only when not streaming with temp message) */}
+        {isLoading && !hasTempAI && (
           <div className="flex justify-start animate-fade-in">
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0">

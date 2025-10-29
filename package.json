@@ -20,6 +20,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "db:setup": "turbo run db:setup --filter=database",
     "db:migrate": "turbo run db:migrate --filter=database",
+    "db:migrate-user-system": "tsx scripts/migrate-to-user-system.ts",
     "db:studio": "turbo run db:studio --filter=database",
     "db:seed": "turbo run db:seed --filter=database",
     "db:reset": "turbo run db:reset --filter=database",

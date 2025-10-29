@@ -201,6 +201,33 @@
     animation-delay: 0.4s;
   }
 
+  /* Message text styling - For different content types */
+  .text-dialogue {
+    color: #fda4af;
+    font-weight: 500;
+  }
+
+  .text-action {
+    color: #c4b5fd;
+    font-style: italic;
+    opacity: 0.95;
+  }
+
+  .text-thought {
+    color: #93c5fd;
+    font-style: italic;
+    opacity: 0.9;
+  }
+
+  .text-emphasis {
+    color: #fbbf24;
+    font-weight: 600;
+  }
+
+  .text-narration {
+    color: #f4e8c1;
+  }
+
   /* Scrollbar styles */
   .tavern-scrollbar::-webkit-scrollbar {
     width: 6px;

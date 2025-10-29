@@ -17,6 +17,7 @@ import MessageInput from './MessageInput'
 import ChatHeader from './ChatHeader'
 import ChatControlBar from './ChatControlBar'
 import CharacterModal from '../character/CharacterModal'
+import RetryDialog from './RetryDialog'
 import toast from 'react-hot-toast'
 import { useTranslation } from '@/lib/i18n'
 
@@ -36,6 +37,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     error,
     isStreamingEnabled,
     isFastModeEnabled,
+    generationProgress,
     setCurrentChat,
     setCharacter,
     setLoading,
@@ -45,6 +47,9 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     addMessage,
     updateMessage,
     clearMessages,
+    setGenerationProgress,
+    setAbortController,
+    resetGenerationState,
     reset
   } = useChatStore()
 
@@ -62,6 +67,13 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const sendingRef = useRef(false)
   const [appSettings, setAppSettings] = useState<{ userName?: string; autoSendGreeting?: boolean; openerTemplate?: string }>({})
+  
+  // Retry dialog state
+  const [showRetryDialog, setShowRetryDialog] = useState(false)
+  const [retryError, setRetryError] = useState<{ message: string; type: 'timeout' | 'network' | 'server' | 'cancelled' }>({ message: '', type: 'timeout' })
+  const [retryCount, setRetryCount] = useState(0)
+  const [pendingRetryAction, setPendingRetryAction] = useState<(() => Promise<void>) | null>(null)
+  const maxRetries = 3
 
   // Debug: log state changes
   useEffect(() => {
@@ -356,8 +368,8 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     }
   }
 
-  // Generate AI response
-  const generateAIResponse = async () => {
+  // Generate AI response with retry support
+  const generateAIResponse = async (currentRetryCount: number = 0) => {
     try {
       const clientModel = activeModel
         ? {
@@ -382,10 +394,38 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
         }
         addMessage(tempMessage)
 
+        // Create abort controller
+        const abortController = new AbortController()
+        setAbortController(abortController)
+
+        // Reset progress
+        resetGenerationState()
+
         await chatService.generateResponseStreaming(currentChat!.id, {
           modelId: activeModel?.id,
           clientModel,
           fastMode: isFastModeEnabled,
+          timeout: 120000, // 120秒超时
+          abortSignal: abortController.signal,
+          onProgress: (elapsedSeconds: number) => {
+            setGenerationProgress(elapsedSeconds)
+            
+            // 30秒后显示提醒
+            if (elapsedSeconds === 30) {
+              toast('正在处理中，请稍候...', { 
+                duration: 3000,
+                icon: '⏳'
+              })
+            }
+            
+            // 60秒后再次提醒
+            if (elapsedSeconds === 60) {
+              toast('模型响应时间较长，正在努力生成中...', { 
+                duration: 3000,
+                icon: '🤖'
+              })
+            }
+          },
           onChunk: (chunk: string, fullContent: string) => {
             // Update the temporary message with new content
             updateMessage(tempMessageId, { content: fullContent })
@@ -393,12 +433,39 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
           onComplete: (message: Message) => {
             // Replace temporary message with final one
             updateMessage(tempMessageId, message)
+            resetGenerationState()
+            setRetryCount(0) // Reset retry count on success
           },
-          onError: (error: string) => {
-            setError(error)
-            toast.error('生成回复失败')
-            // Remove the temporary message on error
-            updateMessage(tempMessageId, { content: '[生成失败]' })
+          onError: (error: string, errorType?: 'timeout' | 'cancelled' | 'network' | 'server') => {
+            resetGenerationState()
+            
+            // 处理取消操作
+            if (errorType === 'cancelled') {
+              updateMessage(tempMessageId, { content: '[已取消生成]' })
+              toast('已取消生成', { icon: '⏹️' })
+              return
+            }
+            
+            // 处理其他错误 - 默认为 server 错误
+            const finalErrorType = errorType as 'timeout' | 'network' | 'server' | 'cancelled' || 'server'
+            setRetryError({ message: error, type: finalErrorType })
+            
+            // 如果还能重试，显示重试对话框（cancelled 已在上面return了）
+            if (currentRetryCount < maxRetries) {
+              setRetryCount(currentRetryCount)
+              setShowRetryDialog(true)
+              setPendingRetryAction(() => async () => {
+                setShowRetryDialog(false)
+                // 移除失败的临时消息
+                updateMessage(tempMessageId, { content: '' })
+                await generateAIResponse(currentRetryCount + 1)
+              })
+            } else {
+              // 已达到最大重试次数
+              setError(error)
+              toast.error(currentRetryCount >= maxRetries ? '已达到最大重试次数' : error)
+              updateMessage(tempMessageId, { content: '[生成失败]' })
+            }
           }
         })
       } else {
@@ -411,13 +478,35 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
 
         // Add AI message to UI
         addMessage(response.message)
+        setRetryCount(0) // Reset retry count on success
       }
 
     } catch (error) {
       console.error('Error generating response:', error)
+      resetGenerationState()
+      
+      // 不自动重试 catch 的错误，因为通常是代码层面的问题
       setError('Failed to generate AI response')
       toast.error('Failed to generate AI response')
     }
+  }
+
+  // Handle retry action
+  const handleRetry = async () => {
+    if (pendingRetryAction) {
+      setShowRetryDialog(false)
+      await pendingRetryAction()
+      setPendingRetryAction(null)
+    }
+  }
+
+  // Handle cancel retry
+  const handleCancelRetry = () => {
+    setShowRetryDialog(false)
+    setPendingRetryAction(null)
+    setRetryCount(0)
+    setGenerating(false)
+    toast('已取消重试', { icon: '❌' })
   }
 
   // Handle regenerating the last response
@@ -428,7 +517,18 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
       clearError()
       setGenerating(true)
 
-      // Remove last assistant message if exists
+      // Prepare model options (keep parity with generate flow)
+      const clientModel = activeModel
+        ? {
+            provider: activeModel.provider,
+            model: activeModel.model,
+            apiKey: activeModel.apiKey,
+            baseUrl: activeModel.baseUrl,
+            settings: activeModel.settings || {},
+          }
+        : undefined
+
+      // Optimistically clear last assistant content while waiting
       const assistantMessages = messages.filter((msg) => msg.role === 'assistant')
       const lastMessage = assistantMessages[assistantMessages.length - 1]
       if (lastMessage) {
@@ -438,7 +538,16 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
         })
       }
 
-      const response = await chatService.regenerateResponse(currentChat.id)
+      // Non-streaming regenerate with extended timeout (server also supports streaming if later needed)
+      const response = await chatService.regenerateResponse(
+        currentChat.id,
+        {
+          modelId: activeModel?.id,
+          clientModel,
+          fastMode: isFastModeEnabled,
+        },
+        300000 // 5min timeout for long generations
+      )
 
       // Update or add the regenerated message
       if (lastMessage) {
@@ -631,17 +740,6 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
                 messages={messages}
                 isLoading={isGenerating}
               />
-              {isGenerating && (
-                <div className="flex justify-start mb-4">
-                  <div className="bg-gray-800 rounded-lg p-3 max-w-sm">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                    </div>
-                  </div>
-                </div>
-              )}
               <div ref={messagesEndRef} />
             </div>
 
@@ -687,6 +785,17 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
           </div>
         </div>
       )}
+
+      {/* Retry Dialog */}
+      <RetryDialog
+        isOpen={showRetryDialog}
+        errorType={retryError.type}
+        errorMessage={retryError.message}
+        retryCount={retryCount}
+        maxRetries={maxRetries}
+        onRetry={handleRetry}
+        onCancel={handleCancelRetry}
+      />
     </div>
   )
 }

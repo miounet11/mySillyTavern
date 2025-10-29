@@ -8,8 +8,15 @@ import { nanoid } from 'nanoid'
 const generateSchema = z.object({
   chatId: z.string(),
   message: z.string().min(1).max(50000),
-  stream: z.boolean().default(false),
+  stream: z.boolean().default(true), // 默认启用流式
   modelId: z.string().optional(),
+  clientModel: z.object({
+    provider: z.string(),
+    model: z.string(),
+    apiKey: z.string().optional(),
+    baseUrl: z.string().optional(),
+    settings: z.any().optional(),
+  }).optional(),
 })
 
 // Helper to inject world info into context
@@ -95,47 +102,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get AI model config
-    let modelId = validatedData.modelId
-    
-    if (!modelId) {
-      // Get active model
-      const activeModel = await db.findFirst('AIModelConfig', {
-        where: { isActive: true }
-      })
-      
-      if (!activeModel) {
-        return new Response(
-          JSON.stringify({ error: 'No active AI model configured', code: 'NO_MODEL' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        )
-      }
-      
-      modelId = activeModel.id
-    }
-
-    const modelConfig = await db.findUnique('AIModelConfig', { id: modelId })
-    
-    if (!modelConfig) {
-      return new Response(
-        JSON.stringify({ error: 'AI model not found', code: 'MODEL_NOT_FOUND' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      )
-    }
-
     // Build conversation history
     const conversationMessages: AIMessage[] = []
 
     // Add system prompt (author's note)
     const chatSettings = chat.settings ? JSON.parse(chat.settings) : {}
     const characterSettings = chat.character.settings ? JSON.parse(chat.character.settings) : {}
-    const modelSettings = modelConfig.settings ? JSON.parse(modelConfig.settings) : {}
     
     // 1. System prompt (if exists)
     const systemPrompt = chat.character.systemPrompt ||
                         chatSettings.systemPrompt || 
-                        characterSettings.systemPrompt || 
-                        modelSettings.systemPrompt
+                        characterSettings.systemPrompt
 
     if (systemPrompt) {
       conversationMessages.push({
@@ -246,15 +223,65 @@ export async function POST(request: NextRequest) {
       metadata: JSON.stringify({})
     })
 
-    // Prepare AI config
-    const aiConfig: AIModelConfig = {
-      provider: modelConfig.provider as any,
-      model: modelConfig.model,
-      apiKey: modelConfig.apiKey || undefined,
-      baseUrl: modelConfig.baseUrl || undefined,
-      settings: {
-        ...modelSettings,
-        ...chatSettings,
+    // Prepare AI config - 优先使用客户端传递的模型配置（本地存储）
+    let aiConfig: AIModelConfig
+    let modelConfig: any = null // 用于非流式响应的 metadata
+
+    if (validatedData.clientModel) {
+      // 使用客户端本地配置
+      console.log('[Generate API] Using client-side model config:', {
+        provider: validatedData.clientModel.provider,
+        model: validatedData.clientModel.model
+      })
+      
+      aiConfig = {
+        provider: validatedData.clientModel.provider as any,
+        model: validatedData.clientModel.model,
+        apiKey: validatedData.clientModel.apiKey,
+        baseUrl: validatedData.clientModel.baseUrl,
+        settings: validatedData.clientModel.settings || {}
+      }
+    } else {
+      // 降级：使用服务器端模型配置
+      console.log('[Generate API] Falling back to server-side model config')
+      
+      let modelId = validatedData.modelId
+      
+      if (!modelId) {
+        const activeModel = await db.findFirst('AIModelConfig', {
+          where: { isActive: true }
+        })
+        
+        if (!activeModel) {
+          return new Response(
+            JSON.stringify({ error: 'No active AI model configured', code: 'NO_MODEL' }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } }
+          )
+        }
+        
+        modelId = activeModel.id
+      }
+
+      modelConfig = await db.findUnique('AIModelConfig', { id: modelId })
+      
+      if (!modelConfig) {
+        return new Response(
+          JSON.stringify({ error: 'AI model not found', code: 'MODEL_NOT_FOUND' }),
+          { status: 404, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+
+      const modelSettings = modelConfig.settings ? JSON.parse(modelConfig.settings) : {}
+      
+      aiConfig = {
+        provider: modelConfig.provider as any,
+        model: modelConfig.model,
+        apiKey: modelConfig.apiKey || undefined,
+        baseUrl: modelConfig.baseUrl || undefined,
+        settings: {
+          ...modelSettings,
+          ...chatSettings,
+        }
       }
     }
 
@@ -275,7 +302,11 @@ export async function POST(request: NextRequest) {
               config: aiConfig,
             })) {
               fullContent += chunk
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk })}\n\n`))
+              // 修正：发送 content 和 fullContent
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                content: chunk,
+                fullContent: fullContent 
+              })}\n\n`))
             }
 
             // Save assistant message
@@ -284,13 +315,17 @@ export async function POST(request: NextRequest) {
               chatId: chat.id,
               role: 'assistant',
               content: fullContent,
-              metadata: JSON.stringify({ modelId: modelConfig.id })
+              metadata: JSON.stringify({ 
+                modelId: validatedData.clientModel ? 'client-local' : modelConfig?.id,
+                model: aiConfig.model,
+                provider: aiConfig.provider
+              })
             })
 
-            // Send completion event
+            // 修正：发送完整的 message 对象
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
               done: true, 
-              messageId: assistantMessage.id 
+              message: assistantMessage
             })}\n\n`))
             
             controller.close()
@@ -325,7 +360,9 @@ export async function POST(request: NextRequest) {
         role: 'assistant',
         content: response.content,
         metadata: JSON.stringify({
-          modelId: modelConfig.id,
+          modelId: validatedData.clientModel ? 'client-local' : modelConfig?.id,
+          model: aiConfig.model,
+          provider: aiConfig.provider,
           usage: response.usage,
           finishReason: response.finishReason,
         })
