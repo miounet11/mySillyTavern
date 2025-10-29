@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@sillytavern-clone/database'
 import { AIModelConfig } from '@sillytavern-clone/shared'
+import { getUserIdFromCookie } from '@/lib/auth/cookies'
+import { ensureUser } from '@/lib/auth/userManager'
 
 const testSchema = z.object({
   testMessage: z.string().min(1).max(500).default('Hello! Can you respond with a simple greeting?'),
@@ -20,18 +22,25 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    // 获取或创建用户
+    const userId = await getUserIdFromCookie()
+    const user = await ensureUser(userId)
+
     const { id } = params
     const body = await request.json()
     const validatedData = testSchema.parse(body)
 
-    // Get model configuration
+    // Get model configuration - filter by user
     const model = await db.findFirst('AIModelConfig', {
-      where: { id }
+      where: { 
+        id,
+        userId: user.id  // 确保只能测试自己的模型
+      }
     })
 
     if (!model) {
       return NextResponse.json(
-        { error: 'AI model not found' },
+        { error: 'AI model not found or access denied' },
         { status: 404 }
       )
     }
@@ -169,10 +178,19 @@ async function testOpenAIModel(model: AIModelConfig, testData: any) {
   })
 
   if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`)
+    const errorText = await response.text()
+    console.error('OpenAI API error response:', errorText)
+    throw new Error(`OpenAI API error: ${response.status} ${response.statusText}. ${errorText.substring(0, 200)}`)
   }
 
-  const data = await response.json()
+  const responseText = await response.text()
+  let data
+  try {
+    data = JSON.parse(responseText)
+  } catch (e) {
+    console.error('Failed to parse OpenAI response:', responseText.substring(0, 500))
+    throw new Error('Invalid JSON response from OpenAI API')
+  }
 
   return {
     response: data.choices[0]?.message?.content || 'No response generated',
@@ -206,10 +224,19 @@ async function testAnthropicModel(model: AIModelConfig, testData: any) {
   })
 
   if (!response.ok) {
-    throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`)
+    const errorText = await response.text()
+    console.error('Anthropic API error response:', errorText)
+    throw new Error(`Anthropic API error: ${response.status} ${response.statusText}. ${errorText.substring(0, 200)}`)
   }
 
-  const data = await response.json()
+  const responseText = await response.text()
+  let data
+  try {
+    data = JSON.parse(responseText)
+  } catch (e) {
+    console.error('Failed to parse Anthropic response:', responseText.substring(0, 500))
+    throw new Error('Invalid JSON response from Anthropic API')
+  }
 
   return {
     response: data.content?.[0]?.text || 'No response generated',
@@ -274,10 +301,18 @@ async function testLocalModel(model: AIModelConfig, testData: any) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      throw new Error(`Local model API error: ${response.status} ${response.statusText}. ${errorText}`)
+      console.error('Local model API error response:', errorText)
+      throw new Error(`Local model API error: ${response.status} ${response.statusText}. ${errorText.substring(0, 200)}`)
     }
 
-    const data = await response.json()
+    const responseText = await response.text()
+    let data
+    try {
+      data = JSON.parse(responseText)
+    } catch (e) {
+      console.error('Failed to parse local model response:', responseText.substring(0, 500))
+      throw new Error('Invalid JSON response from local model API')
+    }
 
     return {
       response: data.choices?.[0]?.message?.content || 'No response generated',

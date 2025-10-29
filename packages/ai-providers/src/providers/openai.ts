@@ -31,6 +31,12 @@ export class OpenAIProvider implements AIProvider {
 
     try {
       const client = this.createClient(config)
+      console.log('[OpenAIProvider] generate start', {
+        model: config.model,
+        baseUrl: config.baseUrl,
+        hasApiKey: Boolean(config.apiKey),
+        provider: config.provider,
+      })
 
       const response = await client.chat.completions.create(
         {
@@ -66,6 +72,11 @@ export class OpenAIProvider implements AIProvider {
         }
       }
     } catch (error) {
+      console.error('[OpenAIProvider] generate error', {
+        message: error instanceof Error ? error.message : error,
+        provider: config.provider,
+        baseUrl: config.baseUrl,
+      })
       throw this.handleError(error)
     }
   }
@@ -75,6 +86,12 @@ export class OpenAIProvider implements AIProvider {
 
     try {
       const client = this.createClient(config)
+      console.log('[OpenAIProvider] generateStream start', {
+        model: config.model,
+        baseUrl: config.baseUrl,
+        hasApiKey: Boolean(config.apiKey),
+        provider: config.provider,
+      })
 
       const stream = await client.chat.completions.create(
         {
@@ -122,6 +139,11 @@ export class OpenAIProvider implements AIProvider {
         model: modelName,
       }
     } catch (error) {
+      console.error('[OpenAIProvider] generateStream error', {
+        message: error instanceof Error ? error.message : error,
+        provider: config.provider,
+        baseUrl: config.baseUrl,
+      })
       throw this.handleError(error)
     }
   }

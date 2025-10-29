@@ -4,9 +4,7 @@
  */
 
 import { nanoid } from 'nanoid'
-import { PrismaClient } from '@sillytavern-clone/database'
-
-const prisma = new PrismaClient()
+import { prisma } from '@sillytavern-clone/database'
 
 /**
  * 生成随机用户名

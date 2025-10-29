@@ -3,7 +3,7 @@
  * 将现有数据迁移到新的用户系统
  */
 
-import { PrismaClient } from '@sillytavern-clone/database'
+import { PrismaClient } from '@prisma/client'
 import { nanoid } from 'nanoid'
 
 const prisma = new PrismaClient()
@@ -74,7 +74,7 @@ async function main() {
       }
       console.log(`   ✓ 迁移了 ${modelsWithoutUser.length} 个 AI 模型配置到默认用户\n`)
     } else {
-      console.log('   ✓ 所有 AI 模型配置已关联用户\n`)
+      console.log('   ✓ 所有 AI 模型配置已关联用户\n')
     }
 
     // 4. 迁移提示词模板

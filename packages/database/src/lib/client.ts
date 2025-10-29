@@ -141,6 +141,15 @@ export class DatabaseService {
     return this.client.$transaction(callback as any)
   }
 
+  // Raw query support (for pgvector and advanced queries)
+  get $executeRaw() {
+    return this.client.$executeRaw.bind(this.client)
+  }
+
+  get $queryRaw() {
+    return this.client.$queryRaw.bind(this.client)
+  }
+
   // Disconnect
   async disconnect() {
     await this.client.$disconnect()

@@ -8,7 +8,7 @@ import { ensureUser } from '@/lib/auth/userManager'
 
 const createModelSchema = z.object({
   name: z.string().min(1).max(50),
-  provider: z.enum(['openai', 'anthropic', 'google', 'local', 'custom']),
+  provider: z.enum(['openai', 'anthropic', 'google', 'local', 'custom', 'newapi']),
   model: z.string().min(1).max(100),
   apiKey: z.string().min(1).max(500),
   baseUrl: z.string().url().optional(),

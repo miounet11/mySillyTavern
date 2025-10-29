@@ -14,7 +14,29 @@ const nextConfig = {
   transpilePackages: ['@sillytavern-clone/shared'],
   // Webpack configuration for any custom build needs
   webpack: (config, { isServer }) => {
-    // Add any custom webpack configuration here
+    // Enable WebAssembly support for tiktoken
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+      layers: true,
+    };
+    
+    // Handle .wasm files
+    config.module.rules.push({
+      test: /\.wasm$/,
+      type: 'webassembly/async',
+    });
+    
+    // Fallback for Node.js modules in browser
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+      };
+    }
+    
     return config;
   },
   // Headers for security and caching

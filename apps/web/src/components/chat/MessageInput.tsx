@@ -3,9 +3,10 @@
  */
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Paperclip, Mic, MicOff, RotateCcw, Sparkles } from 'lucide-react'
+import { Send, Paperclip, Mic, MicOff, RotateCcw, Sparkles, Zap, Radio, X } from 'lucide-react'
 import { useChatStore } from '@/stores/chatStore'
 import { useCharacterStore } from '@/stores/characterStore'
+import { useCreativeStore } from '@/stores/creativeStore'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -37,7 +38,23 @@ export default function MessageInput({
   onSendMessage
 }: MessageInputProps) {
   const { currentChat, isLoading, character } = useChatStore()
+  const {
+    isStreamingEnabled,
+    isFastModeEnabled,
+    toggleStreaming,
+    toggleFastMode,
+  } = useChatStore()
   const { selectedCharacter: activeCharacter } = useCharacterStore()
+  const {
+    storyAdvance,
+    povMode,
+    sceneTransitionOnce,
+    setStoryAdvance,
+    setPovMode,
+    setSceneTransitionOnce,
+    clearAll,
+    hydrateFromLocalStorage,
+  } = useCreativeStore()
   const { t } = useTranslation()
 
   const [internalMessage, setInternalMessage] = useState('')
@@ -62,6 +79,7 @@ export default function MessageInput({
 
   // Handle recording timer
   useEffect(() => {
+    try { hydrateFromLocalStorage() } catch {}
     if (isRecording) {
       recordingIntervalRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1)
@@ -228,44 +246,26 @@ export default function MessageInput({
     { label: '详细描述', action: () => handleSetMessage('请详细描述一下你现在的状态和想法') },
   ]
 
-  // Story helper chips (剧情推进 / 视角设计 / 场景过渡)
-  const storyChips = [
-    {
-      key: 'advance',
-      label: '剧情推进',
-      className: 'text-amber-300 hover:text-amber-200 border-amber-400/30 hover:border-amber-300/60',
-      fill: () => {
-        const name = currentCharacter?.name || '角色'
-        handleSetMessage(
-          `【剧情推进】\n- 延续当前情节，明确冲突/目标\n- 描述${name}的决定与行动（含动机）\n- 引入悬念或新线索推动下一幕\n- 保持人设与世界观一致，4-8句，自然对话为主`
-        )
-        textareaRef.current?.focus()
-      }
-    },
-    {
-      key: 'pov',
-      label: '视角设计',
-      className: 'text-teal-300 hover:text-teal-200 border-teal-400/30 hover:border-teal-300/60',
-      fill: () => {
-        const name = currentCharacter?.name || '角色'
-        handleSetMessage(
-          `【视角设计】\n- 以第一人称（${name}）或第三人称旁白重述当前片段\n- 加入感官细节（视觉/听觉/触觉/气味）\n- 内心独白 + 外在动作，节奏分层\n- 语言风格贴合人设，避免跳出角色`
-        )
-        textareaRef.current?.focus()
-      }
-    },
-    {
-      key: 'transition',
-      label: '场景过渡',
-      className: 'text-purple-300 hover:text-purple-200 border-purple-400/30 hover:border-purple-300/60',
-      fill: () => {
-        handleSetMessage(
-          '【场景过渡】\n- 交代时间/地点/状态变化（简洁）\n- 承上启下：承接当前冲突，铺垫下一互动点\n- 过渡自然，不割裂语气与叙述视角\n- 2-4句，收束在一个可继续对话的钩子上'
-        )
-        textareaRef.current?.focus()
-      }
-    }
-  ]
+  // Handlers for global toggles moved near input
+  const handleToggleStreaming = () => {
+    toggleStreaming()
+    toast.success(
+      isStreamingEnabled
+        ? '已切换到完整输出模式'
+        : '已切换到流式输出模式',
+      { duration: 2000 }
+    )
+  }
+
+  const handleToggleFastMode = () => {
+    toggleFastMode()
+    toast.success(
+      isFastModeEnabled
+        ? '已关闭快速模式'
+        : '已开启快速模式（Temperature: 0.3）',
+      { duration: 2000 }
+    )
+  }
 
   return (
     <div className={`border-t border-gray-800/50 glass-card backdrop-blur-lg ${className}`}>
@@ -311,6 +311,34 @@ export default function MessageInput({
             </Button>
           </div>
         )}
+
+        {/* Global Controls near input: Streaming / Fast Mode */}
+        <div className="flex items-center gap-2 mb-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleToggleStreaming}
+            disabled={disabled || isLoading}
+            className={`h-8 px-3 text-xs font-medium transition-all duration-200 ${isStreamingEnabled ? 'bg-blue-500/20 text-blue-300 border-blue-400/30 hover:bg-blue-500/30' : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/50'} border`}
+            title={isStreamingEnabled ? '流式输出已开启' : '流式输出已关闭'}
+          >
+            <Radio className={`w-3.5 h-3.5 mr-1.5 ${isStreamingEnabled ? 'animate-pulse' : ''}`} />
+            <span className="hidden sm:inline">流式输出</span>
+            <span className="sm:hidden">流式</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleToggleFastMode}
+            disabled={disabled || isLoading}
+            className={`h-8 px-3 text-xs font-medium transition-all duration-200 ${isFastModeEnabled ? 'bg-amber-500/20 text-amber-300 border-amber-400/30 hover:bg-amber-500/30' : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/50'} border`}
+            title={isFastModeEnabled ? '快速模式已开启（Temperature: 0.3）' : '快速模式已关闭'}
+          >
+            <Zap className={`w-3.5 h-3.5 mr-1.5 ${isFastModeEnabled ? 'animate-pulse' : ''}`} />
+            <span className="hidden sm:inline">快速模式</span>
+            <span className="sm:hidden">快速</span>
+          </Button>
+        </div>
 
         {/* Input Area */}
         <div className="flex items-end space-x-3">
@@ -428,21 +456,75 @@ export default function MessageInput({
           </div>
         </div>
 
-        {/* Story chips above status indicators */}
+        {/* Creative intent chips (指令化开关) */}
         {currentCharacter && (
-          <div className="flex items-center justify-start mb-3 gap-2 sm:gap-3 max-w-4xl">
-            {storyChips.map(chip => (
+          <div className="flex flex-col gap-2 mb-3">
+            {/* Active capsules */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {storyAdvance && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full border border-amber-400/30 text-amber-300 glass-light">
+                  剧情推进
+                  <button className="ml-1 text-amber-300 hover:text-amber-200" onClick={() => setStoryAdvance(false)} aria-label="清除剧情推进">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {povMode && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full border border-teal-400/30 text-teal-300 glass-light">
+                  视角：{povMode === 'first' ? '第一人称' : '第三人称'}
+                  <button className="ml-1 text-teal-300 hover:text-teal-200" onClick={() => setPovMode(null)} aria-label="清除视角">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {sceneTransitionOnce && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full border border-purple-400/30 text-purple-300 glass-light">
+                  场景过渡（一次性）
+                </span>
+              )}
+              {!storyAdvance && !povMode && !sceneTransitionOnce && (
+                <span className="text-xs text-gray-500">未启用创作意图</span>
+              )}
+            </div>
+            {/* Toggle buttons */}
+            <div className="flex items-center justify-start gap-2 sm:gap-3 max-w-4xl">
               <button
-                key={chip.key}
                 type="button"
-                onClick={chip.fill}
-                className={`px-2 py-1.5 sm:px-4 text-xs rounded-full border transition-all duration-200 glass-light bg-gray-800/60 ${chip.className}`}
-                aria-label={chip.label}
+                onClick={() => setStoryAdvance(!storyAdvance)}
+                className={`px-2 py-1.5 sm:px-4 text-xs rounded-full border transition-all duration-200 glass-light bg-gray-800/60 ${storyAdvance ? 'text-amber-200 border-amber-300/60' : 'text-amber-300 border-amber-400/30 hover:text-amber-200 hover:border-amber-300/60'}`}
+                aria-label="剧情推进"
               >
-                <span className="hidden sm:inline">{chip.label}</span>
-                <span className="sm:hidden">{chip.label}</span>
+                <span className="hidden sm:inline">剧情推进{storyAdvance ? '（开）' : ''}</span>
+                <span className="sm:hidden">剧情推进</span>
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => setPovMode(povMode === null ? 'first' : povMode === 'first' ? 'third' : null)}
+                className={`px-2 py-1.5 sm:px-4 text-xs rounded-full border transition-all duration-200 glass-light bg-gray-800/60 ${povMode ? 'text-teal-200 border-teal-300/60' : 'text-teal-300 border-teal-400/30 hover:text-teal-200 hover:border-teal-300/60'}`}
+                aria-label="视角设计"
+              >
+                <span className="hidden sm:inline">视角设计{povMode ? `（${povMode === 'first' ? '第一' : '第三'}）` : ''}</span>
+                <span className="sm:hidden">视角设计</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSceneTransitionOnce(true)}
+                className={`px-2 py-1.5 sm:px-4 text-xs rounded-full border transition-all duration-200 glass-light bg-gray-800/60 ${sceneTransitionOnce ? 'text-purple-200 border-purple-300/60' : 'text-purple-300 border-purple-400/30 hover:text-purple-200 hover:border-purple-300/60'}`}
+                aria-label="场景过渡"
+              >
+                <span className="hidden sm:inline">场景过渡{sceneTransitionOnce ? '（已启用一次性）' : ''}</span>
+                <span className="sm:hidden">场景过渡</span>
+              </button>
+              {(storyAdvance || povMode || sceneTransitionOnce) && (
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="px-2 py-1.5 sm:px-4 text-xs rounded-full border transition-all duration-200 glass-light bg-gray-800/60 text-gray-300 border-white/10 hover:bg-gray-700/50"
+                >
+                  清空
+                </button>
+              )}
+            </div>
           </div>
         )}
 

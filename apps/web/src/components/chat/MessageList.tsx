@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
-import { Copy, RotateCcw, Trash2, User, Bot, Edit, MoreVertical } from 'lucide-react'
+import { Copy, RotateCcw, Trash2, User, Bot, Edit, MoreVertical, ArrowDown } from 'lucide-react'
 import { Message } from '@sillytavern-clone/shared'
 import { useChatStore } from '@/stores/chatStore'
 import { formatDistanceToNow } from 'date-fns'
@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useTranslation } from '@/lib/i18n'
 import { applyRegexScripts } from '@/lib/regexScriptStorage'
+import IncompleteInteractionPrompt from './IncompleteInteractionPrompt'
 
 interface MessageListProps {
   className?: string
@@ -27,6 +28,10 @@ interface MessageListProps {
   onEditMessage?: (messageId: string, newContent: string) => void
   onDeleteMessage?: (messageId: string) => void
   onRegenerateMessage?: (messageId: string) => void
+  onScrollToBottom?: () => void
+  showIncompletePrompt?: boolean
+  onContinueIncomplete?: () => void
+  onDismissIncomplete?: () => void
 }
 
 export default function MessageList({
@@ -35,12 +40,18 @@ export default function MessageList({
   isLoading = false,
   onEditMessage,
   onDeleteMessage,
-  onRegenerateMessage
+  onRegenerateMessage,
+  onScrollToBottom,
+  showIncompletePrompt = false,
+  onContinueIncomplete,
+  onDismissIncomplete
 }: MessageListProps) {
-  const { currentChat, character, generationProgress, cancelGeneration } = useChatStore()
+  const { currentChat, character, generationProgress, cancelGeneration, messages: storeMessages } = useChatStore()
   const { t } = useTranslation()
-  const messages = propMessages || currentChat?.messages || []
+  // Always prefer propMessages if provided, otherwise use store messages, then currentChat messages
+  const messages = propMessages !== undefined ? propMessages : (storeMessages || currentChat?.messages || [])
   const hasTempAI = Array.isArray(messages) && messages.some((m: Message) => typeof m.id === 'string' && m.id.startsWith('temp-ai-'))
+  console.log('[MessageList] Rendering with', messages.length, 'messages, hasTempAI:', hasTempAI)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
@@ -278,6 +289,30 @@ export default function MessageList({
                           </DropdownMenu>
                         </div>
                       )}
+
+                      {/* Quick inline actions for assistant messages */}
+                      {!isUser && !isEditing && (
+                        <div className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-gray-300 hover:text-white hover:bg-gray-700/70"
+                            title={t('chat.message.regenerate')}
+                            onClick={() => handleRegenerateMessage(message.id)}
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-gray-300 hover:text-white hover:bg-gray-700/70"
+                            title={t('chat.controls.scrollToBottom') || '跳转底部'}
+                            onClick={onScrollToBottom}
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Message Status */}
@@ -312,9 +347,11 @@ export default function MessageList({
 
                         {/* Cancel Button */}
                         <button
+                          type="button"
                           onClick={cancelGeneration}
-                          className="flex items-center space-x-1.5 px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 rounded-full border border-red-500/30 hover:border-red-500/50 transition-all duration-200 backdrop-blur-sm"
+                          className="relative z-10 cursor-pointer flex items-center space-x-1.5 px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 rounded-full border border-red-500/30 hover:border-red-500/50 transition-all duration-200 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-red-500/50"
                           title="停止生成"
+                          aria-label="停止生成"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <rect x="6" y="6" width="12" height="12" strokeWidth="2" />
@@ -341,6 +378,15 @@ export default function MessageList({
             </div>
           )
         })}
+
+        {/* Incomplete Interaction Prompt */}
+        {showIncompletePrompt && !isLoading && onContinueIncomplete && onDismissIncomplete && messages.length > 0 && (
+          <IncompleteInteractionPrompt
+            onContinue={onContinueIncomplete}
+            onDismiss={onDismissIncomplete}
+            isLastMessageUser={messages[messages.length - 1]?.role === 'user'}
+          />
+        )}
 
         {/* Loading Indicator (only when not streaming with temp message) */}
         {isLoading && !hasTempAI && (

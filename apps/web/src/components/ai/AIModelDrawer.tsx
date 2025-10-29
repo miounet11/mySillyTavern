@@ -57,10 +57,10 @@ function AIModelDrawer({
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showTestSection, setShowTestSection] = useState(false)
 
-  // Form state
+  // Form state - 精简为7个主流提供商
   const [formData, setFormData] = useState<{
     name: string
-    provider: 'openai' | 'anthropic' | 'google' | 'azure' | 'cohere' | 'deepseek' | 'moonshot' | 'zhipu' | 'newapi' | 'local' | 'custom'
+    provider: 'openai' | 'anthropic' | 'google' | 'azure' | 'deepseek' | 'zhipu' | 'custom'
     model: string
     apiKey: string
     baseUrl: string
@@ -81,7 +81,7 @@ function AIModelDrawer({
     provider: 'openai',
     model: '',
     apiKey: '',
-    baseUrl: '',
+    baseUrl: 'https://api.openai.com/v1', // 设置默认API地址
     settings: {
       temperature: 0.7,
       maxTokens: 2048,
@@ -101,88 +101,70 @@ function AIModelDrawer({
   const [isFetchingModels, setIsFetchingModels] = useState(false)
   const [modelInputMode, setModelInputMode] = useState<'select' | 'input'>('select')
 
-  // Common model options for each provider
+  // Common model options for each provider - 精简为7个主流提供商
   const providerModels = {
     openai: [
-      'gpt-4-turbo-preview',
+      'gpt-4o',
+      'gpt-4o-mini',
       'gpt-4-turbo',
       'gpt-4',
-      'gpt-4-32k',
       'gpt-3.5-turbo',
-      'gpt-3.5-turbo-16k',
     ],
     anthropic: [
+      'claude-3-5-sonnet-20241022',
+      'claude-3-5-haiku-20241022',
       'claude-3-opus-20240229',
       'claude-3-sonnet-20240229',
       'claude-3-haiku-20240307',
-      'claude-2.1',
-      'claude-2.0',
     ],
     google: [
-      'gemini-pro',
-      'gemini-pro-vision',
+      'gemini-2.0-flash-exp',
       'gemini-1.5-pro',
       'gemini-1.5-flash',
+      'gemini-pro',
     ],
     azure: [
       'gpt-4',
+      'gpt-4-turbo',
       'gpt-35-turbo',
-    ],
-    cohere: [
-      'command',
-      'command-light',
-      'command-r',
-      'command-r-plus',
     ],
     deepseek: [
       'deepseek-chat',
+      'deepseek-reasoner',
       'deepseek-coder',
     ],
-    moonshot: [
-      'moonshot-v1-8k',
-      'moonshot-v1-32k',
-      'moonshot-v1-128k',
-    ],
     zhipu: [
+      'glm-4-plus',
+      'glm-4-0520',
       'glm-4',
       'glm-4-air',
       'glm-3-turbo',
     ],
-    newapi: [],
-    local: [
-      'llama-2-7b-chat',
-      'llama-2-13b-chat',
-      'llama-2-70b-chat',
-      'qwen-72b-chat',
-      'custom-model',
-    ],
-    custom: []
+    custom: [] // 自定义OpenAI格式，通过API获取模型列表
   }
 
+  // 默认API地址配置 - 精简为7个主流提供商
   const defaultBaseUrls = {
-    openai: 'https://api.x.ai/v1',
+    openai: 'https://api.openai.com/v1',
     anthropic: 'https://api.anthropic.com/v1',
     google: 'https://generativelanguage.googleapis.com/v1beta',
-    azure: 'https://YOUR_RESOURCE.openai.azure.com',
-    cohere: 'https://api.cohere.ai/v1',
+    azure: '', // Azure需要用户填写自己的资源地址
     deepseek: 'https://api.deepseek.com/v1',
-    moonshot: 'https://api.moonshot.cn/v1',
     zhipu: 'https://open.bigmodel.cn/api/paas/v4',
-    newapi: 'https://api.example.com/v1',
-    local: 'http://localhost:8080/v1',
-    custom: ''
+    custom: '' // 自定义OpenAI格式，需要用户手动填写
   }
 
   // Reset form when modal opens/closes or editing model changes
   useEffect(() => {
     if (isOpen) {
       if (editingModel) {
+        const providerKey = editingModel.provider as keyof typeof defaultBaseUrls
         setFormData({
           name: editingModel.name,
           provider: editingModel.provider as any,
           model: editingModel.model,
           apiKey: editingModel.apiKey || '', // Pre-fill API key for easier editing
-          baseUrl: editingModel.baseUrl || '',
+          baseUrl: editingModel.baseUrl || defaultBaseUrls[providerKey] || '', // 使用默认URL如果没有设置
           settings: {
             temperature: editingModel.settings?.temperature ?? 0.7,
             maxTokens: editingModel.settings?.maxTokens ?? 2048,
@@ -196,11 +178,26 @@ function AIModelDrawer({
           },
           isActive: editingModel.isActive || false
         })
+        
+        // 智能判断使用input还是select模式
+        const presetModels = (providerKey in providerModels) ? providerModels[providerKey as keyof typeof providerModels] : []
+        const isInPreset = presetModels.includes(editingModel.model)
+        
+        console.log('[AIModelDrawer] 编辑模式 - 模型:', editingModel.model, '是否在预设列表:', isInPreset)
+        
+        if (isInPreset) {
+          // 模型在预设列表中，使用select模式
+          setModelInputMode('select')
+          setAvailableModels([])
+        } else {
+          // 模型不在预设列表，使用input模式直接显示
+          setModelInputMode('input')
+        }
       } else {
         resetForm()
+        setAvailableModels([])
+        setModelInputMode('select')
       }
-      setAvailableModels([])
-      setModelInputMode('select')
       setShowAdvanced(false)
       setShowTestSection(false)
     }
@@ -213,7 +210,7 @@ function AIModelDrawer({
       provider: 'openai',
       model: '',
       apiKey: '',
-      baseUrl: '',
+      baseUrl: defaultBaseUrls.openai, // 设置默认API地址
       settings: {
         temperature: 0.7,
         maxTokens: 2048,
@@ -239,14 +236,14 @@ function AIModelDrawer({
     }
 
     // When editing, API key is optional (we keep the existing one if not changed)
-    // When creating new, API key is required (except for local models)
-    if (!editingModel && !formData.apiKey.trim() && formData.provider !== 'local') {
+    // When creating new, API key is required
+    if (!editingModel && !formData.apiKey.trim()) {
       toast.error('API密钥是必填项')
       return
     }
 
-    if (formData.provider === 'custom' && !formData.baseUrl.trim()) {
-      toast.error('自定义 API 需要提供基础地址')
+    if ((formData.provider === 'custom' || formData.provider === 'azure') && !formData.baseUrl.trim()) {
+      toast.error(formData.provider === 'azure' ? 'Azure OpenAI 需要提供资源地址' : '自定义 API 需要提供基础地址')
       return
     }
 
@@ -301,7 +298,7 @@ function AIModelDrawer({
 
     // For new models, API key is required
     // For editing, we can use the existing API key if user hasn't provided a new one
-    if (!formData.apiKey.trim() && formData.provider !== 'local' && !editingModel) {
+    if (!formData.apiKey.trim() && !editingModel) {
       toast.error('请先输入API密钥')
       return
     }
@@ -402,17 +399,23 @@ function AIModelDrawer({
         models = data.map((m: any) => typeof m === 'string' ? m : (m.id || m.name)).filter(Boolean)
       }
 
+      console.log('[AIModelDrawer] 获取到的模型列表:', models.length, '个模型')
+      console.log('[AIModelDrawer] 模型:', models.slice(0, 5), '...')
+
       if (models.length === 0) {
         setAvailableModels([])
         setModelInputMode('input')
         toast('未获取到模型，已切换为手动输入', { icon: '✍️' })
       } else {
+        // 关键修复：确保状态更新并强制切换到select模式
         setAvailableModels(models)
         setModelInputMode('select')
+        // 清空当前选择，让用户从新列表中选择
+        setFormData(prev => ({ ...prev, model: '' }))
         toast.success(`成功获取 ${models.length} 个模型`)
       }
     } catch (error) {
-      console.error('Error fetching models:', error)
+      console.error('[AIModelDrawer] 获取模型列表失败:', error)
       toast.error(`获取模型列表失败: ${error instanceof Error ? error.message : '未知错误'}`)
     } finally {
       setIsFetchingModels(false)
@@ -445,6 +448,7 @@ function AIModelDrawer({
                     <Select
                       value={formData.provider}
                       onValueChange={(value: any) => {
+                        console.log('[AIModelDrawer] 选择提供商:', value)
                         setFormData(prev => ({
                           ...prev,
                           provider: value,
@@ -456,62 +460,70 @@ function AIModelDrawer({
                       }}
                     >
                       <SelectTrigger className="tavern-input h-9 mt-1">
-                        <SelectValue />
+                        <SelectValue placeholder="请选择提供商..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="openai">OpenAI</SelectItem>
+                        {/* 国外主流提供商 */}
+                        <SelectItem value="openai">OpenAI (ChatGPT)</SelectItem>
                         <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                        <SelectItem value="google">Google AI</SelectItem>
+                        <SelectItem value="google">Google (Gemini)</SelectItem>
                         <SelectItem value="azure">Azure OpenAI</SelectItem>
-                        <SelectItem value="deepseek">DeepSeek</SelectItem>
-                        <SelectItem value="moonshot">Moonshot</SelectItem>
-                        <SelectItem value="zhipu">智谱 AI</SelectItem>
-                        <SelectItem value="cohere">Cohere</SelectItem>
-                        <SelectItem value="newapi">NewAPI</SelectItem>
-                        <SelectItem value="local">本地模型</SelectItem>
-                        <SelectItem value="custom">自定义</SelectItem>
+                        
+                        {/* 国内主流提供商 */}
+                        <SelectItem value="deepseek">DeepSeek (深度求索)</SelectItem>
+                        <SelectItem value="zhipu">智谱 AI (GLM)</SelectItem>
+                        
+                        {/* 自定义OpenAI格式 */}
+                        <SelectItem value="custom">自定义 OpenAI 格式</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   
                   <div>
                     <Label htmlFor="baseUrl" className="text-xs text-gray-400">
-                      API 地址
+                      API 地址 {(formData.provider === 'azure' || formData.provider === 'custom') && <span className="text-red-500">*</span>}
                     </Label>
                     <Input
                       id="baseUrl"
                       type="url"
                       value={formData.baseUrl}
                       onChange={(e) => setFormData(prev => ({ ...prev, baseUrl: e.target.value }))}
-                      placeholder={defaultBaseUrls[formData.provider as keyof typeof defaultBaseUrls]}
+                      placeholder={defaultBaseUrls[formData.provider as keyof typeof defaultBaseUrls] || 'https://api.example.com/v1'}
                       className="tavern-input h-9 mt-1 text-sm"
                     />
+                    <div className="text-xs text-gray-500 mt-1">
+                      {formData.provider === 'azure' ? (
+                        '请输入您的Azure资源地址（如：https://your-resource.openai.azure.com）'
+                      ) : formData.provider === 'custom' ? (
+                        '请输入自定义的OpenAI兼容API地址'
+                      ) : (
+                        `默认：${defaultBaseUrls[formData.provider as keyof typeof defaultBaseUrls] || '需要手动输入'}`
+                      )}
+                    </div>
                   </div>
 
-                  {/* Highlight Get Model List Button */}
-                  {(formData.provider === 'newapi' || formData.provider === 'custom' || formData.provider === 'openai' || formData.provider === 'azure') && (
-                    <Button
-                      type="button"
-                      onClick={fetchModelsFromAPI}
-                      disabled={isFetchingModels || !formData.baseUrl || !formData.apiKey}
-                      className="w-full h-10 bg-transparent border-2 border-amber-600 text-amber-500 hover:bg-amber-600/10 hover:text-amber-400 hover:shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all duration-200"
-                      style={{
-                        boxShadow: '0 0 12px rgba(245, 158, 11, 0.2)'
-                      }}
-                    >
-                      {isFetchingModels ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-500 mr-2"></div>
-                          获取模型列表...
-                        </>
-                      ) : (
-                        <>
-                          <Globe className="w-4 h-4 mr-2" />
-                          Get Model List
-                        </>
-                      )}
-                    </Button>
-                  )}
+                  {/* 获取模型列表按钮 - 所有提供商都显示 */}
+                  <Button
+                    type="button"
+                    onClick={fetchModelsFromAPI}
+                    disabled={isFetchingModels || !formData.baseUrl || !formData.apiKey}
+                    className="w-full h-10 bg-transparent border-2 border-amber-600 text-amber-500 hover:bg-amber-600/10 hover:text-amber-400 hover:shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all duration-200"
+                    style={{
+                      boxShadow: '0 0 12px rgba(245, 158, 11, 0.2)'
+                    }}
+                  >
+                    {isFetchingModels ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-500 mr-2"></div>
+                        获取模型列表...
+                      </>
+                    ) : (
+                      <>
+                        <Globe className="w-4 h-4 mr-2" />
+                        Get Model List
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
 
@@ -526,15 +538,12 @@ function AIModelDrawer({
                     type="password"
                     value={formData.apiKey}
                     onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
-                    placeholder={formData.provider === 'local' ? '本地模型无需密钥' : 'sk-...'}
+                    placeholder="sk-..."
                     className="tavern-input h-9 text-sm"
-                    disabled={formData.provider === 'local'}
                   />
-                  {formData.provider !== 'local' && (
-                    <a href="#" className="text-xs text-amber-500 hover:text-amber-400 mt-1 inline-block">
-                      Get API Key →
-                    </a>
-                  )}
+                  <div className="text-xs text-gray-500 mt-1">
+                    请输入您的API密钥，用于访问{formData.provider === 'openai' ? 'OpenAI' : formData.provider === 'anthropic' ? 'Anthropic' : formData.provider === 'google' ? 'Google' : formData.provider === 'azure' ? 'Azure' : formData.provider === 'deepseek' ? 'DeepSeek' : formData.provider === 'zhipu' ? '智谱AI' : '自定义'}服务
+                  </div>
                 </div>
               </div>
 
@@ -564,6 +573,7 @@ function AIModelDrawer({
                       <Select
                         value={formData.model}
                         onValueChange={(value) => {
+                          console.log('[AIModelDrawer] 选择模型:', value)
                           setFormData(prev => ({ 
                             ...prev, 
                             model: value,
@@ -576,21 +586,33 @@ function AIModelDrawer({
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px]">
                           {availableModels.length > 0 ? (
-                            availableModels.map((model) => (
-                              <SelectItem key={model} value={model}>
-                                {model}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            providerModels[formData.provider as keyof typeof providerModels].length > 0 ? (
-                              providerModels[formData.provider as keyof typeof providerModels].map((model) => (
+                            // 优先显示从API获取的模型
+                            <>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-gray-400 bg-gray-800/50 sticky top-0">
+                                从 API 获取 ({availableModels.length} 个模型)
+                              </div>
+                              {availableModels.map((model) => (
                                 <SelectItem key={model} value={model}>
                                   {model}
                                 </SelectItem>
-                              ))
+                              ))}
+                            </>
+                          ) : (
+                            // 回退到预设模型
+                            providerModels[formData.provider as keyof typeof providerModels]?.length > 0 ? (
+                              <>
+                                <div className="px-2 py-1.5 text-xs font-semibold text-gray-400 bg-gray-800/50 sticky top-0">
+                                  预设模型
+                                </div>
+                                {providerModels[formData.provider as keyof typeof providerModels].map((model) => (
+                                  <SelectItem key={model} value={model}>
+                                    {model}
+                                  </SelectItem>
+                                ))}
+                              </>
                             ) : (
                               <div className="px-2 py-1.5 text-xs text-gray-500">
-                                暂无预设模型，请切换为手动输入
+                                暂无预设模型，请点击"Get Model List"或切换为手动输入
                               </div>
                             )
                           )}
@@ -608,7 +630,7 @@ function AIModelDrawer({
                             name: prev.name || value
                           }))
                         }}
-                        placeholder={formData.provider === 'openai' ? 'grok-4' : 'gpt-4o'}
+                        placeholder="输入模型ID，例如 gpt-4o、claude-3-5-sonnet、deepseek-chat"
                         className="tavern-input h-9 text-sm"
                       />
                     )}
@@ -740,7 +762,7 @@ function AIModelDrawer({
                     <Button
                       type="button"
                       onClick={handleTestConnection}
-                      disabled={isTesting || !formData.model || (!formData.apiKey && formData.provider !== 'local')}
+                      disabled={isTesting || !formData.model || !formData.apiKey}
                       className="w-full tavern-button h-9"
                     >
                       <TestTube className="w-4 h-4 mr-2" />

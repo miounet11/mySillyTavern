@@ -29,7 +29,7 @@ export interface ModelSettings {
   customHeaders?: Record<string, string>;
 }
 
-export type AIProvider = 'openai' | 'anthropic' | 'google' | 'local' | 'novelai' | 'horde' | 'custom' | 'kobold' | 'ooba';
+export type AIProvider = 'openai' | 'anthropic' | 'google' | 'local' | 'novelai' | 'horde' | 'custom' | 'kobold' | 'ooba' | 'newapi';
 
 export interface CreateAIModelParams {
   name: string;

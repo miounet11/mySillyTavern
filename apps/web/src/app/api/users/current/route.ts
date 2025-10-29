@@ -12,6 +12,7 @@ import { z } from 'zod'
 // 更新用户的验证 schema
 const updateUserSchema = z.object({
   username: z.string().min(1).max(50).optional(),
+  email: z.string().email().optional().or(z.literal('')),
   settings: z.string().optional(),
 })
 
@@ -87,7 +88,7 @@ export async function PATCH(request: NextRequest) {
       )
     }
     
-    const { username, settings } = validation.data
+    const { username, email, settings } = validation.data
     
     // 如果要更新用户名，检查是否可用
     if (username) {
@@ -103,6 +104,7 @@ export async function PATCH(request: NextRequest) {
     // 更新用户
     const updatedUser = await updateUser(userId, {
       ...(username && { username }),
+      ...(email !== undefined && { email: email || null }),
       ...(settings && { settings }),
     })
     

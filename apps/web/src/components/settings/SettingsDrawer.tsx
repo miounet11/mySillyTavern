@@ -50,7 +50,9 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
   const [isLoadingPlugins, setIsLoadingPlugins] = useState(false)
   
   // General Settings
+  const [userId, setUserId] = useState('')
   const [userName, setUserName] = useState('User')
+  const [userEmail, setUserEmail] = useState('')
   const [language, setLanguage] = useState('zh-CN')
   const [theme, setTheme] = useState('dark')
   
@@ -69,17 +71,31 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
     if (isOpen) {
       // Default to Models tab when opening
       setActiveTab('models')
+      loadUserData()
       loadSettings()
       fetchAIModels()
       fetchPlugins()
     }
   }, [isOpen])
 
+  const loadUserData = async () => {
+    try {
+      const response = await fetch('/api/users/current')
+      const result = await response.json()
+      if (result.success && result.data) {
+        setUserId(result.data.id)
+        setUserName(result.data.username || 'User')
+        setUserEmail(result.data.email || '')
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error)
+    }
+  }
+
   const loadSettings = () => {
     const savedSettings = localStorage.getItem('app_settings')
     if (savedSettings) {
       const settings = JSON.parse(savedSettings)
-      setUserName(settings.userName || 'User')
       setLanguage(settings.language || 'zh-CN')
       setTheme(settings.theme || 'dark')
       setFontSize(settings.fontSize || 'medium')
@@ -91,20 +107,42 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
     }
   }
 
-  const saveGeneralSettings = () => {
-    const settings = {
-      userName,
-      language,
-      theme,
-      fontSize,
-      compactMode,
-      showTimestamp,
-      autoScroll,
-      autoSendGreeting,
-      openerTemplate,
+  const saveGeneralSettings = async () => {
+    try {
+      // 保存用户名和邮箱到数据库
+      const response = await fetch('/api/users/current', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: userName,
+          email: userEmail || '',
+        }),
+      })
+
+      const result = await response.json()
+      if (!result.success) {
+        toast.error(result.error || '保存用户信息失败')
+        return
+      }
+
+      // 保存其他设置到localStorage
+      const settings = {
+        userName,
+        language,
+        theme,
+        fontSize,
+        compactMode,
+        showTimestamp,
+        autoScroll,
+        autoSendGreeting,
+        openerTemplate,
+      }
+      localStorage.setItem('app_settings', JSON.stringify(settings))
+      toast.success('设置已保存')
+    } catch (error) {
+      console.error('Error saving settings:', error)
+      toast.error('保存设置失败')
     }
-    localStorage.setItem('app_settings', JSON.stringify(settings))
-    toast.success('设置已保存')
   }
 
   const fetchAIModels = async () => {
@@ -333,15 +371,47 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
             {/* General Settings Tab */}
             <TabsContent value="general" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0">
               <div className="space-y-6">
+                {/* 用户ID - 只读显示 */}
                 <div>
-                  <Label htmlFor="userName" className="text-sm text-gray-300">用户名</Label>
+                  <Label htmlFor="userId" className="text-sm text-gray-300">用户ID</Label>
+                  <Input
+                    id="userId"
+                    value={userId}
+                    readOnly
+                    disabled
+                    className="tavern-input mt-2 bg-gray-900/50 cursor-not-allowed"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">您的唯一用户标识</p>
+                </div>
+
+                {/* 用户名 */}
+                <div>
+                  <Label htmlFor="userName" className="text-sm text-gray-300">
+                    用户名
+                    <span className="text-yellow-500 ml-1">*</span>
+                  </Label>
                   <Input
                     id="userName"
                     value={userName}
                     onChange={(e) => setUserName(e.target.value)}
-                    placeholder="你的名字"
+                    placeholder="请设置您的用户名"
                     className="tavern-input mt-2"
                   />
+                  <p className="text-xs text-gray-500 mt-1">建议设置一个个性化的用户名</p>
+                </div>
+
+                {/* 邮箱绑定 */}
+                <div>
+                  <Label htmlFor="userEmail" className="text-sm text-gray-300">绑定邮箱</Label>
+                  <Input
+                    id="userEmail"
+                    type="email"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    placeholder="请输入您的邮箱地址"
+                    className="tavern-input mt-2"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">用于找回账号和接收通知（无需验证）</p>
                 </div>
 
                 <div>

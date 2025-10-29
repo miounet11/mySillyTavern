@@ -5,7 +5,7 @@ export interface AIMessage {
 }
 
 export interface AIModelConfig {
-  provider: 'openai' | 'anthropic' | 'google' | 'local' | 'custom'
+  provider: 'openai' | 'anthropic' | 'google' | 'local' | 'custom' | 'newapi'
   model: string
   apiKey?: string
   baseUrl?: string

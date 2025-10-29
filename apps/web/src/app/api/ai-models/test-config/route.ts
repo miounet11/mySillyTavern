@@ -4,7 +4,7 @@ import { AIProviderFactory } from '@sillytavern-clone/ai-providers'
 import type { AIModelConfig, AIMessage } from '@sillytavern-clone/ai-providers'
 
 const testConfigSchema = z.object({
-  provider: z.enum(['openai', 'anthropic', 'google']),
+  provider: z.enum(['openai', 'anthropic', 'google', 'newapi']),
   model: z.string().min(1),
   apiKey: z.string().min(1).optional(),
   baseUrl: z.string().url().optional(),

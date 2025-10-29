@@ -16,7 +16,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import { toast } from 'react-hot-toast'
 
@@ -54,15 +53,16 @@ export function RecoverAccount({ trigger }: RecoverAccountProps) {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="link" size="sm">
-            找回账号
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+    <>
+      {trigger ? (
+        <div onClick={() => setIsOpen(true)}>{trigger}</div>
+      ) : (
+        <Button variant="link" size="sm" onClick={() => setIsOpen(true)}>
+          找回账号
+        </Button>
+      )}
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>找回账号</DialogTitle>
           <DialogDescription>
@@ -111,8 +111,9 @@ export function RecoverAccount({ trigger }: RecoverAccountProps) {
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 

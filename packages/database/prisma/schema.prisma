@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,40 +7,35 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User table - stores user information
 model User {
-  id        String   @id @default(cuid())
-  username  String   // Auto-generated, can be modified by user
-  email     String?  @unique // Optional, for account recovery
-  settings  String?  // JSON string for user settings (theme, language, etc.)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  characters   Character[]
-  aiModels     AIModelConfig[]
-  promptTemplates PromptTemplate[]
+  id               String            @id @default(cuid())
+  username         String
+  email            String?           @unique
+  settings         String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  aiModels         AIModelConfig[]
+  characters       Character[]
+  contextTemplates ContextTemplate[]
+  promptTemplates  PromptTemplate[]
 
   @@index([email])
   @@index([createdAt])
 }
 
-// Chats table - stores chat sessions
 model Chat {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   title       String
   characterId String
-  userId      String?  @default("default")
-  settings    String?  // JSON string for chat settings
-  isFavorite  Boolean  @default(false)
-  isArchived  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  messages  Message[]
-  branches  ChatBranch[]
+  userId      String?      @default("default")
+  settings    String?
+  isFavorite  Boolean      @default(false)
+  isArchived  Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  character   Character    @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  branches    ChatBranch[]
+  messages    Message[]
 
   @@index([characterId])
   @@index([userId])
@@ -52,193 +44,192 @@ model Chat {
   @@index([isArchived])
 }
 
-// Messages table - stores chat messages
 model Message {
-  id        String   @id @default(cuid())
+  id        String                @id @default(cuid())
   chatId    String
-  role      String   // 'user', 'assistant', 'system'
+  role      String
   content   String
-  metadata  String?  // JSON string for message metadata
-  timestamp DateTime @default(now())
-  branchId  String?  // If message belongs to a specific branch
-
-  // Relations
-  chat    Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  branch  ChatBranch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  metadata  String?
+  timestamp DateTime              @default(now())
+  branchId  String?
+  embedding ChatMessageEmbedding?
+  branch    ChatBranch?           @relation(fields: [branchId], references: [id])
+  chat      Chat                  @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
   @@index([chatId])
   @@index([chatId, timestamp])
   @@index([branchId])
 }
 
-// Chat branches table - stores conversation branches
 model ChatBranch {
-  id          String   @id @default(cuid())
-  parentId    String?  // Parent branch ID
+  id          String       @id @default(cuid())
+  parentId    String?
   chatId      String
-  branchPoint String   // Message ID where branch starts
+  branchPoint String
   title       String
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  // Relations
-  chat     Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  parent   ChatBranch? @relation("BranchHierarchy", fields: [parentId], references: [id])
-  children ChatBranch[] @relation("BranchHierarchy")
-  messages Message[]
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  chat        Chat         @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  parent      ChatBranch?  @relation("BranchHierarchy", fields: [parentId], references: [id])
+  children    ChatBranch[] @relation("BranchHierarchy")
+  messages    Message[]
 
   @@index([chatId])
   @@index([parentId])
   @@index([isActive])
 }
 
-// Characters table - stores AI character definitions
 model Character {
-  id                String   @id @default(cuid())
-  name              String
-  userId            String   // Owner of this character
-  description       String?
-  personality       String?
-  scenario          String?  // V2 field
-  firstMessage      String?
-  mesExample        String?  // V2 field: example messages
-  avatar            String?  // Path to avatar file
-  background        String?
-  exampleMessages   String?  // JSON array (legacy)
-  tags              String?  // JSON array
-  creatorNotes      String?  // V2 field
-  systemPrompt      String?  // V2 field
-  postHistoryInstructions String?  // V2 field
-  alternateGreetings String?  // V2 field: JSON array
-  characterBook     String?  // V2 field: JSON object for world info
-  creator           String?  // V2 field
-  characterVersion  String?  // V2 field
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  settings          String?  // JSON string for character settings
+  id                      String               @id @default(cuid())
+  name                    String
+  description             String?
+  personality             String?
+  scenario                String?
+  firstMessage            String?
+  mesExample              String?
+  avatar                  String?
+  background              String?
+  exampleMessages         String?
+  tags                    String?
+  creatorNotes            String?
+  systemPrompt            String?
+  postHistoryInstructions String?
+  alternateGreetings      String?
+  characterBook           String?
+  creator                 String?
+  characterVersion        String?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  settings                String?
+  userId                  String?
+  authorNote              String?
+  authorNoteDepth         Int?                 @default(0)
+  jailbreakPrompt         String?
+  stopStrings             String?
+  forcePrefix             Boolean?             @default(true)
+  exampleSeparator        String?              @default("###") @db.VarChar(50)
+  chatStart               String?              @default("<START>") @db.VarChar(50)
+  contextTemplateId       String?
+  user                    User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chats                   Chat[]
+  pluginSettings          PluginSetting[]
+  worldInfos              WorldInfoCharacter[]
 
-  // Relations
-  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chats         Chat[]
-  worldInfos    WorldInfoCharacter[]
-  pluginSettings PluginSetting[]
-
-  @@unique([userId, name])
   @@index([userId])
   @@index([name])
   @@index([createdAt])
 }
 
-// World Info table - stores world information entries
 model WorldInfo {
-  id             String   @id @default(cuid())
-  name           String
-  content        String
-  keywords       String?  // JSON array
-  activationType String   // 'always', 'keyword', 'vector'
-  priority       Int      @default(100)
-  position       Int      @default(4)  // V2 field: insertion position (0-100)
-  depth          Int      @default(4)  // V2 field: scan depth
-  enabled        Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  settings       String?  // JSON string for world info settings
-
-  // Relations
-  characters WorldInfoCharacter[]
-  vectors    WorldInfoVector[]
+  id                String                 @id @default(cuid())
+  name              String
+  content           String
+  keywords          String?
+  activationType    String
+  priority          Int                    @default(100)
+  depth             Int                    @default(4)
+  enabled           Boolean                @default(true)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  settings          String?
+  secondaryKeys     String?
+  keywordsRegex     String?
+  useRegex          Boolean?               @default(false)
+  selectiveLogic    String?                @default("AND_ANY") @db.VarChar(20)
+  recursive         Boolean?               @default(false)
+  recursiveLevel    Int?                   @default(1)
+  maxRecursionSteps Int?                   @default(2)
+  minActivations    Int?                   @default(0)
+  cascadeTrigger    String?
+  sticky            Int?                   @default(0)
+  cooldown          Int?                   @default(0)
+  delay             Int?                   @default(0)
+  position          String?                @default("after_char") @db.VarChar(50)
+  insertionOrder    Int?                   @default(100)
+  tokenBudget       Int?                   @default(500)
+  insertionTemplate String?
+  embeddingVector   Unsupported("vector")?
+  activations       WorldInfoActivation[]
+  characters        WorldInfoCharacter[]
+  vectors           WorldInfoVector[]
 
   @@index([activationType])
   @@index([enabled])
   @@index([priority])
+  @@index([embeddingVector], map: "worldinfo_embedding_idx")
 }
 
-// World Info and Character relationship
 model WorldInfoCharacter {
   worldInfoId String
   characterId String
-
-  // Relations
-  worldInfo WorldInfo @relation(fields: [worldInfoId], references: [id], onDelete: Cascade)
-  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  worldInfo   WorldInfo @relation(fields: [worldInfoId], references: [id], onDelete: Cascade)
 
   @@id([worldInfoId, characterId])
 }
 
-// World Info vectors table - stores vector embeddings for semantic search
 model WorldInfoVector {
-  id         String   @id @default(cuid())
+  id          String    @id @default(cuid())
   worldInfoId String
-  embedding  String   // JSON array of vector data
-  text       String   // Original text for embedding
-  createdAt  DateTime @default(now())
-
-  // Relations
-  worldInfo WorldInfo @relation(fields: [worldInfoId], references: [id], onDelete: Cascade)
+  embedding   String
+  text        String
+  createdAt   DateTime  @default(now())
+  worldInfo   WorldInfo @relation(fields: [worldInfoId], references: [id], onDelete: Cascade)
 
   @@index([worldInfoId])
 }
 
-// AI Model Configs table - stores AI model configurations
 model AIModelConfig {
   id        String   @id @default(cuid())
   name      String
-  userId    String   // Owner of this AI model config
-  provider  String   // 'openai', 'anthropic', 'local', etc.
+  provider  String
   model     String
-  apiKey    String?  // Encrypted API key
-  baseUrl   String?  // Custom base URL for local models
-  settings  String?  // JSON string for model settings
+  apiKey    String?
+  baseUrl   String?
+  settings  String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, name])
   @@index([userId])
+  @@index([name])
   @@index([provider])
   @@index([isActive])
 }
 
-// Plugins table - stores installed plugins
 model Plugin {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String          @id @default(cuid())
+  name        String          @unique
   version     String
   description String?
   author      String?
   homepage    String?
   repository  String?
   license     String?
-  keywords    String?  // JSON array
-  enabled     Boolean  @default(false)
-  config      String?  // JSON string for plugin config
-  manifest    String   // JSON string for plugin manifest
-  installedAt DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  settings PluginSetting[]
+  keywords    String?
+  enabled     Boolean         @default(false)
+  config      String?
+  manifest    String
+  installedAt DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  settings    PluginSetting[]
 
   @@index([enabled])
   @@index([name])
 }
 
-// Plugin Settings table - stores plugin configuration per scope
 model PluginSetting {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   pluginId  String
-  scopeType String   // 'global', 'character', 'chat'
-  scopeId   String?  // characterId, chatId, or null for global
-  config    String   // JSON string for scope-specific config
-  enabled   Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  plugin    Plugin    @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  scopeType String
+  scopeId   String?
+  config    String
+  enabled   Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  plugin    Plugin     @relation(fields: [pluginId], references: [id], onDelete: Cascade)
   character Character? @relation(fields: [scopeId], references: [id], onDelete: Cascade)
 
   @@index([pluginId])
@@ -246,39 +237,36 @@ model PluginSetting {
   @@index([enabled])
 }
 
-// User Settings table - for future user system implementation
 model UserSetting {
-  id        String   @id @default("default")
-  theme     String   @default("dark")
-  language  String   @default("en")
-  uiSettings String? // JSON string for UI settings
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default("default")
+  theme      String   @default("dark")
+  language   String   @default("en")
+  uiSettings String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([id])
 }
 
-// System Logs table - for application logging
 model SystemLog {
   id        String   @id @default(cuid())
-  level     String   // 'error', 'warn', 'info', 'debug'
+  level     String
   message   String
-  metadata  String?  // JSON string for log metadata
+  metadata  String?
   timestamp DateTime @default(now())
 
   @@index([timestamp])
   @@index([level])
 }
 
-// File Storage table - tracks uploaded files
 model FileStorage {
   id           String   @id @default(cuid())
   originalName String
   filename     String   @unique
   mimeType     String
   size         Int
-  path         String   // Storage path
-  hash         String?  // File hash for deduplication
+  path         String
+  hash         String?
   uploadedBy   String?  @default("default")
   createdAt    DateTime @default(now())
 
@@ -288,22 +276,19 @@ model FileStorage {
   @@index([hash])
 }
 
-// Prompt Templates table - stores reusable prompt templates
 model PromptTemplate {
   id          String   @id @default(cuid())
   name        String
-  content     String   // Template content with placeholders
-  category    String   // 'external' for external prompts, 'variable' for template variables
-  description String?  // Optional description
-  isBuiltin   Boolean  @default(false) // Whether it's a system preset
-  userId      String?  // User who created (null for builtin)
+  content     String
+  category    String
+  description String?
+  isBuiltin   Boolean  @default(false)
+  userId      String?
   isFavorite  Boolean  @default(false)
   usageCount  Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  // Relations
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([category])
   @@index([userId])
@@ -311,19 +296,18 @@ model PromptTemplate {
   @@index([isFavorite])
 }
 
-// Community Characters table - stores community shared character cards
 model CommunityCharacter {
   id            String   @id @default(cuid())
   name          String
   description   String?
-  characterData String   // Full SillyTavern v2 character card JSON
+  characterData String
   avatar        String?
   author        String
   authorId      String?  @default("default")
   downloads     Int      @default(0)
   likes         Int      @default(0)
-  tags          String?  // JSON array
-  category      String   @default("cards") // cards, popular, new, etc.
+  tags          String?
+  category      String   @default("cards")
   isPublished   Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -333,4 +317,56 @@ model CommunityCharacter {
   @@index([isPublished])
   @@index([author])
   @@index([downloads])
+}
+
+model WorldInfoActivation {
+  id            String    @id @default(cuid())
+  worldInfoId   String
+  chatId        String
+  activatedAt   DateTime  @default(now()) @db.Timestamp(6)
+  expiresAt     DateTime? @db.Timestamp(6)
+  cooldownUntil DateTime? @db.Timestamp(6)
+  messageCount  Int?      @default(0)
+  worldInfo     WorldInfo @relation(fields: [worldInfoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([chatId, worldInfoId], map: "activation_chat_wi_idx")
+  @@index([cooldownUntil], map: "activation_cooldown_idx")
+  @@index([expiresAt], map: "activation_expires_idx")
+}
+
+model ChatMessageEmbedding {
+  id        String                 @id @default(cuid())
+  messageId String                 @unique
+  chatId    String
+  embedding Unsupported("vector")?
+  summary   String?
+  createdAt DateTime?              @default(now()) @db.Timestamp(6)
+  message   Message                @relation(fields: [messageId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([chatId], map: "message_embedding_chat_idx")
+  @@index([embedding], map: "message_embedding_idx")
+}
+
+model ChatSummary {
+  id          String    @id @default(cuid())
+  chatId      String
+  fromMessage Int
+  toMessage   Int
+  summary     String
+  createdAt   DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([chatId], map: "summary_chat_idx")
+}
+
+model ContextTemplate {
+  id        String    @id @default(cuid())
+  name      String
+  template  String
+  isDefault Boolean?  @default(false)
+  userId    String?
+  createdAt DateTime? @default(now()) @db.Timestamp(6)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([isDefault], map: "template_default_idx")
+  @@index([userId], map: "template_user_idx")
 }

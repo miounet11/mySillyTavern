@@ -4,6 +4,12 @@ import { db } from '@sillytavern-clone/database'
 import { AIProviderFactory } from '@sillytavern-clone/ai-providers'
 import type { AIMessage, AIModelConfig } from '@sillytavern-clone/ai-providers'
 import { nanoid } from 'nanoid'
+import { getUserIdFromCookie } from '@/lib/auth/cookies'
+import { ensureUser } from '@/lib/auth/userManager'
+import { WorldInfoActivationEngine } from '@/lib/worldinfo/activationEngine'
+import { ContextBuilder } from '@/lib/context/contextBuilder'
+import { WorldInfoEmbeddingService } from '@/lib/worldinfo/embeddingService'
+import { ChatSummaryService } from '@/lib/chat/summaryService'
 
 const generateSchema = z.object({
   chatId: z.string(),
@@ -19,62 +25,14 @@ const generateSchema = z.object({
   }).optional(),
 })
 
-// Helper to inject world info into context
-async function injectWorldInfo(
-  messages: AIMessage[],
-  characterId: string,
-  currentMessage: string
-): Promise<AIMessage[]> {
-  // Get active world info for this character
-  const worldInfos = await db.findMany('WorldInfo', {
-    where: {
-      enabled: true,
-      characters: {
-        some: { characterId }
-      }
-    },
-    orderBy: { priority: 'desc' }
-  })
-
-  if (worldInfos.length === 0) {
-    return messages
-  }
-
-  // Filter world info by keyword activation
-  const activeWorldInfo = worldInfos.filter((info: any) => {
-    if (info.activationType === 'always') return true
-    
-    if (info.activationType === 'keyword') {
-      const keywords = info.keywords ? JSON.parse(info.keywords) : []
-      return keywords.some((keyword: string) => 
-        currentMessage.toLowerCase().includes(keyword.toLowerCase())
-      )
-    }
-    
-    return false
-  })
-
-  if (activeWorldInfo.length === 0) {
-    return messages
-  }
-
-  // Inject world info into system message
-  const worldInfoContent = activeWorldInfo
-    .map((info: any) => `[${info.name}]\n${info.content}`)
-    .join('\n\n')
-
-  const systemMessage = messages.find(m => m.role === 'system')
-  
-  if (systemMessage) {
-    systemMessage.content = `${systemMessage.content}\n\n=== World Information ===\n${worldInfoContent}`
-  } else {
-    messages.unshift({
-      role: 'system',
-      content: `=== World Information ===\n${worldInfoContent}`
-    })
-  }
-
-  return messages
+// 上下文持久化系统配置（从环境变量读取）
+const CONTEXT_CONFIG = {
+  maxRecursiveDepth: parseInt(process.env.WORLDINFO_MAX_RECURSIVE_DEPTH || '2'),
+  vectorThreshold: parseFloat(process.env.WORLDINFO_DEFAULT_VECTOR_THRESHOLD || '0.7'),
+  maxContextTokens: parseInt(process.env.CONTEXT_MAX_TOKENS || '8000'),
+  reserveTokens: parseInt(process.env.CONTEXT_RESERVE_TOKENS || '1000'),
+  enableAutoSummary: process.env.CONTEXT_ENABLE_AUTO_SUMMARY === 'true',
+  summaryInterval: parseInt(process.env.CONTEXT_SUMMARY_INTERVAL || '50')
 }
 
 export async function POST(request: NextRequest) {
@@ -82,18 +40,26 @@ export async function POST(request: NextRequest) {
     const greetEnabled = process.env.ST_PARITY_GREETING_ENABLED !== 'false'
     const body = await request.json()
     const validatedData = generateSchema.parse(body)
+    // Ensure current user for scoping model ownership
+    const userId = await getUserIdFromCookie()
+    const user = await ensureUser(userId)
 
     // Get chat and character
+    // 使用滑动窗口机制：只加载最近 N 条消息（从环境变量配置）
+    const slidingWindowSize = parseInt(process.env.MESSAGE_SLIDING_WINDOW || '100')
+    
     const chat = await db.findUnique('Chat', {
       id: validatedData.chatId,
       include: {
         character: true,
         messages: {
           orderBy: { timestamp: 'asc' },
-          take: 50, // Last 50 messages for context
+          take: slidingWindowSize, // 滑动窗口：最近 N 条消息
         }
       }
     })
+    
+    console.log(`[Generate API] Loading ${slidingWindowSize} messages from sliding window`)
 
     if (!chat) {
       return new Response(
@@ -102,133 +68,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Build conversation history
-    const conversationMessages: AIMessage[] = []
-
-    // Add system prompt (author's note)
-    const chatSettings = chat.settings ? JSON.parse(chat.settings) : {}
-    const characterSettings = chat.character.settings ? JSON.parse(chat.character.settings) : {}
+    // ====================================
+    // 第 1 步：准备 AI 配置
+    // ====================================
     
-    // 1. System prompt (if exists)
-    const systemPrompt = chat.character.systemPrompt ||
-                        chatSettings.systemPrompt || 
-                        characterSettings.systemPrompt
-
-    if (systemPrompt) {
-      conversationMessages.push({
-        role: 'system',
-        content: systemPrompt
-      })
-    }
-
-    // 2. Character description (CRITICAL - most important field)
-    if (chat.character.description) {
-      conversationMessages.push({
-        role: 'system',
-        content: `Character Description:\n${chat.character.description}`
-      })
-    }
-
-    // 3. Creator notes (author's guidance)
-    if (chat.character.creatorNotes) {
-      conversationMessages.push({
-        role: 'system',
-        content: `Creator Notes:\n${chat.character.creatorNotes}`
-      })
-    }
-
-    // 4. Scenario/Background
-    if (chat.character.scenario || chat.character.background) {
-      conversationMessages.push({
-        role: 'system',
-        content: `Scenario: ${chat.character.scenario || chat.character.background}`
-      })
-    }
-
-    // 5. Character personality
-    if (chat.character.personality) {
-      conversationMessages.push({
-        role: 'system',
-        content: `Character Personality: ${chat.character.personality}`
-      })
-    }
-
-    // Add example dialogues (few-shot) from mesExample or structured exampleMessages
-    const exampleMessagesRaw = chat.character.mesExample || chat.character.exampleMessages
-    let examples: Array<{ user: string; assistant: string }> = []
-    try {
-      if (typeof exampleMessagesRaw === 'string' && exampleMessagesRaw.trim()) {
-        // mesExample stored string: keep as system examples
-        const lines = exampleMessagesRaw.split('\n').filter((l: string) => l.trim())
-        for (let i = 0; i < lines.length; i += 2) {
-          const u = lines[i]
-          const a = lines[i + 1]
-          if (u && a) {
-            examples.push({
-              user: u.replace(/^<USER>:?\s*/i, '').trim(),
-              assistant: a.replace(/^<BOT>:?\s*/i, '').trim(),
-            })
-          }
-        }
-      } else if (Array.isArray(exampleMessagesRaw)) {
-        examples = exampleMessagesRaw.map((m: any) => ({ user: m.user, assistant: m.assistant }))
-      } else if (typeof chat.character.exampleMessages === 'string') {
-        examples = JSON.parse(chat.character.exampleMessages || '[]')
-      }
-    } catch {}
-
-    if (examples.length > 0) {
-      for (const ex of examples) {
-        conversationMessages.push({ role: 'user', content: ex.user })
-        conversationMessages.push({ role: 'assistant', content: ex.assistant })
-      }
-    }
-
-    // Add conversation history
-    for (const msg of chat.messages || []) {
-      conversationMessages.push({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-        metadata: msg.metadata ? JSON.parse(msg.metadata) : undefined
-      })
-    }
-
-    // Post-history instructions (added after conversation history)
-    if (chat.character.postHistoryInstructions) {
-      conversationMessages.push({
-        role: 'system',
-        content: chat.character.postHistoryInstructions
-      })
-    }
-
-    // Add user message
-    conversationMessages.push({
-      role: 'user',
-      content: validatedData.message
-    })
-
-    // Inject world info
-    const messagesWithWorldInfo = await injectWorldInfo(
-      conversationMessages,
-      chat.characterId,
-      validatedData.message
-    )
-
-    // Save user message
-    const userMessage = await db.create('Message', {
-      id: nanoid(),
-      chatId: chat.id,
-      role: 'user',
-      content: validatedData.message,
-      metadata: JSON.stringify({})
-    })
-
-    // Prepare AI config - 优先使用客户端传递的模型配置（本地存储）
+    const chatSettings = chat.settings ? JSON.parse(chat.settings) : {}
     let aiConfig: AIModelConfig
-    let modelConfig: any = null // 用于非流式响应的 metadata
+    let modelConfig: any = null
 
     if (validatedData.clientModel) {
-      // 使用客户端本地配置
       console.log('[Generate API] Using client-side model config:', {
         provider: validatedData.clientModel.provider,
         model: validatedData.clientModel.model
@@ -242,31 +90,19 @@ export async function POST(request: NextRequest) {
         settings: validatedData.clientModel.settings || {}
       }
     } else {
-      // 降级：使用服务器端模型配置
-      console.log('[Generate API] Falling back to server-side model config')
-      
-      let modelId = validatedData.modelId
-      
+      const modelId = validatedData.modelId
       if (!modelId) {
-        const activeModel = await db.findFirst('AIModelConfig', {
-          where: { isActive: true }
-        })
-        
-        if (!activeModel) {
-          return new Response(
-            JSON.stringify({ error: 'No active AI model configured', code: 'NO_MODEL' }),
-            { status: 400, headers: { 'Content-Type': 'application/json' } }
-          )
-        }
-        
-        modelId = activeModel.id
+        return new Response(
+          JSON.stringify({ error: 'No model provided. Provide clientModel or modelId.', code: 'NO_MODEL' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        )
       }
 
-      modelConfig = await db.findUnique('AIModelConfig', { id: modelId })
+      modelConfig = await db.findFirst('AIModelConfig', { where: { id: modelId, userId: user.id } })
       
       if (!modelConfig) {
         return new Response(
-          JSON.stringify({ error: 'AI model not found', code: 'MODEL_NOT_FOUND' }),
+          JSON.stringify({ error: 'AI model not found or access denied', code: 'MODEL_NOT_FOUND' }),
           { status: 404, headers: { 'Content-Type': 'application/json' } }
         )
       }
@@ -284,6 +120,58 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    // ====================================
+    // 第 2 步：智能上下文持久化系统
+    // ====================================
+    
+    console.log('[Context System] Starting intelligent context building...')
+    
+    // 2.1 World Info 智能激活（替换简单匹配，带限流）
+    const activationEngine = new WorldInfoActivationEngine()
+    const activatedEntries = await activationEngine.activateEntries(
+      chat.id,
+      chat.characterId,
+      validatedData.message,
+      chat.messages,
+      {
+        enableRecursive: true,
+        enableVector: true,
+        maxRecursionDepth: CONTEXT_CONFIG.maxRecursiveDepth,
+        vectorThreshold: CONTEXT_CONFIG.vectorThreshold,
+        maxActivatedEntries: parseInt(process.env.WORLDINFO_MAX_ACTIVATED_ENTRIES || '15'),
+        maxTotalTokens: parseInt(process.env.WORLDINFO_MAX_TOTAL_TOKENS || '20000'),
+        model: aiConfig.model
+      }
+    )
+    
+    console.log(`[Context System] Activated ${activatedEntries.length} World Info entries`)
+    
+    // 2.2 智能上下文构建（替换手动拼接）
+    const contextBuilder = new ContextBuilder()
+    const messagesWithWorldInfo = await contextBuilder.buildContext(
+      chat.character,
+      chat.messages,
+      activatedEntries,
+      validatedData.message,
+      {
+        maxContextTokens: CONTEXT_CONFIG.maxContextTokens,
+        reserveTokens: CONTEXT_CONFIG.reserveTokens,
+        model: aiConfig.model,
+        enableSummary: CONTEXT_CONFIG.enableAutoSummary
+      }
+    )
+    
+    console.log('[Context System] Context built successfully')
+
+    // 2.3 保存用户消息
+    const userMessage = await db.create('Message', {
+      id: nanoid(),
+      chatId: chat.id,
+      role: 'user',
+      content: validatedData.message,
+      metadata: JSON.stringify({})
+    })
 
     // Get AI provider
     const provider = AIProviderFactory.getProvider(aiConfig)
@@ -318,9 +206,27 @@ export async function POST(request: NextRequest) {
               metadata: JSON.stringify({ 
                 modelId: validatedData.clientModel ? 'client-local' : modelConfig?.id,
                 model: aiConfig.model,
-                provider: aiConfig.provider
+                provider: aiConfig.provider,
+                contextInfo: {
+                  activatedWorldInfo: activatedEntries.length,
+                  // 可添加更多上下文信息
+                }
               })
             })
+
+            // 后台任务：生成 embedding（不阻塞响应）
+            if (process.env.WORLDINFO_AUTO_EMBEDDING === 'true') {
+              const embeddingService = new WorldInfoEmbeddingService()
+              embeddingService.embedChatMessage(assistantMessage.id)
+                .catch(err => console.error('[Context System] Failed to generate message embedding:', err))
+            }
+            
+            // 后台任务：检查是否需要自动总结
+            if (CONTEXT_CONFIG.enableAutoSummary) {
+              const summaryService = new ChatSummaryService()
+              summaryService.autoSummarize(chat.id, CONTEXT_CONFIG.summaryInterval)
+                .catch(err => console.error('[Context System] Failed to generate auto summary:', err))
+            }
 
             // 修正：发送完整的 message 对象
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
@@ -365,8 +271,25 @@ export async function POST(request: NextRequest) {
           provider: aiConfig.provider,
           usage: response.usage,
           finishReason: response.finishReason,
+          contextInfo: {
+            activatedWorldInfo: activatedEntries.length,
+          }
         })
       })
+
+      // 后台任务：生成 embedding（不阻塞响应）
+      if (process.env.WORLDINFO_AUTO_EMBEDDING === 'true') {
+        const embeddingService = new WorldInfoEmbeddingService()
+        embeddingService.embedChatMessage(assistantMessage.id)
+          .catch(err => console.error('[Context System] Failed to generate message embedding:', err))
+      }
+      
+      // 后台任务：检查是否需要自动总结
+      if (CONTEXT_CONFIG.enableAutoSummary) {
+        const summaryService = new ChatSummaryService()
+        summaryService.autoSummarize(chat.id, CONTEXT_CONFIG.summaryInterval)
+          .catch(err => console.error('[Context System] Failed to generate auto summary:', err))
+      }
 
       // Update chat timestamp
       await db.update('Chat', { id: chat.id }, { updatedAt: new Date() })

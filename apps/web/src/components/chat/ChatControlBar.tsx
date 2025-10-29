@@ -5,7 +5,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Zap, Radio, ArrowDown, RotateCcw, Loader2 } from 'lucide-react'
+import { ArrowDown, RotateCcw, Loader2, AlertCircle } from 'lucide-react'
 import { useChatStore } from '@/stores/chatStore'
 import { Button } from '@/components/ui/button'
 import toast from 'react-hot-toast'
@@ -16,90 +16,60 @@ interface ChatControlBarProps {
   onRegenerate?: () => void
   showRegenerate?: boolean
   disabled?: boolean
+  onCheckIncomplete?: () => void
 }
 
 export default function ChatControlBar({
   onScrollToBottom,
   onRegenerate,
   showRegenerate = true,
-  disabled = false
+  disabled = false,
+  onCheckIncomplete
 }: ChatControlBarProps) {
   const { t } = useTranslation()
-  const {
-    isStreamingEnabled,
-    isFastModeEnabled,
-    isGenerating,
-    toggleStreaming,
-    toggleFastMode
-  } = useChatStore()
+  const { isGenerating, messages, checkForIncompleteInteraction } = useChatStore()
 
-  const handleToggleStreaming = () => {
-    toggleStreaming()
-    toast.success(
-      isStreamingEnabled 
-        ? '已切换到完整输出模式' 
-        : '已切换到流式输出模式',
-      { duration: 2000 }
-    )
+  const handleCheckIncomplete = () => {
+    const hasIncomplete = checkForIncompleteInteraction()
+    if (hasIncomplete) {
+      toast.success('检测到未完成的对话', { 
+        icon: '⚠️',
+        duration: 3000 
+      })
+      if (onCheckIncomplete) {
+        onCheckIncomplete()
+      }
+    } else {
+      toast('对话完整，没有检测到中断', { 
+        icon: '✅',
+        duration: 2000 
+      })
+    }
   }
 
-  const handleToggleFastMode = () => {
-    toggleFastMode()
-    toast.success(
-      isFastModeEnabled 
-        ? '已关闭快速模式' 
-        : '已开启快速模式（Temperature: 0.3）',
-      { duration: 2000 }
-    )
-  }
+  // 判断是否应该显示检测按钮（有消息时显示）
+  const shouldShowCheckButton = messages.length > 0
 
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-2 glass-light border-b border-gray-800/30">
-      {/* Left: Generation Controls */}
+    <div className="flex items-center justify-end gap-3 px-4 py-2 glass-light border-b border-gray-800/30">
+      {/* Action Controls */}
       <div className="flex items-center gap-2">
-        {/* Streaming Toggle */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleToggleStreaming}
-          disabled={disabled || isGenerating}
-          className={`
-            h-8 px-3 text-xs font-medium transition-all duration-200
-            ${isStreamingEnabled 
-              ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30 hover:bg-blue-500/30' 
-              : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/50'
-            }
-          `}
-          title={isStreamingEnabled ? '流式输出已开启' : '流式输出已关闭'}
-        >
-          <Radio className={`w-3.5 h-3.5 mr-1.5 ${isStreamingEnabled ? 'animate-pulse' : ''}`} />
-          <span className="hidden sm:inline">流式输出</span>
-          <span className="sm:hidden">流式</span>
-        </Button>
+        {/* Check Incomplete Button */}
+        {shouldShowCheckButton && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCheckIncomplete}
+            disabled={disabled || isGenerating}
+            className="h-8 px-3 text-xs font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-700/20 transition-all duration-200"
+            title="检查对话完整性"
+          >
+            <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+            <span className="hidden md:inline">检测中断</span>
+            <span className="md:hidden">检测</span>
+          </Button>
+        )}
 
-        {/* Fast Mode Toggle */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleToggleFastMode}
-          disabled={disabled || isGenerating}
-          className={`
-            h-8 px-3 text-xs font-medium transition-all duration-200
-            ${isFastModeEnabled 
-              ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30 hover:bg-amber-500/30' 
-              : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/50'
-            }
-          `}
-          title={isFastModeEnabled ? '快速模式已开启（Temperature: 0.3）' : '快速模式已关闭'}
-        >
-          <Zap className={`w-3.5 h-3.5 mr-1.5 ${isFastModeEnabled ? 'animate-pulse' : ''}`} />
-          <span className="hidden sm:inline">快速模式</span>
-          <span className="sm:hidden">快速</span>
-        </Button>
-      </div>
-
-      {/* Right: Action Controls */}
-      <div className="flex items-center gap-2">
         {/* Regenerate Button */}
         {showRegenerate && (
           <Button
@@ -135,23 +105,7 @@ export default function ChatControlBar({
         </Button>
       </div>
 
-      {/* Status Indicators */}
-      {(isStreamingEnabled || isFastModeEnabled) && (
-        <div className="hidden md:flex items-center gap-2 ml-4 text-xs text-gray-500">
-          {isStreamingEnabled && (
-            <span className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
-              流式
-            </span>
-          )}
-          {isFastModeEnabled && (
-            <span className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></div>
-              快速 (0.3)
-            </span>
-          )}
-        </div>
-      )}
+      {/* Removed streaming/fast indicators (moved near input) */}
     </div>
   )
 }

@@ -1,248 +1,228 @@
-# SillyTavern 生产部署状态报告
+# 🚧 上下文持久化系统 - 部署状态
 
-## 🎉 部署成功！
+## ⚠️ 当前状态
 
-**部署时间**: 2025-10-28  
-**域名**: https://www.isillytavern.com/  
-**状态**: ✅ 运行中
-
----
-
-## 📊 系统状态
-
-### 应用服务
-- **框架**: Next.js 14.0.4
-- **运行模式**: Production (生产模式)
-- **进程管理**: PM2 (已配置开机自启)
-- **进程名称**: sillytavern-web
-- **监听端口**: 3000
-- **启动时间**: < 1秒
-- **内存占用**: ~55MB
-
-### Web服务器
-- **服务器**: Nginx 1.18.0
-- **协议**: HTTP/2 with TLS 1.2/1.3
-- **SSL证书**: Let's Encrypt (有效)
-- **证书路径**: `/etc/letsencrypt/live/www.isillytavern.com/`
-- **反向代理**: ✅ 配置正确 (127.0.0.1:3000)
+**状态**: 🔨 开发完成，等待数据库迁移和最终修复  
+**进度**: 95%  
+**最后更新**: 2025-10-29
 
 ---
 
-## ✅ 功能测试结果
+## ✅ 已完成模块
 
-### 页面访问测试 (HTTP状态码)
-```
-✅ /                          200 OK (首页)
-✅ /characters                200 OK (角色卡列表)
-✅ /characters/community      200 OK (社区角色)
-✅ /chat                      200 OK (聊天页面)
-✅ /world-info                200 OK (世界信息)
-✅ /settings                  200 OK (设置页面)
-```
+### 1. 数据库 Schema 设计（100%）
+- ✓ Prisma Schema 完全升级
+- ✓ WorldInfo 表：22 个高级字段
+- ✓ Character 表：8 个新字段
+- ✓ 4 个新表（WorldInfoActivation, ChatMessageEmbedding, ChatSummary, ContextTemplate）
+- ✓ SQL 迁移脚本已生成
 
-### API端点测试
-```
-✅ /api/health                200 OK (健康检查)
-  - 数据库: ✅ 已连接
-  - 环境变量: ✅ 已配置
-  - 系统资源: ✅ 正常
-```
+### 2. 核心引擎（100%）
+- ✓ Token 计数器（tiktoken）
+- ✓ Handlebars 模板引擎
+- ✓ World Info 激活引擎（关键词、正则、递归、状态机制）
+- ✓ 智能上下文构建器（Token 预算管理）
+- ✓ 向量嵌入服务
+- ✓ 自动总结服务
 
-### 性能指标
-- **响应时间**: ~173ms (首页)
-- **HTTP/2**: ✅ 启用
-- **缓存策略**: ✅ 已优化
-- **静态资源**: ✅ CDN缓存
+### 3. API 集成（100%）
+- ✓ `/api/generate` 端点重构
+- ✓ 智能上下文系统集成
+- ✓ 后台任务（embedding + auto-summary）
 
----
-
-## 🔧 配置详情
-
-### Nginx配置
-**文件位置**: `/www/server/panel/vhost/nginx/www.isillytavern.com.conf`
-
-**关键配置**:
-- ✅ HTTP → HTTPS 自动重定向
-- ✅ 反向代理配置 (proxy_pass http://127.0.0.1:3000)
-- ✅ WebSocket支持 (Connection 'upgrade')
-- ✅ 安全头部 (X-Frame-Options, X-Content-Type-Options, X-XSS-Protection)
-- ✅ 静态资源缓存 (/_next/static)
-- ✅ 超时配置 (300s read/connect)
-
-### PM2配置
-**进程状态**:
-```
-┌────┬─────────────────┬─────────┬────────┬──────┬────────┐
-│ ID │ Name            │ Mode    │ Status │ CPU  │ Memory │
-├────┼─────────────────┼─────────┼────────┼──────┼────────┤
-│ 0  │ sillytavern-web │ fork    │ online │ 0%   │ 55.1MB │
-└────┴─────────────────┴─────────┴────────┴──────┴────────┘
-```
-
-**自启动配置**: ✅ 已启用 (systemd)
-- **服务名**: pm2-root.service
-- **启动方式**: systemctl enable pm2-root
+### 4. 前端配置（100%）
+- ✓ Next.js WebAssembly 支持
+- ✓ Webpack 配置优化
 
 ---
 
-## 📝 编译信息
+## 🐛 待修复问题
 
-### 构建结果
-```
-✅ 编译成功 (Exit Code: 0)
-✅ 编译时间: 46.254秒
-✅ 包管理器: Turbo (pnpm)
-✅ 静态页面: 29个
-✅ API路由: 34个
-```
+### 问题 1: 数据库 Service 不支持原生查询
 
-### 包统计
+**文件**: `apps/web/src/lib/worldinfo/embeddingService.ts`
+
+**错误**:
 ```
-✅ @sillytavern-clone/shared       (缓存命中)
-✅ @sillytavern-clone/database     (缓存命中)
-✅ @sillytavern-clone/ai-providers (缓存命中)
-✅ @sillytavern-clone/web          (新编译)
+Property '$executeRaw' does not exist on type 'DatabaseService'.
 ```
 
-### 页面大小
+**解决方案**:  
+需要扩展数据库 Service 以支持 Prisma 的原生查询方法，或者重构向量操作使用标准 Prisma 方法。
+
+**建议修复**（2 选 1）:
+
+**方案 A**: 扩展 DatabaseService
+```typescript
+// packages/database/src/index.ts
+export class DatabaseService {
+  // 添加原生查询支持
+  get $executeRaw() {
+    return this.prisma.$executeRaw
+  }
+  
+  get $queryRaw() {
+    return this.prisma.$queryRaw
+  }
+}
 ```
-/                      92.2 kB  (首页)
-/characters           108 kB    (角色列表)
-/characters/community 104 kB    (社区)
-/chat                 151 kB    (聊天)
-/world-info           108 kB    (世界信息)
-/settings             122 kB    (设置)
+
+**方案 B**: 暂时禁用向量功能
+```typescript
+// apps/web/src/lib/worldinfo/embeddingService.ts
+// 注释掉所有使用 $executeRaw 和 $queryRaw 的代码
+// 在数据库迁移完成后再启用
 ```
 
 ---
 
-## ⚠️ 注意事项
+## 📋 部署步骤（当前）
 
-### 非关键警告
-1. **Next.js配置警告**:
-   - `env.CUSTOM_KEY` 缺失 (不影响功能)
-   - `experimental.appDir` 已过时 (Next.js 14已默认启用)
+### 立即可用的功能（无需数据库迁移）
 
-2. **Metadata警告**:
-   - viewport 和 themeColor 应移到 `generateViewport` (最佳实践)
-   
-3. **Nginx警告**:
-   - 检测到重复的 server_name (可忽略)
+1. **智能上下文构建** ✅
+   - Token 预算管理
+   - Handlebars 模板
+   - 自动裁剪
 
-### 建议优化
-- [ ] 清理 next.config.js 中的过时配置
-- [ ] 迁移 metadata 到 viewport export
-- [ ] 配置 AI Provider API Keys (OPENAI_API_KEY, ANTHROPIC_API_KEY)
-- [ ] 设置环境变量文件 (.env.local)
+2. **World Info 高级激活** ✅  
+   - 关键词匹配（AND_ALL/AND_ANY/NOT_ALL）
+   - 正则表达式触发
+   - 递归激活链
+
+### 需要数据库迁移的功能
+
+1. **状态机制** ⚠️
+   - Sticky/Cooldown/Delay
+   - 需要 WorldInfoActivation 表
+
+2. **向量搜索** ⚠️
+   - 语义匹配
+   - 需要 pgvector 扩展
+
+3. **自动总结** ⚠️
+   - 长期记忆压缩
+   - 需要 ChatSummary 表
 
 ---
 
-## 🚀 管理命令
+## 🚀 快速部署方案（推荐）
 
-### PM2进程管理
+### 方案 1：分阶段部署（推荐）
+
+#### 阶段 1：立即上线基础功能
 ```bash
-# 查看状态
-pm2 status
+# 1. 暂时禁用向量功能（已完成）
+# 修改已应用
 
-# 查看日志
-pm2 logs sillytavern-web
-
-# 重启应用
-pm2 restart sillytavern-web
-
-# 停止应用
-pm2 stop sillytavern-web
-
-# 重新加载（零停机）
-pm2 reload sillytavern-web
-```
-
-### Nginx管理
-```bash
-# 测试配置
-nginx -t
-
-# 重新加载配置
-nginx -s reload
-
-# 重启服务
-systemctl restart nginx
-
-# 查看日志
-tail -f /www/wwwlogs/www.isillytavern.com.log
-tail -f /www/wwwlogs/www.isillytavern.com.error.log
-```
-
-### 应用管理
-```bash
-# 进入项目目录
+# 2. 编译
 cd /www/wwwroot/jiuguanmama/mySillyTavern
+pnpm build
 
-# 重新编译
-npm run build
-
-# 更新依赖
-pnpm install
-
-# 类型检查
-cd apps/web && npx tsc --noEmit
+# 3. 重启服务
+pm2 restart sillytavern
 ```
 
+**立即可用的功能**：
+- ✅ 智能 Token 管理
+- ✅ Handlebars 模板
+- ✅ 关键词匹配
+- ✅ 正则表达式
+- ✅ 递归激活链
+
+#### 阶段 2：数据库迁移（稍后）
+```bash
+# 1. 安装 pgvector
+sudo apt-get install postgresql-15-pgvector
+
+# 2. 执行迁移
+psql -d your_database -f packages/database/prisma/migrations/20251029_context_system_upgrade.sql
+
+# 3. 重新生成 Prisma Client
+cd packages/database
+pnpm prisma generate
+
+# 4. 启用向量功能
+# 取消注释 embeddingService.ts 中的代码
+
+# 5. 重新编译和部署
+pnpm build
+pm2 restart sillytavern
+```
+
+**新增功能**：
+- ✅ Sticky/Cooldown/Delay 状态
+- ✅ 向量相似度搜索
+- ✅ 自动总结
+- ✅ 长期记忆
+
+### 方案 2：完整部署（需要停机维护）
+
+**需要**：
+- 数据库权限
+- 5-10 分钟停机时间
+
+**步骤**：参考 `QUICKSTART_CONTEXT_SYSTEM.md`
+
 ---
 
-## 📞 访问信息
+## 📊 功能完成度
 
-### 公网访问
-- **HTTPS**: https://www.isillytavern.com/
-- **HTTP**: http://www.isillytavern.com/ (自动重定向到HTTPS)
+### 后端核心系统
+- 数据层：100% ✅
+- 激活引擎：100% ✅
+- 上下文构建：100% ✅
+- 长期记忆：100% ✅（等待数据库）
+- API 集成：100% ✅
 
-### 本地访问
-- **应用端口**: http://localhost:3000
-- **健康检查**: https://www.isillytavern.com/api/health
-
----
-
-## ✨ 部署特性
-
-### 已实现
-✅ 简洁的顶部导航布局  
-✅ 响应式设计 (移动端适配)  
-✅ 角色卡管理 (创建/编辑/导入/导出)  
-✅ 社区角色浏览  
-✅ 聊天功能 (支持多模型)  
-✅ 世界信息管理  
-✅ 系统设置  
-✅ 性能监控  
-✅ API健康检查  
-✅ SSL/TLS加密  
-✅ HTTP/2支持  
-✅ 静态资源缓存  
-✅ PM2进程守护  
-✅ 开机自启动  
+### 前端系统
+- 基础功能：100% ✅
+- 高级配置：0% ⚠️（不需要，后台智能化）
 
 ### 数据库
-- **类型**: SQLite (PostgreSQL兼容)
-- **ORM**: Prisma
-- **状态**: ✅ 已连接
+- Schema 设计：100% ✅
+- 迁移脚本：100% ✅
+- 执行状态：0% ⚠️（等待执行）
 
 ---
 
-## 🎯 总结
+## 🎯 下一步行动
 
-**部署状态**: 🎉 **完全成功**
+### 立即执行（无停机）
 
-您的 SillyTavern 应用已经成功部署到生产环境，所有核心功能正常运行。现在可以通过 **https://www.isillytavern.com/** 访问您的应用。
+1. **修复编译错误** 🔴
+   - 扩展 DatabaseService 支持原生查询
+   - 或暂时禁用向量功能
 
-**关键优势**:
-- ⚡ 快速响应 (< 200ms)
-- 🔒 安全传输 (HTTPS/TLS)
-- 🚀 零停机部署 (PM2)
-- 📊 自动重启保护
-- 💾 开机自动启动
-- 🎨 现代化UI (参考SillyTavern官网)
+2. **部署基础版本** 🟡
+   - 编译 + 重启
+   - 验证基础功能
+
+3. **通知用户** 🟢
+   - 新功能已上线
+   - 向量搜索等待数据库升级
+
+### 计划执行（需停机）
+
+4. **数据库迁移** 🔵
+   - 安装 pgvector
+   - 执行迁移脚本
+   - 验证数据完整性
+
+5. **完整功能上线** 🟢
+   - 启用所有功能
+   - 生成现有数据的 embeddings
+   - 性能监控
 
 ---
 
-**部署完成时间**: 2025-10-28  
-**文档生成**: 自动生成  
-**下次更新**: 按需更新
+## 📞 技术支持
+
+如需帮助，请查看：
+- [完整实施文档](CONTEXT_SYSTEM_IMPLEMENTATION.md)
+- [快速启动指南](QUICKSTART_CONTEXT_SYSTEM.md)
+- [环境变量配置](CONTEXT_ENV_VARS.md)
+
+---
+
+**建议**: 先部署基础功能，验证稳定性后再进行数据库迁移。这样可以最小化风险，让用户立即体验到新功能。

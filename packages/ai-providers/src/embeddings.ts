@@ -10,8 +10,11 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
   private client: OpenAI
   private model: string
 
-  constructor(apiKey: string, model: string = 'text-embedding-3-small') {
-    this.client = new OpenAI({ apiKey })
+  constructor(apiKey: string, model: string = 'text-embedding-3-small', baseURL?: string) {
+    this.client = new OpenAI({ 
+      apiKey,
+      baseURL: baseURL || undefined
+    })
     this.model = model
   }
 

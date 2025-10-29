@@ -199,11 +199,23 @@ export const seedCharacters = async () => {
 
   for (const char of characters) {
     try {
-      const created = await prisma.character.upsert({
+      // 先查找是否存在
+      const existing = await prisma.character.findFirst({
         where: { name: char.name },
-        update: char,
-        create: char,
       })
+      
+      let created
+      if (existing) {
+        created = await prisma.character.update({
+          where: { id: existing.id },
+          data: char,
+        })
+      } else {
+        created = await prisma.character.create({
+          data: char,
+        })
+      }
+      
       createdCharacters.push(created)
       console.log(`✅ Created/Updated character: ${char.name}`)
     } catch (error) {

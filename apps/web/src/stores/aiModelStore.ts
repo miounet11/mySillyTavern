@@ -121,6 +121,8 @@ export const useAIModelStore = create<AIModelState>()(
       createModel: async (params) => {
         try {
           set({ isLoading: true, error: null })
+          console.log('[AIModelStore] 开始创建模型:', params)
+          
           // API-first creation
           try {
             const resp = await fetch('/api/ai-models', {
@@ -132,20 +134,27 @@ export const useAIModelStore = create<AIModelState>()(
               throw new Error(`HTTP ${resp.status}`)
             }
             const created: AIModelConfig = await resp.json()
+            console.log('[AIModelStore] 服务器创建成功:', created)
 
             set((state) => {
               const nextModels = params.isActive
                 ? state.models.map(m => ({ ...m, isActive: false }))
                 : state.models
               const merged = [...nextModels, created]
+              console.log('[AIModelStore] 更新状态 - 模型总数:', merged.length)
               return {
                 models: merged,
                 activeModel: created.isActive ? created : state.activeModel
               }
             })
+            
+            // 验证状态已更新
+            console.log('[AIModelStore] 创建后模型总数:', get().models.length)
+            console.log('[AIModelStore] 活跃模型:', get().activeModel?.name)
+            
             return created
           } catch (apiErr) {
-            console.log('Server create failed, falling back to local-only model')
+            console.log('[AIModelStore] 服务器创建失败，使用本地存储', apiErr)
             const newModel: AIModelConfig = {
               id: `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               name: params.name,
@@ -158,6 +167,9 @@ export const useAIModelStore = create<AIModelState>()(
               createdAt: new Date(),
               updatedAt: new Date(),
             }
+            
+            console.log('[AIModelStore] 本地创建模型:', newModel)
+            
             if (newModel.isActive) {
               set((state) => ({ models: state.models.map(m => ({ ...m, isActive: false })) }))
             }
@@ -165,10 +177,15 @@ export const useAIModelStore = create<AIModelState>()(
               models: [...state.models, newModel],
               activeModel: newModel.isActive ? newModel : state.activeModel
             }))
+            
+            // 验证状态已更新
+            console.log('[AIModelStore] 本地创建后模型总数:', get().models.length)
+            console.log('[AIModelStore] 活跃模型:', get().activeModel?.name)
+            
             return newModel
           }
         } catch (error) {
-          console.error('Error creating AI model:', error)
+          console.error('[AIModelStore] 创建模型错误:', error)
           set({ error: error instanceof Error ? error.message : 'Failed to create AI model' })
           return null
         } finally {
@@ -179,6 +196,8 @@ export const useAIModelStore = create<AIModelState>()(
       updateModel: async (id, updates) => {
         try {
           set({ isLoading: true, error: null })
+          console.log('[AIModelStore] 开始更新模型:', id, updates)
+          
           // API-first update
           try {
             const resp = await fetch(`/api/ai-models/${id}`, {
@@ -188,17 +207,24 @@ export const useAIModelStore = create<AIModelState>()(
             })
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
             const serverUpdated: AIModelConfig = await resp.json()
+            console.log('[AIModelStore] 服务器更新成功:', serverUpdated)
 
             set((state) => {
               const replaced = state.models.map(m => m.id === id ? serverUpdated : (serverUpdated.isActive ? { ...m, isActive: false } : m))
+              console.log('[AIModelStore] 更新状态 - 模型总数:', replaced.length)
               return {
                 models: replaced,
                 activeModel: serverUpdated.isActive ? serverUpdated : state.activeModel
               }
             })
+            
+            // 验证状态已更新
+            console.log('[AIModelStore] 更新后模型总数:', get().models.length)
+            console.log('[AIModelStore] 活跃模型:', get().activeModel?.name)
+            
             return serverUpdated
           } catch (apiErr) {
-            console.log('Server update failed, applying local-only update')
+            console.log('[AIModelStore] 服务器更新失败，使用本地存储', apiErr)
             const currentModels = get().models
             const modelIndex = currentModels.findIndex(m => m.id === id)
             if (modelIndex === -1) throw new Error('Model not found')
@@ -208,6 +234,9 @@ export const useAIModelStore = create<AIModelState>()(
               ...updates,
               updatedAt: new Date(),
             }
+            
+            console.log('[AIModelStore] 本地更新模型:', updatedModel)
+            
             if (updates.isActive) {
               set((state) => ({
                 models: state.models.map(m => m.id === id ? updatedModel : { ...m, isActive: false }),
@@ -221,10 +250,15 @@ export const useAIModelStore = create<AIModelState>()(
                   : state.activeModel
               }))
             }
+            
+            // 验证状态已更新
+            console.log('[AIModelStore] 本地更新后模型总数:', get().models.length)
+            console.log('[AIModelStore] 活跃模型:', get().activeModel?.name)
+            
             return updatedModel
           }
         } catch (error) {
-          console.error('Error updating AI model:', error)
+          console.error('[AIModelStore] 更新模型错误:', error)
           set({ error: error instanceof Error ? error.message : 'Failed to update AI model' })
           return null
         } finally {

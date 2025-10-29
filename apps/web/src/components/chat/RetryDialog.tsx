@@ -59,7 +59,7 @@ export default function RetryDialog({
 
   const getDescription = () => {
     if (errorType === 'timeout') {
-      return 'Grok-3 响应时间较长，请求已超时。您可以重试或取消本次生成。'
+      return 'AI模型响应时间较长，请求已超时。您可以重试或取消本次生成。'
     }
     return errorMessage
   }

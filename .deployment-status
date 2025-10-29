@@ -1,0 +1,47 @@
+{
+  "deployment_id": "2025-10-29-08:41",
+  "timestamp": "2025-10-29T08:41:11Z",
+  "status": "success",
+  "version": {
+    "nextjs": "14.0.4",
+    "pgvector": "0.8.1",
+    "node": "$(node -v)",
+    "commit": "latest"
+  },
+  "build": {
+    "duration": "59.4s",
+    "cache_hit": "3/4",
+    "errors": 0,
+    "warnings": 6
+  },
+  "service": {
+    "pid": 174113,
+    "uptime": "running",
+    "memory": "56.1MB",
+    "startup_time": "500ms",
+    "http_status": 200
+  },
+  "database": {
+    "connection": "ok",
+    "pgvector": "v0.8.1",
+    "world_info_count": 3,
+    "embeddings_count": 0
+  },
+  "features": {
+    "context_system": "enabled",
+    "vector_infrastructure": "enabled",
+    "vector_search": "ready (needs API key)",
+    "auto_summary": "enabled",
+    "handlebars": "enabled"
+  },
+  "fixes": [
+    "entry.position null safety",
+    "entry.insertionOrder null safety",
+    "entry.minActivations null safety",
+    "entry.delay null safety",
+    "entry.sticky null safety",
+    "entry.cooldown null safety"
+  ],
+  "url": "https://www.isillytavern.com/",
+  "deployer": "AI Assistant"
+}

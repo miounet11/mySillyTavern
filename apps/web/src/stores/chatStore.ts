@@ -24,10 +24,15 @@ interface ChatState {
   // Generation Settings
   isStreamingEnabled: boolean
   isFastModeEnabled: boolean
+  streamingUnsupported: boolean
 
   // Generation Control
   generationProgress: number // 已等待秒数
   abortController: AbortController | null // 用于取消请求
+
+  // Incomplete Interaction Detection
+  incompleteInteractionDetected: boolean // 是否检测到中断
+  dismissedIncompleteInteraction: boolean // 用户是否已忽略中断提示
 
   // Computed
   hasMessages: boolean
@@ -66,12 +71,18 @@ interface ChatState {
   setStreaming: (enabled: boolean) => void
   toggleFastMode: () => void
   setFastMode: (enabled: boolean) => void
+  setStreamingUnsupported: (flag: boolean) => void
 
   // Generation control actions
   setGenerationProgress: (seconds: number) => void
   setAbortController: (controller: AbortController | null) => void
   cancelGeneration: () => void
   resetGenerationState: () => void
+
+  // Incomplete interaction actions
+  checkForIncompleteInteraction: () => boolean
+  dismissIncompleteInteraction: () => void
+  resetIncompleteInteraction: () => void
 
   // Reset
   reset: () => void
@@ -114,8 +125,11 @@ export const useChatStore = create<ChatState>()(
         showWorldInfo: false,
         isStreamingEnabled: settings.isStreamingEnabled,
         isFastModeEnabled: settings.isFastModeEnabled,
+        streamingUnsupported: false,
         generationProgress: 0,
         abortController: null,
+        incompleteInteractionDetected: false,
+        dismissedIncompleteInteraction: false,
 
       // Computed getters
       get hasMessages() {
@@ -167,17 +181,21 @@ export const useChatStore = create<ChatState>()(
 
       // Message actions
       addMessage: (message) => {
+        console.log('[chatStore] addMessage called:', message.id, 'role:', message.role, 'content length:', message.content.length)
         set((state) => ({
           messages: [...state.messages, message]
         }))
       },
 
       updateMessage: (messageId, updates) => {
-        set((state) => ({
-          messages: state.messages.map((msg) =>
+        console.log('[chatStore] updateMessage called:', messageId, 'updates:', updates)
+        set((state) => {
+          const newMessages = state.messages.map((msg) =>
             msg.id === messageId ? { ...msg, ...updates } : msg
           )
-        }))
+          console.log('[chatStore] messages updated, count:', newMessages.length)
+          return { messages: newMessages }
+        })
       },
 
       deleteMessage: (messageId) => {
@@ -330,6 +348,10 @@ export const useChatStore = create<ChatState>()(
         set({ isFastModeEnabled: enabled })
       },
 
+      setStreamingUnsupported: (flag) => {
+        set({ streamingUnsupported: flag })
+      },
+
       // Generation control actions
       setGenerationProgress: (seconds) => {
         set({ generationProgress: seconds })
@@ -344,11 +366,81 @@ export const useChatStore = create<ChatState>()(
         if (abortController) {
           abortController.abort()
           set({ abortController: null, isGenerating: false, generationProgress: 0 })
+          return
         }
+
+        // Fallback: 如果没有 AbortController，但界面仍显示临时AI消息，直接标记为已取消
+        set((state) => {
+          const lastTempIndex = [...state.messages]
+            .map((m, idx) => ({ m, idx }))
+            .reverse()
+            .find((x) => typeof x.m.id === 'string' && x.m.id.startsWith('temp-ai-'))?.idx
+
+          if (lastTempIndex !== undefined) {
+            const updated = state.messages.map((msg, idx) =>
+              idx === lastTempIndex ? { ...msg, content: '[已取消生成]' } : msg
+            )
+            return {
+              messages: updated,
+              isGenerating: false,
+              generationProgress: 0,
+            }
+          }
+
+          return { isGenerating: false, generationProgress: 0 }
+        })
       },
 
       resetGenerationState: () => {
         set({ generationProgress: 0, abortController: null })
+      },
+
+      // Incomplete interaction actions
+      checkForIncompleteInteraction: () => {
+        const { messages, isGenerating, currentChat } = get()
+        
+        // 如果没有对话或正在生成，不检测
+        if (!currentChat || isGenerating || messages.length === 0) {
+          set({ incompleteInteractionDetected: false })
+          return false
+        }
+
+        const lastMessage = messages[messages.length - 1]
+        
+        // 场景A: 最后一条消息是用户消息，没有AI回复
+        if (lastMessage.role === 'user') {
+          set({ incompleteInteractionDetected: true })
+          return true
+        }
+        
+        // 场景B: 最后一条消息是AI消息但内容为空或是临时消息（未完成生成）
+        if (lastMessage.role === 'assistant') {
+          const isEmpty = !lastMessage.content || lastMessage.content.trim() === ''
+          const isTempMessage = lastMessage.id.startsWith('temp-ai-')
+          const isFailedMessage = lastMessage.content === '[生成失败]' || lastMessage.content === '[已取消生成]'
+          
+          if (isEmpty || isTempMessage || isFailedMessage) {
+            set({ incompleteInteractionDetected: true })
+            return true
+          }
+        }
+        
+        set({ incompleteInteractionDetected: false })
+        return false
+      },
+
+      dismissIncompleteInteraction: () => {
+        set({ 
+          dismissedIncompleteInteraction: true,
+          incompleteInteractionDetected: false
+        })
+      },
+
+      resetIncompleteInteraction: () => {
+        set({ 
+          incompleteInteractionDetected: false,
+          dismissedIncompleteInteraction: false
+        })
       },
 
       // Reset
@@ -366,8 +458,11 @@ export const useChatStore = create<ChatState>()(
           showWorldInfo: false,
           isStreamingEnabled: settings.isStreamingEnabled,
           isFastModeEnabled: settings.isFastModeEnabled,
+          streamingUnsupported: false,
           generationProgress: 0,
           abortController: null,
+          incompleteInteractionDetected: false,
+          dismissedIncompleteInteraction: false,
         })
       },
     }}),

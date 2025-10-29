@@ -185,11 +185,17 @@ class ChatService {
     try {
       const response = await apiClient.post<ChatGenerationResponse>(
         API_ENDPOINTS.CHAT_GENERATE(chatId),
-        options
+        options || {},
+        options?.abortSignal ? { signal: options.abortSignal as AbortSignal } : undefined
       )
       return response.data
     } catch (error) {
       console.error('Error generating response:', error)
+      // 标准化取消错误
+      const err: any = error
+      if (err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError' || err?.message === 'canceled') {
+        throw new Error('CANCELLED_GENERATION')
+      }
       throw this.handleError(error)
     }
   }
@@ -203,15 +209,17 @@ class ChatService {
       modelId?: string
       clientModel?: any
       fastMode?: boolean
-      timeout?: number // 超时时间（毫秒），默认120秒
+      creativeDirectives?: any
+      timeout?: number // 超时时间（毫秒），默认180秒
       abortSignal?: AbortSignal // 外部取消信号
       onChunk?: (chunk: string, fullContent: string) => void
       onComplete?: (message: Message) => void
       onError?: (error: string, errorType?: 'timeout' | 'cancelled' | 'network' | 'server') => void
       onProgress?: (elapsedSeconds: number) => void // 进度回调
+      onFallback?: () => void // 当检测到不支持SSE时回退的通知
     }
   ): Promise<void> {
-    const timeoutMs = options.timeout || 120000 // 默认120秒，适配 grok-3
+    const timeoutMs = options.timeout || 180000 // 默认180秒（3分钟），适配 grok-3 复杂场景
     const controller = new AbortController()
     let timeoutId: NodeJS.Timeout | null = null
     let progressInterval: NodeJS.Timeout | null = null
@@ -238,6 +246,23 @@ class ChatService {
         }, 1000)
       }
 
+      const sanitizedOptions = {
+        modelId: options.modelId,
+        fastMode: options.fastMode,
+        creativeDirectives: options.creativeDirectives || null,
+        timeoutMs,
+        hasAbortSignal: !!options.abortSignal,
+        clientModel: options.clientModel
+          ? {
+              provider: options.clientModel.provider,
+              model: options.clientModel.model,
+              baseUrl: options.clientModel.baseUrl,
+              hasApiKey: Boolean(options.clientModel.apiKey),
+            }
+          : null,
+      }
+      console.log('[chatService] generateResponseStreaming payload:', sanitizedOptions)
+
       const response = await fetch(API_ENDPOINTS.CHAT_GENERATE(chatId), {
         method: 'POST',
         headers: {
@@ -246,6 +271,7 @@ class ChatService {
         body: JSON.stringify({
           ...options,
           streaming: true, // 确保启用流式（API 期望 "streaming" 参数）
+          creativeDirectives: options.creativeDirectives || null,
         }),
         signal: controller.signal,
       })
@@ -254,11 +280,37 @@ class ChatService {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
+      // 检测 Content-Type 是否为 SSE
+      const contentType = response.headers.get('content-type')?.toLowerCase() || ''
+      const isSSE = contentType.includes('text/event-stream')
       const reader = response.body?.getReader()
       const decoder = new TextDecoder()
 
-      if (!reader) {
-        throw new Error('No response body reader available')
+      // 若不是 SSE 或无法读取 body，则回退为非流
+      if (!isSSE || !reader) {
+        try {
+          options.onFallback?.()
+          const nonStream = await this.generateResponse(chatId, {
+            modelId: options.modelId,
+            clientModel: options.clientModel,
+            fastMode: options.fastMode,
+            abortSignal: controller.signal,
+          })
+          if ((nonStream as any)?.message) {
+            options.onComplete?.((nonStream as any).message)
+            return
+          }
+          // 如果服务端返回结构异常，走错误分支
+          options.onError?.('服务器未返回有效消息', 'server')
+          return
+        } catch (e: any) {
+          if (e?.message === 'CANCELLED_GENERATION') {
+            options.onError?.('已取消生成', 'cancelled')
+          } else {
+            options.onError?.(e?.message || '服务器错误', 'server')
+          }
+          throw e
+        }
       }
 
       let buffer = ''

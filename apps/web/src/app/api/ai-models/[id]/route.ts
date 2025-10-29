@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@sillytavern-clone/database'
 import { AIModelConfig } from '@sillytavern-clone/shared'
+import { getUserIdFromCookie } from '@/lib/auth/cookies'
+import { ensureUser } from '@/lib/auth/userManager'
 
 const updateModelSchema = z.object({
   name: z.string().min(1).max(50).optional(),
-  provider: z.enum(['openai', 'anthropic', 'google', 'local', 'custom']).optional(),
+  provider: z.enum(['openai', 'anthropic', 'google', 'local', 'custom', 'newapi']).optional(),
   model: z.string().min(1).max(100).optional(),
   apiKey: z.string().min(1).max(500).optional(),
   baseUrl: z.string().url().optional(),
@@ -28,15 +30,22 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    // 获取或创建用户
+    const userId = await getUserIdFromCookie()
+    const user = await ensureUser(userId)
+
     const { id } = params
 
     const model = await db.findFirst('AIModelConfig', {
-      where: { id }
+      where: { 
+        id,
+        userId: user.id
+      }
     })
 
     if (!model) {
       return NextResponse.json(
-        { error: 'AI model not found' },
+        { error: 'AI model not found or access denied' },
         { status: 404 }
       )
     }
@@ -64,25 +73,35 @@ async function handleUpdate(
   { params }: { params: { id: string } }
 ) {
   try {
+    // 获取或创建用户
+    const userId = await getUserIdFromCookie()
+    const user = await ensureUser(userId)
+
     const { id } = params
     const body = await request.json()
     const validatedData = updateModelSchema.parse(body)
 
-    // Check if model exists
+    // Check if model exists and belongs to user
     const existingModel = await db.findFirst('AIModelConfig', {
-      where: { id }
+      where: { 
+        id,
+        userId: user.id
+      }
     })
 
     if (!existingModel) {
       return NextResponse.json(
-        { error: 'AI model not found' },
+        { error: 'AI model not found or access denied' },
         { status: 404 }
       )
     }
 
-    // If this model is being set as active, deactivate all other models
+    // If this model is being set as active, deactivate all other models for this user
     if (validatedData.isActive === true) {
-      await db.updateMany('AIModelConfig', { id: { not: id } }, { isActive: false })
+      await db.updateMany('AIModelConfig', { 
+        userId: user.id,
+        id: { not: id } 
+      }, { isActive: false })
     }
 
     // Prepare update data
@@ -152,16 +171,23 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    // 获取或创建用户
+    const userId = await getUserIdFromCookie()
+    const user = await ensureUser(userId)
+
     const { id } = params
 
-    // Check if model exists
+    // Check if model exists and belongs to user
     const existingModel = await db.findFirst('AIModelConfig', {
-      where: { id }
+      where: { 
+        id,
+        userId: user.id
+      }
     })
 
     if (!existingModel) {
       return NextResponse.json(
-        { error: 'AI model not found' },
+        { error: 'AI model not found or access denied' },
         { status: 404 }
       )
     }

@@ -9,5 +9,6 @@ export * from './types';
 export * from './constants/api-endpoints';
 export * from './constants/defaults';
 
-// Export utilities (will be added later)
-// export * from './utils';
+// Export utilities
+export * from './utils/tokenCounter';
+export * from './utils/handlebarsEngine';

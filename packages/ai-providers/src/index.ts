@@ -15,8 +15,13 @@ export class AIProviderFactory {
     ['google', new GoogleProvider() as AIProvider],
   ])
 
+  private static providerAliases: Record<string, string> = {
+    newapi: 'openai',
+  }
+
   static getProvider(config: AIModelConfig): AIProvider {
-    const provider = this.providers.get(config.provider)
+    const providerKey = this.providerAliases[config.provider] || config.provider
+    const provider = this.providers.get(providerKey)
     
     if (!provider) {
       throw new Error(`Unsupported AI provider: ${config.provider}`)
