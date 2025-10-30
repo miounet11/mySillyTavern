@@ -70,6 +70,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.2.1",
     "canvas": "^2.11.2",
-    "pngjs": "^7.0.0"
+    "pngjs": "^7.0.0",
+    "redis": "^5.9.0"
   }
 }

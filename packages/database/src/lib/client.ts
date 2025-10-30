@@ -1,5 +1,6 @@
 /**
  * Prisma client configuration
+ * 性能优化：连接池配置 + 预热连接
  */
 
 import { PrismaClient } from '@prisma/client'
@@ -12,10 +13,26 @@ declare global {
 const prisma = globalThis.__prisma || new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   errorFormat: 'pretty',
+  // 性能优化：连接池配置
+  // 注意：Prisma 会自动管理连接池，但我们可以通过 DATABASE_URL 的参数配置
+  // 例如：postgresql://user:password@localhost:5432/db?connection_limit=10&pool_timeout=20
 })
 
 if (process.env.NODE_ENV !== 'production') {
   globalThis.__prisma = prisma
+}
+
+// 性能优化：预热数据库连接（避免冷启动延迟）
+let connectionWarmed = false
+if (!connectionWarmed) {
+  prisma.$connect()
+    .then(() => {
+      console.log('[Database] Connection pool initialized')
+      connectionWarmed = true
+    })
+    .catch((error) => {
+      console.error('[Database] Failed to warm up connection:', error)
+    })
 }
 
 export { prisma }

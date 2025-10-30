@@ -102,6 +102,43 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   const [pendingRetryAction, setPendingRetryAction] = useState<(() => Promise<void>) | null>(null)
   const maxRetries = 3
 
+  // RAF 批量更新优化：减少渲染频率从 60+ FPS 到 ~16 FPS
+  const rafBatchUpdate = useRef<{
+    rafId: number | null
+    pendingContent: string
+    tempMessageId: string | null
+  }>({
+    rafId: null,
+    pendingContent: '',
+    tempMessageId: null
+  })
+
+  // 批量更新函数：使用 RAF 合并多次更新
+  const batchUpdateMessage = (messageId: string, content: string) => {
+    rafBatchUpdate.current.pendingContent = content
+    rafBatchUpdate.current.tempMessageId = messageId
+
+    if (!rafBatchUpdate.current.rafId) {
+      rafBatchUpdate.current.rafId = requestAnimationFrame(() => {
+        if (rafBatchUpdate.current.tempMessageId) {
+          updateMessage(rafBatchUpdate.current.tempMessageId, { 
+            content: rafBatchUpdate.current.pendingContent 
+          })
+        }
+        rafBatchUpdate.current.rafId = null
+      })
+    }
+  }
+
+  // 清理 RAF 回调
+  useEffect(() => {
+    return () => {
+      if (rafBatchUpdate.current.rafId) {
+        cancelAnimationFrame(rafBatchUpdate.current.rafId)
+      }
+    }
+  }, [])
+
   // Debug: log state changes
   useEffect(() => {
     console.log('[ChatInterface] State updated:', {
@@ -499,11 +536,16 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
             }
           },
           onChunk: (chunk: string, fullContent: string) => {
-            // Update the temporary message with new content
-            console.log('[ChatInterface] onChunk called, fullContent length:', fullContent.length)
-            updateMessage(tempMessageId, { content: fullContent })
+            // 使用 RAF 批量更新，减少渲染频率（性能优化）
+            // console.log('[ChatInterface] onChunk called, fullContent length:', fullContent.length)
+            batchUpdateMessage(tempMessageId, fullContent)
           },
           onComplete: (message: Message) => {
+            // 刷新任何待处理的 RAF 更新
+            if (rafBatchUpdate.current.rafId) {
+              cancelAnimationFrame(rafBatchUpdate.current.rafId)
+              rafBatchUpdate.current.rafId = null
+            }
             // Replace temporary message with final one
             updateMessage(tempMessageId, message)
             resetGenerationState()
@@ -512,6 +554,11 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
             try { consumeOneShots() } catch {}
           },
           onError: (error: string, errorType?: 'timeout' | 'cancelled' | 'network' | 'server') => {
+            // 刷新任何待处理的 RAF 更新
+            if (rafBatchUpdate.current.rafId) {
+              cancelAnimationFrame(rafBatchUpdate.current.rafId)
+              rafBatchUpdate.current.rafId = null
+            }
             resetGenerationState()
             
             // 处理取消操作

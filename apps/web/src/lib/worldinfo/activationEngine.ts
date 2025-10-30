@@ -16,6 +16,7 @@ export interface ActivationOptions {
   maxActivatedEntries?: number  // 最多激活条目数
   maxTotalTokens?: number        // World Info 总 token 限制
   model?: string                 // 用于 token 计数
+  preloadedEntries?: WorldInfo[] // 性能优化：预加载的条目，避免内部查询
 }
 
 export interface ActivatedEntry {
@@ -54,8 +55,12 @@ export class WorldInfoActivationEngine {
       parseInt(process.env.WORLDINFO_MAX_TOTAL_TOKENS || '20000')
     const model = options.model || 'gpt-3.5-turbo'
     
-    // 1. 获取角色关联的所有 World Info
-    const allEntries = await this.getCharacterWorldInfo(characterId)
+    // 1. 获取角色关联的所有 World Info（性能优化：优先使用预加载的条目）
+    const allEntries = options.preloadedEntries || await this.getCharacterWorldInfo(characterId)
+    
+    if (options.preloadedEntries) {
+      console.log(`[World Info Activation] Using preloaded entries (${allEntries.length}), skipping DB query`)
+    }
     
     // 2. 关键词 + 正则 + 向量触发
     for (const entry of allEntries) {

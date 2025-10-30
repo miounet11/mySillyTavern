@@ -22,9 +22,38 @@ export class ContextBuilder {
   private tokenCounter: TokenCounter
   private handlebars: HandlebarsEngine
   
+  // 性能优化：缓存 Token 计数和角色核心模板
+  private tokenCache = new Map<string, number>()
+  private characterCoreCache = new Map<string, string>()
+  
   constructor() {
     this.tokenCounter = new TokenCounter()
     this.handlebars = new HandlebarsEngine()
+  }
+  
+  /**
+   * 性能优化：带缓存的 Token 计数
+   */
+  private countTokensCached(text: string, model: string): number {
+    // 使用前 100 字符 + model 作为 key
+    const key = `${model}:${text.substring(0, 100)}`
+    
+    if (this.tokenCache.has(key)) {
+      return this.tokenCache.get(key)!
+    }
+    
+    const count = this.tokenCounter.countTokens(text, model)
+    this.tokenCache.set(key, count)
+    
+    // 限制缓存大小
+    if (this.tokenCache.size > 1000) {
+      const firstKey = this.tokenCache.keys().next().value
+      if (firstKey !== undefined) {
+        this.tokenCache.delete(firstKey)
+      }
+    }
+    
+    return count
   }
   
   /**
@@ -87,7 +116,7 @@ export class ContextBuilder {
     
     // 角色核心（最高优先级，永不裁剪）
     const characterCore = this.buildCharacterCore(character)
-    const coreTokens = this.tokenCounter.countTokens(characterCore, options.model)
+    const coreTokens = this.countTokensCached(characterCore, options.model)
     
     // World Info（按 insertionOrder 排序后裁剪）
     const worldInfo = await this.injectWorldInfo(
@@ -107,12 +136,12 @@ export class ContextBuilder {
     // 示例对话
     const examples = this.buildExamples(character, budgets.system, options.model)
     
-    // 计算实际使用的 token 数
+    // 计算实际使用的 token 数（使用缓存）
     const actualWorldInfoTokens = Object.values(worldInfo)
-      .map(text => this.tokenCounter.countTokens(text, options.model))
+      .map(text => this.countTokensCached(text, options.model))
       .reduce((a, b) => a + b, 0)
-    const actualHistoryTokens = this.tokenCounter.countTokens(history, options.model)
-    const actualExamplesTokens = this.tokenCounter.countTokens(examples, options.model)
+    const actualHistoryTokens = this.countTokensCached(history, options.model)
+    const actualExamplesTokens = this.countTokensCached(examples, options.model)
     const totalUsedTokens = coreTokens + actualWorldInfoTokens + actualHistoryTokens + actualExamplesTokens
     
     console.log(`[Context Builder] Actual usage: char=${coreTokens}, WI=${actualWorldInfoTokens}, history=${actualHistoryTokens}, examples=${actualExamplesTokens}, total=${totalUsedTokens}/${availableTokens}`)
@@ -132,16 +161,34 @@ export class ContextBuilder {
   }
   
   /**
-   * 构建角色核心内容
+   * 构建角色核心内容（性能优化：缓存）
    */
   private buildCharacterCore(character: any): string {
+    // 使用 character.id + updatedAt 作为缓存 key
+    const cacheKey = `${character.id}:${character.updatedAt || Date.now()}`
+    
+    if (this.characterCoreCache.has(cacheKey)) {
+      return this.characterCoreCache.get(cacheKey)!
+    }
+    
     const parts: string[] = []
     
     if (character.description) parts.push(character.description)
     if (character.personality) parts.push(`Personality: ${character.personality}`)
     if (character.scenario) parts.push(`Scenario: ${character.scenario}`)
     
-    return parts.join('\n\n')
+    const core = parts.join('\n\n')
+    this.characterCoreCache.set(cacheKey, core)
+    
+    // 限制缓存大小
+    if (this.characterCoreCache.size > 100) {
+      const firstKey = this.characterCoreCache.keys().next().value
+      if (firstKey !== undefined) {
+        this.characterCoreCache.delete(firstKey)
+      }
+    }
+    
+    return core
   }
   
   /**
@@ -190,7 +237,7 @@ export class ContextBuilder {
     
     for (const ex of examples) {
       const line = `User: ${ex.user}\nAssistant: ${ex.assistant}`
-      const tokens = this.tokenCounter.countTokens(line, model)
+      const tokens = this.countTokensCached(line, model)
       
       if (usedTokens + tokens <= maxTokens) {
         formatted.push(line)
@@ -237,7 +284,7 @@ export class ContextBuilder {
               .replace('{content}', entry.content)
           : `[${entry.name}]\n${entry.content}`
         
-        const tokens = this.tokenCounter.countTokens(formatted, model)
+        const tokens = this.countTokensCached(formatted, model)
         
         // 检查单个条目的 tokenBudget
         if (entry.tokenBudget && tokens > entry.tokenBudget) {
@@ -280,7 +327,7 @@ export class ContextBuilder {
       const msg = messages[i]
       const roleName = msg.role === 'user' ? 'User' : 'Assistant'
       const line = `${roleName}: ${msg.content}`
-      const tokens = this.tokenCounter.countTokens(line, model)
+      const tokens = this.countTokensCached(line, model)
       
       if (usedTokens + tokens <= maxTokens) {
         formatted.unshift(line)

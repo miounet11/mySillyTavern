@@ -2,6 +2,14 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  // 性能优化：启用压缩
+  compress: true,
+  // 性能优化：实验性优化（暂时禁用 optimizeCss 以避免构建错误）
+  experimental: {
+    // optimizeCss: true,  // 可能导致导出错误，暂时禁用
+  },
+  // 禁用静态导出中的错误页面
+  output: 'standalone',
   images: {
     remotePatterns: [
       {

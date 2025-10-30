@@ -1,8 +1,9 @@
 /**
  * Message list component for displaying chat messages
+ * 性能优化：useMemo 缓存格式化内容
  */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, memo } from 'react'
 import { Message } from '@sillytavern-clone/shared'
 import { useChatStore } from '@/stores/chatStore'
 import { formatDistanceToNow } from 'date-fns'
@@ -114,19 +115,43 @@ export default function MessageList({
     }
   }
 
-  const formatMessageContent = (content: string) => {
-    // Apply regex scripts from localStorage first
-    let formatted = applyRegexScripts(content)
+  // 性能优化：缓存消息格式化内容的函数
+  const createFormatMessageContent = useMemo(() => {
+    // 创建一个缓存 Map
+    const cache = new Map<string, string>()
     
-    // Then apply basic formatting (these run after regex scripts)
-    formatted = formatted
-      .replace(/\n/g, '<br />')
-      .replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold text-blue-300 mt-4 mb-2">$1</h3>')
-      .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-purple-300 mt-4 mb-2">$1</h2>')
-      .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-purple-400 mt-4 mb-2">$1</h1>')
-    
-    return formatted
-  }
+    return (content: string) => {
+      // 检查缓存
+      if (cache.has(content)) {
+        return cache.get(content)!
+      }
+      
+      // Apply regex scripts from localStorage first
+      let formatted = applyRegexScripts(content)
+      
+      // Then apply basic formatting (these run after regex scripts)
+      formatted = formatted
+        .replace(/\n/g, '<br />')
+        .replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold text-blue-300 mt-4 mb-2">$1</h3>')
+        .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-purple-300 mt-4 mb-2">$1</h2>')
+        .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-purple-400 mt-4 mb-2">$1</h1>')
+      
+      // 存入缓存
+      cache.set(content, formatted)
+      
+      // 限制缓存大小（最多 100 条）
+      if (cache.size > 100) {
+        const firstKey = cache.keys().next().value
+        if (firstKey !== undefined) {
+          cache.delete(firstKey)
+        }
+      }
+      
+      return formatted
+    }
+  }, []) // 空依赖，函数只创建一次
+
+  const formatMessageContent = createFormatMessageContent
 
   if (messages.length === 0 && !isLoading) {
     return (
