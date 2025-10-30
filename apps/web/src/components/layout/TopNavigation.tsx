@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { MessageSquare, Users, Globe, Settings, Menu, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Group, Button, ActionIcon, Burger, Drawer, Stack, Text } from '@mantine/core'
+import { IconMessageCircle, IconUsers, IconWorld, IconSettings } from '@tabler/icons-react'
 
 export default function TopNavigation() {
   const router = useRouter()
@@ -11,9 +11,9 @@ export default function TopNavigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const navigation = [
-    { name: '首页', href: '/', icon: MessageSquare },
-    { name: '角色卡', href: '/characters', icon: Users },
-    { name: '角色卡社区', href: '/characters/community', icon: Globe },
+    { name: '首页', href: '/', icon: IconMessageCircle },
+    { name: '角色卡', href: '/characters', icon: IconUsers },
+    { name: '角色卡社区', href: '/characters/community', icon: IconWorld },
   ]
 
   const isActive = (href: string) => {
@@ -27,107 +27,129 @@ export default function TopNavigation() {
     window.dispatchEvent(new CustomEvent('open-settings'))
   }
 
+  const handleNavigate = (href: string) => {
+    router.push(href)
+    setIsMobileMenuOpen(false)
+  }
+
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-gray-800/50 bg-gray-900/95 backdrop-blur-sm">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center">
-            <button
-              onClick={() => router.push('/')}
-              className="flex items-center space-x-3 text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-300 hover:to-cyan-300 transition-all"
-            >
-              <MessageSquare className="w-6 h-6 text-teal-400" />
-              <span>SillyTavern</span>
-            </button>
-          </div>
+    <>
+      <Group h={60} px="md" justify="space-between" style={{ maxWidth: '80rem', margin: '0 auto', width: '100%' }}>
+        {/* Logo */}
+        <Button
+          variant="subtle"
+          onClick={() => router.push('/')}
+          style={{
+            fontWeight: 700,
+            fontSize: '1.25rem',
+            background: 'linear-gradient(to right, #2dd4bf, #22d3ee)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            transition: 'all 0.3s',
+          }}
+          px="xs"
+        >
+          <IconMessageCircle 
+            size={24} 
+            style={{ 
+              color: '#2dd4bf', 
+              marginRight: '0.75rem',
+              flexShrink: 0,
+            }} 
+          />
+          SillyTavern
+        </Button>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex md:items-center md:space-x-1">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              const active = isActive(item.href)
-              return (
-                <button
-                  key={item.name}
-                  onClick={() => router.push(item.href)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    active
-                      ? 'bg-gray-800 text-teal-400'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-gray-100'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.name}
-                </button>
-              )
-            })}
+        {/* Desktop Navigation */}
+        <Group gap="xs" visibleFrom="md">
+          {navigation.map((item) => {
+            const Icon = item.icon
+            const active = isActive(item.href)
+            return (
+              <Button
+                key={item.name}
+                variant={active ? 'light' : 'subtle'}
+                leftSection={<Icon size={16} />}
+                onClick={() => router.push(item.href)}
+                color={active ? 'cyan' : 'gray'}
+                size="sm"
+              >
+                {item.name}
+              </Button>
+            )
+          })}
 
-            <button
-              onClick={handleSettingsClick}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-gray-100 transition-all"
-            >
-              <Settings className="w-4 h-4" />
-              设置
-            </button>
-          </div>
+          <Button
+            variant="subtle"
+            leftSection={<IconSettings size={16} />}
+            onClick={handleSettingsClick}
+            color="gray"
+            size="sm"
+          >
+            设置
+          </Button>
+        </Group>
 
-          {/* Mobile menu button */}
-          <div className="flex md:hidden">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-gray-100"
-            >
-              {isMobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
+        {/* Mobile menu button */}
+        <Burger
+          opened={isMobileMenuOpen}
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          hiddenFrom="md"
+          color="gray"
+        />
+      </Group>
 
-      {/* Mobile menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-800">
-          <div className="space-y-1 px-4 pb-3 pt-2">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              const active = isActive(item.href)
-              return (
-                <button
-                  key={item.name}
-                  onClick={() => {
-                    router.push(item.href)
-                    setIsMobileMenuOpen(false)
-                  }}
-                  className={`flex w-full items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                    active
-                      ? 'bg-gray-800 text-teal-400'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-gray-100'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  {item.name}
-                </button>
-              )
-            })}
+      {/* Mobile Drawer */}
+      <Drawer
+        opened={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        position="right"
+        size="xs"
+        title={
+          <Text fw={700} size="lg" style={{
+            background: 'linear-gradient(to right, #2dd4bf, #22d3ee)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}>
+            导航
+          </Text>
+        }
+      >
+        <Stack gap="xs">
+          {navigation.map((item) => {
+            const Icon = item.icon
+            const active = isActive(item.href)
+            return (
+              <Button
+                key={item.name}
+                variant={active ? 'light' : 'subtle'}
+                leftSection={<Icon size={18} />}
+                onClick={() => handleNavigate(item.href)}
+                color={active ? 'cyan' : 'gray'}
+                fullWidth
+                justify="flex-start"
+              >
+                {item.name}
+              </Button>
+            )
+          })}
 
-            <button
-              onClick={() => {
-                handleSettingsClick()
-                setIsMobileMenuOpen(false)
-              }}
-              className="flex w-full items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-gray-100 transition-all"
-            >
-              <Settings className="w-5 h-5" />
-              设置
-            </button>
-          </div>
-        </div>
-      )}
-    </nav>
+          <Button
+            variant="subtle"
+            leftSection={<IconSettings size={18} />}
+            onClick={() => {
+              handleSettingsClick()
+              setIsMobileMenuOpen(false)
+            }}
+            color="gray"
+            fullWidth
+            justify="flex-start"
+          >
+            设置
+          </Button>
+        </Stack>
+      </Drawer>
+    </>
   )
 }
 

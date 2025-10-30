@@ -3,23 +3,39 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
-import { Copy, RotateCcw, Trash2, User, Bot, Edit, MoreVertical, ArrowDown } from 'lucide-react'
 import { Message } from '@sillytavern-clone/shared'
 import { useChatStore } from '@/stores/chatStore'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { useTranslation } from '@/lib/i18n'
 import { applyRegexScripts } from '@/lib/regexScriptStorage'
 import IncompleteInteractionPrompt from './IncompleteInteractionPrompt'
+import {
+  Box,
+  Stack,
+  Group,
+  Avatar,
+  Text,
+  Menu,
+  ActionIcon,
+  Textarea,
+  Button,
+  Tooltip,
+  Badge,
+} from '@mantine/core'
+import {
+  IconCopy,
+  IconRefresh,
+  IconTrash,
+  IconUser,
+  IconRobot,
+  IconEdit,
+  IconDotsVertical,
+  IconArrowDown,
+  IconCheck,
+  IconX,
+  IconSquare,
+} from '@tabler/icons-react'
 
 interface MessageListProps {
   className?: string
@@ -114,27 +130,29 @@ export default function MessageList({
 
   if (messages.length === 0 && !isLoading) {
     return (
-      <div className={`flex flex-col ${className}`}>
-        <div className="flex-1"></div>
-        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-          <Bot className="w-12 h-12 mb-4 opacity-50" />
-          <h3 className="text-lg font-medium mb-2">{t('chat.startNewConversation')}</h3>
-          <p className="text-sm text-center max-w-md">
+      <Stack className={className} justify="flex-end" style={{ flex: 1 }}>
+        <Box style={{ flex: 1 }} />
+        <Stack align="center" justify="center" py="xl" gap="md">
+          <IconRobot size={48} opacity={0.5} color="rgb(107, 114, 128)" />
+          <Text size="lg" fw={500} c="dimmed">
+            {t('chat.startNewConversation')}
+          </Text>
+          <Text size="sm" ta="center" maw={448} c="dimmed">
             {character
               ? t('chat.startChatWith', { name: character.name })
               : t('chat.selectCharacterFirst')
             }
-          </p>
-        </div>
-      </div>
+          </Text>
+        </Stack>
+      </Stack>
     )
   }
 
   return (
-    <div className={`flex flex-col ${className}`}>
+    <Stack className={className} gap={0} style={{ flex: 1 }}>
       {/* Spacer to push messages to bottom */}
-      <div className="flex-1"></div>
-      <div className="space-y-4 px-3 sm:px-4 py-3">
+      <Box style={{ flex: 1 }} />
+      <Stack gap="md" px={{ base: 'xs', sm: 'md' }} py="xs">
         {messages.map((message: Message, index: number) => {
           const isUser = message.role === 'user'
           const isEditing = editingMessageId === message.id
@@ -142,98 +160,169 @@ export default function MessageList({
           const showAvatar = index === 0 || previousMessage?.role !== message.role
 
           return (
-            <div
+            <Group
               key={message.id}
-              className={`flex ${isUser ? 'justify-end' : 'justify-start'} group`}
+              justify={isUser ? 'flex-end' : 'flex-start'}
+              align="flex-start"
+              wrap="nowrap"
+              className="group"
             >
-              <div className={`flex max-w-[80%] ${isUser ? 'flex-row-reverse' : 'flex-row'} items-start space-x-3`}>
+              <Group
+                align="flex-start"
+                gap="sm"
+                maw="80%"
+                style={{
+                  flexDirection: isUser ? 'row-reverse' : 'row',
+                }}
+              >
                 {/* Avatar */}
                 {showAvatar && (
-                  <div className={`flex-shrink-0 ${isUser ? 'ml-3' : 'mr-3'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      isUser
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 text-gray-300'
-                    }`}>
-                      {isUser ? (
-                        <User className="w-4 h-4" />
-                      ) : (
-                        <>
-                          {character?.avatar ? (
-                            <img
-                              src={character.avatar}
-                              alt={character.name}
-                              className="w-full h-full rounded-full object-cover"
-                            />
-                          ) : (
-                            <Bot className="w-4 h-4" />
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
+                  <Avatar
+                    size={32}
+                    radius="xl"
+                    color={isUser ? 'blue' : 'gray'}
+                    style={{
+                      flexShrink: 0,
+                      [isUser ? 'marginLeft' : 'marginRight']: '0.75rem',
+                    }}
+                  >
+                    {isUser ? (
+                      <IconUser size={16} />
+                    ) : (
+                      <>
+                        {character?.avatar ? (
+                          <img
+                            src={character.avatar}
+                            alt={character.name}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              borderRadius: '50%',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        ) : (
+                          <IconRobot size={16} />
+                        )}
+                      </>
+                    )}
+                  </Avatar>
                 )}
 
                 {/* Message Content */}
-                <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} flex-1`}>
+                <Stack
+                  gap="xs"
+                  style={{
+                    flex: 1,
+                    alignItems: isUser ? 'flex-end' : 'flex-start',
+                  }}
+                >
                   {/* Message Header */}
                   {showAvatar && (
-                    <div className={`flex items-center space-x-2 mb-1 text-sm ${
-                      isUser ? 'flex-row-reverse space-x-reverse' : 'flex-row'
-                    }`}>
-                      <span className={`font-medium ${
-                        isUser ? 'text-blue-400' : 'text-gray-400'
-                      }`}>
+                    <Group
+                      gap="xs"
+                      style={{
+                        flexDirection: isUser ? 'row-reverse' : 'row',
+                      }}
+                    >
+                      <Text
+                        size="sm"
+                        fw={500}
+                        c={isUser ? 'blue.4' : 'gray.4'}
+                      >
                         {isUser ? t('chat.you') || '你' : character?.name || t('chat.status.character')}
-                      </span>
-                      <span className="text-gray-500 text-xs">
+                      </Text>
+                      <Text size="xs" c="dimmed">
                         {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
-                      </span>
-                    </div>
+                      </Text>
+                    </Group>
                   )}
 
                   {/* Message Bubble */}
-                  <div className={`relative group message-appear message-hover ${
-                    isUser ? 'order-1' : 'order-2'
-                  }`}>
-                    <div
-                      className={`relative rounded-2xl px-6 py-5 shadow-2xl transition-all duration-300 hover:shadow-3xl ${
-                        isUser
-                          ? 'bg-gradient-to-br from-blue-600/90 to-blue-700/90 text-white rounded-br-md border border-blue-500/30 backdrop-blur-sm hover:from-blue-500/90 hover:to-blue-600/90'
-                          : 'bg-gradient-to-br from-gray-800/90 to-gray-900/90 text-gray-100 rounded-bl-md border border-gray-700/50 backdrop-blur-sm hover:from-gray-700/90 hover:to-gray-800/90'
-                      }`}
-                      style={{ boxShadow: isUser ? 'inset 0 1px 2px rgba(255,255,255,0.1)' : 'inset 0 1px 2px rgba(0,0,0,0.1)' }}
+                  <Box
+                    style={{
+                      position: 'relative',
+                    }}
+                    className="message-appear message-hover group"
+                  >
+                    <Box
+                      p="lg"
+                      style={{
+                        position: 'relative',
+                        borderRadius: '1rem',
+                        background: isUser
+                          ? 'linear-gradient(to bottom right, rgba(37, 99, 235, 0.9), rgba(29, 78, 216, 0.9))'
+                          : 'linear-gradient(to bottom right, rgba(31, 41, 55, 0.9), rgba(17, 24, 39, 0.9))',
+                        color: isUser ? 'white' : 'rgb(243, 244, 246)',
+                        [isUser ? 'borderBottomRightRadius' : 'borderBottomLeftRadius']: '0.25rem',
+                        border: isUser
+                          ? '1px solid rgba(59, 130, 246, 0.3)'
+                          : '1px solid rgba(75, 85, 99, 0.5)',
+                        backdropFilter: 'blur(8px)',
+                        boxShadow: isUser
+                          ? 'inset 0 1px 2px rgba(255,255,255,0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.3)'
+                          : 'inset 0 1px 2px rgba(0,0,0,0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+                        transition: 'all 0.3s',
+                        '&:hover': {
+                          background: isUser
+                            ? 'linear-gradient(to bottom right, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9))'
+                            : 'linear-gradient(to bottom right, rgba(55, 65, 81, 0.9), rgba(31, 41, 55, 0.9))',
+                          boxShadow: isUser
+                            ? 'inset 0 1px 2px rgba(255,255,255,0.1), 0 20px 25px -5px rgba(0, 0, 0, 0.3)'
+                            : 'inset 0 1px 2px rgba(0,0,0,0.1), 0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+                        },
+                      }}
                     >
                       {isEditing ? (
-                        <div className="space-y-3">
+                        <Stack gap="sm">
                           <Textarea
                             value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
-                            className="min-h-[100px] resize-none bg-gray-800/60 border-gray-700/50 text-gray-100 placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500/50"
+                            onChange={(e) => setEditContent(e.currentTarget.value)}
+                            minRows={4}
+                            autosize
                             placeholder={t('chat.message.editPlaceholder')}
                             autoFocus
+                            styles={{
+                              input: {
+                                backgroundColor: 'rgba(31, 41, 55, 0.6)',
+                                borderColor: 'rgba(75, 85, 99, 0.5)',
+                                color: 'rgb(243, 244, 246)',
+                                '&:focus': {
+                                  borderColor: 'rgba(59, 130, 246, 0.5)',
+                                  boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)',
+                                },
+                              },
+                            }}
                           />
-                          <div className="flex space-x-2">
+                          <Group gap="xs">
                             <Button
                               size="sm"
+                              leftSection={<IconCheck size={14} />}
                               onClick={handleSaveEdit}
-                              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition-all duration-200"
+                              variant="gradient"
+                              gradient={{ from: 'blue', to: 'cyan', deg: 90 }}
                             >
                               {t('chat.message.save')}
                             </Button>
                             <Button
                               size="sm"
-                              variant="outline"
+                              variant="light"
+                              color="gray"
+                              leftSection={<IconX size={14} />}
                               onClick={handleCancelEdit}
-                              className="bg-gray-700/50 hover:bg-gray-700/70 text-gray-300 border-gray-600 rounded-lg transition-all duration-200"
                             >
                               {t('chat.message.cancel')}
                             </Button>
-                          </div>
-                        </div>
+                          </Group>
+                        </Stack>
                       ) : (
                         <div
-                          className="whitespace-pre-wrap break-words text-base leading-loose"
+                          style={{
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            fontSize: '1rem',
+                            lineHeight: '1.75',
+                          }}
                           dangerouslySetInnerHTML={{
                             __html: formatMessageContent(message.content)
                           }}
@@ -242,139 +331,220 @@ export default function MessageList({
 
                       {/* Message Actions */}
                       {!isEditing && (
-                        <div className={`absolute top-0 ${
-                          isUser ? '-left-20' : '-right-20'
-                        } opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-1`}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200"
+                        <Box
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            [isUser ? 'left' : 'right']: '-5rem',
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                          }}
+                          className="group-hover:opacity-100"
+                        >
+                          <Menu position={isUser ? 'left-start' : 'right-start'} shadow="md" withinPortal>
+                            <Menu.Target>
+                              <ActionIcon variant="subtle" size="sm">
+                                <IconDotsVertical size={14} />
+                              </ActionIcon>
+                            </Menu.Target>
+                            <Menu.Dropdown>
+                              <Menu.Item
+                                leftSection={<IconCopy size={14} />}
+                                onClick={() => handleCopyMessage(message.content)}
                               >
-                                <MoreVertical className="w-3 h-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align={isUser ? 'end' : 'start'} className="w-48">
-                              <DropdownMenuItem onClick={() => handleCopyMessage(message.content)}>
-                                <Copy className="w-4 h-4 mr-2" />
                                 {t('chat.message.copy')}
-                              </DropdownMenuItem>
+                              </Menu.Item>
 
                               {isUser && (
-                                <DropdownMenuItem onClick={() => handleStartEdit(message)}>
-                                  <Edit className="w-4 h-4 mr-2" />
+                                <Menu.Item
+                                  leftSection={<IconEdit size={14} />}
+                                  onClick={() => handleStartEdit(message)}
+                                >
                                   {t('chat.message.edit')}
-                                </DropdownMenuItem>
+                                </Menu.Item>
                               )}
 
                               {!isUser && (
-                                <DropdownMenuItem onClick={() => handleRegenerateMessage(message.id)}>
-                                  <RotateCcw className="w-4 h-4 mr-2" />
+                                <Menu.Item
+                                  leftSection={<IconRefresh size={14} />}
+                                  onClick={() => handleRegenerateMessage(message.id)}
+                                >
                                   {t('chat.message.regenerate')}
-                                </DropdownMenuItem>
+                                </Menu.Item>
                               )}
 
-                              <DropdownMenuSeparator />
+                              <Menu.Divider />
 
-                              <DropdownMenuItem
+                              <Menu.Item
+                                leftSection={<IconTrash size={14} />}
+                                color="red"
                                 onClick={() => handleDeleteMessage(message.id)}
-                                className="text-red-500 hover:text-red-400"
                               >
-                                <Trash2 className="w-4 h-4 mr-2" />
                                 {t('chat.message.delete')}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                              </Menu.Item>
+                            </Menu.Dropdown>
+                          </Menu>
+                        </Box>
                       )}
 
                       {/* Quick inline actions for assistant messages */}
                       {!isUser && !isEditing && (
-                        <div className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-2 text-gray-300 hover:text-white hover:bg-gray-700/70"
-                            title={t('chat.message.regenerate')}
-                            onClick={() => handleRegenerateMessage(message.id)}
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-2 text-gray-300 hover:text-white hover:bg-gray-700/70"
-                            title={t('chat.controls.scrollToBottom') || '跳转底部'}
-                            onClick={onScrollToBottom}
-                          >
-                            <ArrowDown className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
+                        <Group
+                          gap={4}
+                          style={{
+                            position: 'absolute',
+                            top: '-0.75rem',
+                            right: '-0.75rem',
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                          }}
+                          className="group-hover:opacity-100"
+                        >
+                          <Tooltip label={t('chat.message.regenerate')}>
+                            <ActionIcon
+                              variant="light"
+                              size="sm"
+                              color="gray"
+                              onClick={() => handleRegenerateMessage(message.id)}
+                            >
+                              <IconRefresh size={14} />
+                            </ActionIcon>
+                          </Tooltip>
+                          <Tooltip label={t('chat.controls.scrollToBottom') || '跳转底部'}>
+                            <ActionIcon
+                              variant="light"
+                              size="sm"
+                              color="gray"
+                              onClick={onScrollToBottom}
+                            >
+                              <IconArrowDown size={14} />
+                            </ActionIcon>
+                          </Tooltip>
+                        </Group>
                       )}
-                    </div>
+                    </Box>
 
                     {/* Message Status */}
                     {message.metadata?.isRegenerated && (
-                      <div className={`flex items-center space-x-2 mt-2 text-xs ${
-                        isUser ? 'justify-end' : 'justify-start'
-                      }`}>
-                        <div className="flex items-center space-x-1 px-2 py-1 bg-blue-500/20 rounded-full border border-blue-500/30">
-                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
-                          <span className="text-blue-300">{t('chat.message.isRegenerating')}</span>
-                        </div>
-                      </div>
+                      <Group
+                        justify={isUser ? 'flex-end' : 'flex-start'}
+                        mt="xs"
+                      >
+                        <Badge
+                          variant="light"
+                          color="blue"
+                          leftSection={
+                            <Box
+                              style={{
+                                width: '6px',
+                                height: '6px',
+                                borderRadius: '50%',
+                                backgroundColor: 'rgb(96, 165, 250)',
+                                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                              }}
+                            />
+                          }
+                          size="sm"
+                        >
+                          {t('chat.message.isRegenerating')}
+                        </Badge>
+                      </Group>
                     )}
                     
                     {/* Streaming Indicator with Progress and Cancel Button */}
                     {!isUser && message.id.startsWith('temp-ai-') && (
-                      <div className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-3 text-xs ${
-                        isUser ? 'justify-end' : 'justify-start'
-                      }`}>
+                      <Group
+                        justify={isUser ? 'flex-end' : 'flex-start'}
+                        gap="xs"
+                        mt="sm"
+                        wrap="wrap"
+                      >
                         {/* Progress Indicator */}
-                        <div className="flex items-center space-x-2 px-3 py-2 bg-teal-500/20 rounded-full border border-teal-500/30 backdrop-blur-sm">
-                          <div className="flex space-x-0.5">
-                            <div className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                            <div className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                            <div className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                          </div>
-                          <span className="text-teal-300 font-medium">
-                            正在生成中
-                            {generationProgress > 0 && ` (${generationProgress}s)`}
-                          </span>
-                        </div>
+                        <Badge
+                          variant="light"
+                          color="teal"
+                          size="md"
+                          leftSection={
+                            <Group gap={2}>
+                              <Box
+                                style={{
+                                  width: '6px',
+                                  height: '6px',
+                                  borderRadius: '50%',
+                                  backgroundColor: 'rgb(45, 212, 191)',
+                                  animation: 'bounce 1s infinite',
+                                  animationDelay: '0ms',
+                                }}
+                              />
+                              <Box
+                                style={{
+                                  width: '6px',
+                                  height: '6px',
+                                  borderRadius: '50%',
+                                  backgroundColor: 'rgb(45, 212, 191)',
+                                  animation: 'bounce 1s infinite',
+                                  animationDelay: '150ms',
+                                }}
+                              />
+                              <Box
+                                style={{
+                                  width: '6px',
+                                  height: '6px',
+                                  borderRadius: '50%',
+                                  backgroundColor: 'rgb(45, 212, 191)',
+                                  animation: 'bounce 1s infinite',
+                                  animationDelay: '300ms',
+                                }}
+                              />
+                            </Group>
+                          }
+                          styles={{
+                            root: {
+                              backgroundColor: 'rgba(45, 212, 191, 0.2)',
+                              border: '1px solid rgba(45, 212, 191, 0.3)',
+                              backdropFilter: 'blur(8px)',
+                              padding: '0.5rem 0.75rem',
+                            },
+                          }}
+                        >
+                          正在生成中
+                          {generationProgress > 0 && ` (${generationProgress}s)`}
+                        </Badge>
 
                         {/* Cancel Button */}
-                        <button
-                          type="button"
+                        <Button
+                          variant="light"
+                          color="red"
+                          size="xs"
                           onClick={cancelGeneration}
-                          className="relative z-10 cursor-pointer flex items-center space-x-1.5 px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 rounded-full border border-red-500/30 hover:border-red-500/50 transition-all duration-200 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                          title="停止生成"
-                          aria-label="停止生成"
+                          leftSection={<IconSquare size={12} />}
                         >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <rect x="6" y="6" width="12" height="12" strokeWidth="2" />
-                          </svg>
-                          <span className="font-medium">停止</span>
-                        </button>
+                          停止
+                        </Button>
 
                         {/* Long Wait Warning */}
                         {generationProgress > 30 && (
-                          <div className="flex items-center space-x-1.5 px-3 py-2 bg-amber-500/20 rounded-full border border-amber-500/30 backdrop-blur-sm">
-                            <svg className="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span className="text-amber-300 font-medium">
-                              {generationProgress > 60 ? '请耐心等待，即将完成' : '响应时间较长'}
-                            </span>
-                          </div>
+                          <Badge
+                            variant="light"
+                            color="yellow"
+                            size="sm"
+                            styles={{
+                              root: {
+                                backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                                border: '1px solid rgba(245, 158, 11, 0.3)',
+                                backdropFilter: 'blur(8px)',
+                              },
+                            }}
+                          >
+                            {generationProgress > 60 ? '请耐心等待，即将完成' : '响应时间较长'}
+                          </Badge>
                         )}
-                      </div>
+                      </Group>
                     )}
-                  </div>
-                </div>
-              </div>
-            </div>
+                  </Box>
+                </Stack>
+              </Group>
+            </Group>
           )
         })}
 
@@ -389,31 +559,72 @@ export default function MessageList({
 
         {/* Loading Indicator (only when not streaming with temp message) */}
         {isLoading && !hasTempAI && (
-          <div className="flex justify-start animate-fade-in">
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-600 to-teal-700 flex items-center justify-center shadow-lg">
-                  <Bot className="w-4 h-4 text-white" />
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-gray-800/90 to-gray-900/90 rounded-2xl rounded-bl-md border border-gray-700/50 backdrop-blur-sm px-5 py-4 shadow-xl">
-                <div className="flex items-center space-x-3">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                  </div>
-                  {/* 显示角色名称，不显示"AI" */}
+          <Group justify="flex-start" className="animate-fade-in">
+            <Group align="flex-start" gap="sm">
+              <Avatar
+                size={32}
+                radius="xl"
+                style={{
+                  background: 'linear-gradient(to bottom right, rgb(13, 148, 136), rgb(15, 118, 110))',
+                  flexShrink: 0,
+                }}
+              >
+                <IconRobot size={16} color="white" />
+              </Avatar>
+              <Box
+                p="md"
+                style={{
+                  background: 'linear-gradient(to bottom right, rgba(31, 41, 55, 0.9), rgba(17, 24, 39, 0.9))',
+                  borderRadius: '1rem',
+                  borderBottomLeftRadius: '0.25rem',
+                  border: '1px solid rgba(75, 85, 99, 0.5)',
+                  backdropFilter: 'blur(8px)',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+                }}
+              >
+                <Group gap="sm">
+                  <Group gap={4}>
+                    <Box
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgb(45, 212, 191)',
+                        animation: 'bounce 1s infinite',
+                        animationDelay: '0ms',
+                      }}
+                    />
+                    <Box
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgb(45, 212, 191)',
+                        animation: 'bounce 1s infinite',
+                        animationDelay: '150ms',
+                      }}
+                    />
+                    <Box
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgb(45, 212, 191)',
+                        animation: 'bounce 1s infinite',
+                        animationDelay: '300ms',
+                      }}
+                    />
+                  </Group>
                   {character?.name && (
-                    <span className="text-sm text-gray-400">{character.name}</span>
+                    <Text size="sm" c="dimmed">{character.name}</Text>
                   )}
-                </div>
-              </div>
-            </div>
-          </div>
+                </Group>
+              </Box>
+            </Group>
+          </Group>
         )}
 
-      </div>
-    </div>
+      </Stack>
+    </Stack>
   )
 }

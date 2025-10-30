@@ -6,38 +6,42 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import {
-  MessageSquare,
-  Users,
-  Settings,
-  Plus,
-  Search,
-  Filter,
-  Trash2,
-  Edit,
-  MoreVertical,
-  Star,
-  Archive,
-  Clock,
-  Globe,
-  Hash
-} from 'lucide-react'
 import { Chat, Character } from '@sillytavern-clone/shared'
 import { useChatStore } from '@/stores/chatStore'
 import { useCharacterStore } from '@/stores/characterStore'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+  Box,
+  Button,
+  TextInput,
+  Badge,
+  Tabs,
+  ActionIcon,
+  Menu,
+  ScrollArea,
+  Group,
+  Text,
+  Avatar,
+  Stack,
+  Title,
+} from '@mantine/core'
+import {
+  IconMessageCircle,
+  IconUsers,
+  IconSettings,
+  IconPlus,
+  IconSearch,
+  IconX,
+  IconDotsVertical,
+  IconStar,
+  IconArchive,
+  IconClock,
+  IconWorld,
+  IconHash,
+  IconTrash,
+  IconStarFilled,
+} from '@tabler/icons-react'
 
 interface SidebarProps {
   className?: string
@@ -60,7 +64,7 @@ export default function Sidebar({
   const { characters, selectedCharacter, setSelectedCharacter, refreshCharacters } = useCharacterStore()
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeTab, setActiveTab] = useState('chats')
+  const [activeTab, setActiveTab] = useState<string | null>('chats')
   const [filterMode, setFilterMode] = useState<'all' | 'favorites' | 'archived'>('all')
 
   // Load characters on mount
@@ -147,9 +151,7 @@ export default function Sidebar({
         throw new Error('Failed to toggle favorite')
       }
       
-      // Update local state
       const updatedChat = await response.json()
-      // Trigger re-fetch or update store
       toast.success(updatedChat.isFavorite ? '已添加到收藏' : '已取消收藏')
     } catch (error) {
       console.error('Error toggling favorite:', error)
@@ -174,7 +176,6 @@ export default function Sidebar({
         throw new Error('Failed to toggle archive')
       }
       
-      // Update local state
       const updatedChat = await response.json()
       toast.success(updatedChat.isArchived ? '已归档' : '已取消归档')
     } catch (error) {
@@ -213,313 +214,385 @@ export default function Sidebar({
   }
 
   return (
-    <div className={`w-80 tavern-sidebar flex flex-col ${className}`}>
+    <Box
+      className={className}
+      style={{
+        width: '320px',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: 'rgb(17, 24, 39)',
+        borderRight: '1px solid rgb(55, 65, 81)',
+        height: '100%',
+      }}
+    >
       {/* Sidebar Header */}
-      <div className="p-4 border-b border-gray-800">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold text-gray-100">SillyTavern</h1>
-          <Button
-            variant="ghost"
-            size="sm"
+      <Stack
+        gap="md"
+        p="md"
+        style={{
+          borderBottom: '1px solid rgb(55, 65, 81)',
+        }}
+      >
+        <Group justify="space-between" align="center">
+          <Title order={4} c="gray.1">
+            SillyTavern
+          </Title>
+          <ActionIcon
+            variant="subtle"
             onClick={onSettings}
-            className="text-gray-400 hover:text-gray-200"
+            size="lg"
           >
-            <Settings className="w-5 h-5" />
-          </Button>
-        </div>
+            <IconSettings size={20} />
+          </ActionIcon>
+        </Group>
 
         {/* New Chat Button */}
         <Button
+          fullWidth
+          leftSection={<IconPlus size={16} />}
           onClick={handleNewChatClick}
-          className="w-full tavern-button"
+          variant="gradient"
+          gradient={{ from: 'cyan', to: 'blue', deg: 90 }}
         >
-          <Plus className="w-4 h-4 mr-2" />
           新对话
         </Button>
 
         {/* Search Bar */}
-        <div className="relative mt-3">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder="搜索对话或角色..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-10 tavern-input"
-          />
-          {searchQuery && (
-            <button
-              onClick={clearSearch}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200"
-            >
-              ×
-            </button>
-          )}
-        </div>
-      </div>
+        <TextInput
+          placeholder="搜索对话或角色..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.currentTarget.value)}
+          leftSection={<IconSearch size={16} />}
+          rightSection={
+            searchQuery && (
+              <ActionIcon
+                variant="subtle"
+                onClick={clearSearch}
+                size="sm"
+              >
+                <IconX size={14} />
+              </ActionIcon>
+            )
+          }
+        />
+      </Stack>
 
       {/* Navigation Tabs */}
-      <div className="px-4 pt-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="chats" className="text-sm">
-              <MessageSquare className="w-4 h-4 mr-1" />
+      <Box px="md" pt="md" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Tabs value={activeTab} onChange={setActiveTab} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <Tabs.List grow>
+            <Tabs.Tab value="chats" leftSection={<IconMessageCircle size={16} />}>
               对话
-            </TabsTrigger>
-            <TabsTrigger value="characters" className="text-sm">
-              <Users className="w-4 h-4 mr-1" />
+            </Tabs.Tab>
+            <Tabs.Tab value="characters" leftSection={<IconUsers size={16} />}>
               角色
-            </TabsTrigger>
-            <TabsTrigger value="tools" className="text-sm">
-              <Hash className="w-4 h-4 mr-1" />
+            </Tabs.Tab>
+            <Tabs.Tab value="tools" leftSection={<IconHash size={16} />}>
               工具
-            </TabsTrigger>
-          </TabsList>
+            </Tabs.Tab>
+          </Tabs.List>
 
           {/* Chats Tab */}
-          <TabsContent value="chats" className="mt-4">
+          <Tabs.Panel value="chats" pt="md" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             {/* Filter Tabs */}
-            <div className="flex space-x-1 mb-3 bg-gray-800 rounded-lg p-1">
+            <Group
+              gap={4}
+              mb="md"
+              p={4}
+              style={{
+                backgroundColor: 'rgb(31, 41, 55)',
+                borderRadius: '0.5rem',
+              }}
+            >
               {[
-                { key: 'all', label: '全部', icon: MessageSquare },
-                { key: 'favorites', label: '收藏', icon: Star },
-                { key: 'archived', label: '归档', icon: Archive },
+                { key: 'all', label: '全部', icon: IconMessageCircle },
+                { key: 'favorites', label: '收藏', icon: IconStar },
+                { key: 'archived', label: '归档', icon: IconArchive },
               ].map(({ key, label, icon: Icon }) => (
-                <button
+                <Button
                   key={key}
                   onClick={() => setFilterMode(key as any)}
-                  className={`flex-1 flex items-center justify-center space-x-1 px-2 py-1.5 rounded-md text-sm transition-colors ${
-                    filterMode === key
-                      ? 'bg-gray-700 text-white'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                  }`}
+                  variant={filterMode === key ? 'light' : 'subtle'}
+                  size="xs"
+                  leftSection={<Icon size={14} />}
+                  style={{ flex: 1 }}
                 >
-                  <Icon className="w-3 h-3" />
-                  <span>{label}</span>
-                </button>
+                  {label}
+                </Button>
               ))}
-            </div>
+            </Group>
 
             {/* Chat List */}
-            <div className="space-y-1 max-h-[60vh] overflow-y-auto tavern-scrollbar">
+            <ScrollArea style={{ flex: 1 }} type="auto">
+              <Stack gap="xs">
               {filteredChats.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-sm">
+                <Stack align="center" py="xl" gap="md">
+                  <IconMessageCircle size={48} opacity={0.5} color="rgb(107, 114, 128)" />
+                  <Text size="sm" c="dimmed">
                     {searchQuery ? '没有找到匹配的对话' : '还没有对话记录'}
-                  </p>
-                </div>
+                  </Text>
+                </Stack>
               ) : (
                 filteredChats.map((chat) => (
-                  <div
+                  <Box
                     key={chat.id}
                     onClick={() => handleChatClick(chat)}
-                    className={`group relative p-3 rounded-lg cursor-pointer transition-colors ${
-                      currentChat?.id === chat.id
-                        ? 'bg-gray-700 text-white'
-                        : 'hover:bg-gray-800 text-gray-300'
-                    }`}
+                    p="md"
+                    style={{
+                      position: 'relative',
+                      borderRadius: '0.5rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      backgroundColor: currentChat?.id === chat.id
+                        ? 'rgb(55, 65, 81)'
+                        : 'transparent',
+                    }}
+                    className="group"
+                    onMouseEnter={(e) => {
+                      if (currentChat?.id !== chat.id) {
+                        e.currentTarget.style.backgroundColor = 'rgba(31, 41, 55, 0.5)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (currentChat?.id !== chat.id) {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                      }
+                    }}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="font-medium truncate">{chat.title}</h3>
+                    <Group justify="space-between" align="flex-start" wrap="nowrap">
+                      <Stack gap="xs" style={{ flex: 1, minWidth: 0 }}>
+                        <Group gap="xs" wrap="nowrap">
+                          <Text fw={500} size="sm" truncate style={{ flex: 1 }}>
+                            {chat.title}
+                          </Text>
                           {chat.isFavorite && (
-                            <Star className="w-3 h-3 text-yellow-500 fill-current flex-shrink-0" />
+                            <IconStarFilled size={14} color="#fbbf24" style={{ flexShrink: 0 }} />
                           )}
-                        </div>
+                        </Group>
 
-                        <p className="text-sm text-gray-400 mb-2 line-clamp-2">
+                        <Text size="xs" c="dimmed" lineClamp={2}>
                           {getChatPreview(chat)}
-                        </p>
+                        </Text>
 
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span className="flex items-center space-x-1">
-                            <Users className="w-3 h-3" />
-                            <span>{chat.characterName}</span>
-                          </span>
-                          <span className="flex items-center space-x-1">
-                            <Clock className="w-3 h-3" />
-                            <span>{formatDistanceToNow(new Date(chat.updatedAt), { addSuffix: true })}</span>
-                          </span>
-                        </div>
-                      </div>
+                        <Group justify="space-between" gap="xs" style={{ fontSize: '0.75rem', color: 'rgb(107, 114, 128)' }}>
+                          <Group gap={4}>
+                            <IconUsers size={12} />
+                            <Text size="xs">{chat.characterName}</Text>
+                          </Group>
+                          <Group gap={4}>
+                            <IconClock size={12} />
+                            <Text size="xs">{formatDistanceToNow(new Date(chat.updatedAt), { addSuffix: true })}</Text>
+                          </Group>
+                        </Group>
+                      </Stack>
 
                       {/* Chat Actions */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical className="w-3 h-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem onClick={(e) => handleToggleFavorite(chat.id, e)}>
-                              <Star className="w-4 h-4 mr-2" />
-                              {chat.isFavorite ? '取消收藏' : '收藏对话'}
-                            </DropdownMenuItem>
+                      <Menu position="bottom-end" shadow="md" withinPortal>
+                        <Menu.Target>
+                          <ActionIcon
+                            variant="subtle"
+                            size="sm"
+                            onClick={(e) => e.stopPropagation()}
+                            className="opacity-0 group-hover:opacity-100"
+                          >
+                            <IconDotsVertical size={14} />
+                          </ActionIcon>
+                        </Menu.Target>
+                        <Menu.Dropdown>
+                          <Menu.Item
+                            leftSection={<IconStar size={14} />}
+                            onClick={(e) => handleToggleFavorite(chat.id, e)}
+                          >
+                            {chat.isFavorite ? '取消收藏' : '收藏对话'}
+                          </Menu.Item>
 
-                            <DropdownMenuItem onClick={(e) => handleArchiveChat(chat.id, e)}>
-                              <Archive className="w-4 h-4 mr-2" />
-                              {chat.isArchived ? '取消归档' : '归档对话'}
-                            </DropdownMenuItem>
+                          <Menu.Item
+                            leftSection={<IconArchive size={14} />}
+                            onClick={(e) => handleArchiveChat(chat.id, e)}
+                          >
+                            {chat.isArchived ? '取消归档' : '归档对话'}
+                          </Menu.Item>
 
-                            <DropdownMenuSeparator />
+                          <Menu.Divider />
 
-                            <DropdownMenuItem
-                              onClick={(e) => handleDeleteChat(chat.id, e)}
-                              className="text-red-500 hover:text-red-400"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              删除对话
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
+                          <Menu.Item
+                            leftSection={<IconTrash size={14} />}
+                            color="red"
+                            onClick={(e) => handleDeleteChat(chat.id, e)}
+                          >
+                            删除对话
+                          </Menu.Item>
+                        </Menu.Dropdown>
+                      </Menu>
+                    </Group>
 
                     {/* Message Count Badge */}
-                    <div className="absolute top-2 right-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {chat.messages.length}
-                      </Badge>
-                    </div>
-                  </div>
+                    <Badge
+                      size="xs"
+                      variant="light"
+                      style={{
+                        position: 'absolute',
+                        top: '0.5rem',
+                        right: '0.5rem',
+                      }}
+                    >
+                      {chat.messages.length}
+                    </Badge>
+                  </Box>
                 ))
               )}
-            </div>
-          </TabsContent>
+              </Stack>
+            </ScrollArea>
+          </Tabs.Panel>
 
           {/* Characters Tab */}
-          <TabsContent value="characters" className="mt-4">
+          <Tabs.Panel value="characters" pt="md" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             {/* Quick Actions */}
-            <div className="mb-3 flex gap-2">
+            <Group mb="md" grow>
               <Button
                 onClick={() => { setActiveTab('characters'); router.push('/characters/community') }}
-                variant="outline"
-                size="sm"
-                className="flex-1 tavern-button-secondary text-xs"
+                variant="light"
+                size="xs"
+                leftSection={<IconWorld size={14} />}
               >
-                <Globe className="w-3 h-3 mr-1" />
                 社区
               </Button>
               <Button
                 onClick={() => { setActiveTab('characters'); router.push('/characters') }}
-                variant="outline"
-                size="sm"
-                className="flex-1 tavern-button-secondary text-xs"
+                variant="light"
+                size="xs"
+                leftSection={<IconUsers size={14} />}
               >
-                <Users className="w-3 h-3 mr-1" />
                 管理
               </Button>
-            </div>
+            </Group>
 
-            <div className="space-y-1 max-h-[60vh] overflow-y-auto tavern-scrollbar">
+            <ScrollArea style={{ flex: 1 }} type="auto">
+              <Stack gap="xs">
               {filteredCharacters.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-sm">
+                <Stack align="center" py="xl" gap="md">
+                  <IconUsers size={48} opacity={0.5} color="rgb(107, 114, 128)" />
+                  <Text size="sm" c="dimmed">
                     {searchQuery ? '没有找到匹配的角色' : '还没有创建角色'}
-                  </p>
-                </div>
+                  </Text>
+                </Stack>
               ) : (
                 filteredCharacters.map((character) => (
-                  <div
+                  <Box
                     key={character.id}
                     onClick={() => handleCharacterClick(character)}
-                    className={`group relative p-3 rounded-lg cursor-pointer transition-colors ${
-                      selectedCharacter?.id === character.id
-                        ? 'bg-gray-700 text-white'
-                        : 'hover:bg-gray-800 text-gray-300'
-                    }`}
+                    p="md"
+                    style={{
+                      borderRadius: '0.5rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      backgroundColor: selectedCharacter?.id === character.id
+                        ? 'rgb(55, 65, 81)'
+                        : 'transparent',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (selectedCharacter?.id !== character.id) {
+                        e.currentTarget.style.backgroundColor = 'rgba(31, 41, 55, 0.5)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (selectedCharacter?.id !== character.id) {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                      }
+                    }}
                   >
-                    <div className="flex items-start space-x-3">
+                    <Group align="flex-start" wrap="nowrap" gap="sm">
                       {/* Character Avatar */}
-                      <div className="flex-shrink-0">
-                        {character.avatar ? (
-                          <img
-                            src={character.avatar}
-                            alt={character.name}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
-                            <Users className="w-5 h-5" />
-                          </div>
-                        )}
-                      </div>
+                      <Avatar
+                        src={character.avatar}
+                        size={40}
+                        radius="xl"
+                        style={{ flexShrink: 0 }}
+                      >
+                        <IconUsers size={20} />
+                      </Avatar>
 
                       {/* Character Info */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium mb-1">{character.name}</h3>
-                        <p className="text-sm text-gray-400 mb-2 line-clamp-2">
+                      <Stack gap="xs" style={{ flex: 1, minWidth: 0 }}>
+                        <Text fw={500} size="sm" truncate>
+                          {character.name}
+                        </Text>
+                        <Text size="xs" c="dimmed" lineClamp={2}>
                           {character.description}
-                        </p>
+                        </Text>
 
                         {/* Tags */}
                         {character.tags && character.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-2">
+                          <Group gap={4}>
                             {character.tags.slice(0, 3).map((tag: string) => (
-                              <Badge key={tag} variant="secondary" className="text-xs">
+                              <Badge key={tag} size="xs" variant="light">
                                 {tag}
                               </Badge>
                             ))}
                             {character.tags.length > 3 && (
-                              <Badge variant="secondary" className="text-xs">
+                              <Badge size="xs" variant="light">
                                 +{character.tags.length - 3}
                               </Badge>
                             )}
-                          </div>
+                          </Group>
                         )}
 
                         {/* Stats */}
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>创建 {formatDistanceToNow(new Date(character.createdAt), { addSuffix: true })}</span>
+                        <Group justify="space-between" gap="xs" style={{ fontSize: '0.75rem', color: 'rgb(107, 114, 128)' }}>
+                          <Text size="xs">创建 {formatDistanceToNow(new Date(character.createdAt), { addSuffix: true })}</Text>
                           {character.messageCount !== undefined && (
-                            <span>{character.messageCount} 消息</span>
+                            <Text size="xs">{character.messageCount} 消息</Text>
                           )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                        </Group>
+                      </Stack>
+                    </Group>
+                  </Box>
                 ))
               )}
-            </div>
-          </TabsContent>
+              </Stack>
+            </ScrollArea>
+          </Tabs.Panel>
 
           {/* Tools Tab */}
-          <TabsContent value="tools" className="mt-4">
-            <div className="space-y-2">
+          <Tabs.Panel value="tools" pt="md">
+            <Stack gap="xs">
               <Button
-                variant="ghost"
-                className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+                variant="subtle"
+                fullWidth
+                justify="flex-start"
+                leftSection={<IconWorld size={16} />}
                 onClick={() => window.location.href = '/world-info'}
               >
-                <Globe className="w-4 h-4 mr-2" />
                 世界信息管理
               </Button>
 
-              <div className="text-center py-8 text-gray-500">
-                <Hash className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="text-sm mb-4">更多工具和插件功能</p>
-                <p className="text-xs">即将推出...</p>
-              </div>
-            </div>
-          </TabsContent>
+              <Stack align="center" py="xl" gap="md">
+                <IconHash size={48} opacity={0.5} color="rgb(107, 114, 128)" />
+                <Text size="sm" c="dimmed" mb="xs">
+                  更多工具和插件功能
+                </Text>
+                <Text size="xs" c="dimmed">
+                  即将推出...
+                </Text>
+              </Stack>
+            </Stack>
+          </Tabs.Panel>
         </Tabs>
-      </div>
+      </Box>
 
       {/* Sidebar Footer */}
-      <div className="mt-auto p-4 border-t border-gray-800">
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>共 {chats.length} 个对话</span>
-          <span>共 {characters.length} 个角色</span>
-        </div>
-      </div>
-    </div>
+      <Stack
+        gap="xs"
+        p="md"
+        style={{
+          borderTop: '1px solid rgb(55, 65, 81)',
+        }}
+      >
+        <Group justify="space-between" style={{ fontSize: '0.75rem', color: 'rgb(107, 114, 128)' }}>
+          <Text size="xs">共 {chats.length} 个对话</Text>
+          <Text size="xs">共 {characters.length} 个角色</Text>
+        </Group>
+      </Stack>
+    </Box>
   )
 }

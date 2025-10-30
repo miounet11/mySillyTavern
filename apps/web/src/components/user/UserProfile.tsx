@@ -7,9 +7,8 @@
 
 import { useState } from 'react'
 import { useUserStore } from '@/stores/userStore'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Button, TextInput, Stack, Group, Text, Loader, Paper } from '@mantine/core'
+import { IconDeviceFloppy, IconX, IconEdit, IconMail, IconUser } from '@tabler/icons-react'
 import { toast } from 'react-hot-toast'
 
 export function UserProfile() {
@@ -84,9 +83,12 @@ export function UserProfile() {
 
   if (!user) {
     return (
-      <div className="text-center py-4 text-gray-500">
-        正在加载用户信息...
-      </div>
+      <Stack align="center" justify="center" py="xl">
+        <Loader size="md" />
+        <Text size="sm" c="dimmed">
+          正在加载用户信息...
+        </Text>
+      </Stack>
     )
   }
 
@@ -94,124 +96,153 @@ export function UserProfile() {
   const maskedUserId = user.id.substring(0, 8) + '...'
 
   return (
-    <div className="space-y-6">
+    <Stack gap="lg">
       {/* 用户 ID */}
-      <div>
-        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          用户 ID
-        </Label>
-        <div className="mt-1 text-sm text-gray-500 dark:text-gray-400 font-mono">
-          {maskedUserId}
-        </div>
-      </div>
+      <Paper p="md" radius="md" withBorder>
+        <Stack gap="xs">
+          <Group gap="xs">
+            <IconUser size={16} />
+            <Text size="sm" fw={500}>
+              用户 ID
+            </Text>
+          </Group>
+          <Text size="sm" c="dimmed" ff="monospace">
+            {maskedUserId}
+          </Text>
+        </Stack>
+      </Paper>
 
       {/* 用户名 */}
-      <div>
-        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          用户名
-        </Label>
-        {isEditingUsername ? (
-          <div className="mt-2 space-y-2">
-            <Input
-              value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value)}
-              placeholder="输入新用户名"
-              maxLength={50}
-              disabled={isLoading}
-            />
-            <div className="flex gap-2">
+      <Paper p="md" radius="md" withBorder>
+        <Stack gap="sm">
+          <Group justify="space-between" align="center">
+            <Group gap="xs">
+              <IconUser size={16} />
+              <Text size="sm" fw={500}>
+                用户名
+              </Text>
+            </Group>
+            {!isEditingUsername && (
               <Button
-                onClick={handleUsernameSave}
-                disabled={isLoading}
-                size="sm"
+                onClick={handleUsernameEdit}
+                variant="light"
+                size="xs"
+                leftSection={<IconEdit size={14} />}
               >
-                保存
+                编辑
               </Button>
-              <Button
-                onClick={handleUsernameCancel}
-                variant="outline"
+            )}
+          </Group>
+          {isEditingUsername ? (
+            <Stack gap="sm">
+              <TextInput
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.currentTarget.value)}
+                placeholder="输入新用户名"
+                maxLength={50}
                 disabled={isLoading}
-                size="sm"
-              >
-                取消
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-2 flex items-center justify-between">
-            <span className="text-sm">{user.username}</span>
-            <Button
-              onClick={handleUsernameEdit}
-              variant="outline"
-              size="sm"
-            >
-              编辑
-            </Button>
-          </div>
-        )}
-      </div>
+              />
+              <Group gap="xs">
+                <Button
+                  onClick={handleUsernameSave}
+                  disabled={isLoading}
+                  size="sm"
+                  leftSection={<IconDeviceFloppy size={14} />}
+                  loading={isLoading}
+                >
+                  保存
+                </Button>
+                <Button
+                  onClick={handleUsernameCancel}
+                  variant="default"
+                  disabled={isLoading}
+                  size="sm"
+                  leftSection={<IconX size={14} />}
+                >
+                  取消
+                </Button>
+              </Group>
+            </Stack>
+          ) : (
+            <Text size="sm">{user.username}</Text>
+          )}
+        </Stack>
+      </Paper>
 
       {/* 邮箱 */}
-      <div>
-        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          邮箱
-        </Label>
-        {isBindingEmail ? (
-          <div className="mt-2 space-y-2">
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="输入邮箱地址"
-              disabled={isLoading}
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              绑定邮箱后可用于账号找回
-            </p>
-            <div className="flex gap-2">
+      <Paper p="md" radius="md" withBorder>
+        <Stack gap="sm">
+          <Group justify="space-between" align="center">
+            <Group gap="xs">
+              <IconMail size={16} />
+              <Text size="sm" fw={500}>
+                邮箱
+              </Text>
+            </Group>
+            {!isBindingEmail && (
               <Button
-                onClick={handleEmailSave}
-                disabled={isLoading}
-                size="sm"
+                onClick={handleShowEmailBinding}
+                variant="light"
+                size="xs"
+                leftSection={<IconEdit size={14} />}
               >
-                保存
+                {user.email ? '修改' : '绑定'}
               </Button>
-              <Button
-                onClick={handleEmailCancel}
-                variant="outline"
+            )}
+          </Group>
+          {isBindingEmail ? (
+            <Stack gap="sm">
+              <TextInput
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.currentTarget.value)}
+                placeholder="输入邮箱地址"
                 disabled={isLoading}
-                size="sm"
-              >
-                取消
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-2 flex items-center justify-between">
-            <span className="text-sm">
+              />
+              <Text size="xs" c="dimmed">
+                绑定邮箱后可用于账号找回
+              </Text>
+              <Group gap="xs">
+                <Button
+                  onClick={handleEmailSave}
+                  disabled={isLoading}
+                  size="sm"
+                  leftSection={<IconDeviceFloppy size={14} />}
+                  loading={isLoading}
+                >
+                  保存
+                </Button>
+                <Button
+                  onClick={handleEmailCancel}
+                  variant="default"
+                  disabled={isLoading}
+                  size="sm"
+                  leftSection={<IconX size={14} />}
+                >
+                  取消
+                </Button>
+              </Group>
+            </Stack>
+          ) : (
+            <Text size="sm" c={user.email ? undefined : 'dimmed'}>
               {user.email || '未绑定'}
-            </span>
-            <Button
-              onClick={handleShowEmailBinding}
-              variant="outline"
-              size="sm"
-            >
-              {user.email ? '修改' : '绑定'}
-            </Button>
-          </div>
-        )}
-      </div>
+            </Text>
+          )}
+        </Stack>
+      </Paper>
 
       {/* 创建时间 */}
-      <div>
-        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          创建时间
-        </Label>
-        <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {new Date(user.createdAt).toLocaleString('zh-CN')}
-        </div>
-      </div>
-    </div>
+      <Paper p="md" radius="md" withBorder>
+        <Stack gap="xs">
+          <Text size="sm" fw={500}>
+            创建时间
+          </Text>
+          <Text size="sm" c="dimmed">
+            {new Date(user.createdAt).toLocaleString('zh-CN')}
+          </Text>
+        </Stack>
+      </Paper>
+    </Stack>
   )
 }
 

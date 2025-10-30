@@ -1,10 +1,8 @@
 "use client"
 
 import { Character } from '@sillytavern-clone/shared'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { MessageSquare, Edit, Trash2, Download } from 'lucide-react'
-import Image from 'next/image'
+import { Card, Button, Badge, ActionIcon, Group, Text, Stack, Tooltip, Menu, Box } from '@mantine/core'
+import { IconMessageCircle, IconEdit, IconTrash, IconDownload, IconDotsVertical } from '@tabler/icons-react'
 
 interface CharacterCardProps {
   character: Character
@@ -48,17 +46,51 @@ export default function CharacterCard({
 
   if (variant === 'large') {
     return (
-      <div 
+      <Card
         className="character-card group stagger-item animate-fade-in"
         onClick={handleClick}
+        padding={0}
+        radius="md"
+        withBorder
+        style={{
+          backgroundColor: 'rgba(31, 41, 55, 0.5)',
+          borderColor: 'rgb(55, 65, 81)',
+          cursor: 'pointer',
+          overflow: 'hidden',
+          transition: 'all 0.3s ease',
+        }}
+        styles={{
+          root: {
+            '&:hover': {
+              backgroundColor: 'rgb(31, 41, 55)',
+              borderColor: 'rgb(59, 130, 246)',
+              transform: 'translateY(-4px)',
+              boxShadow: '0 10px 30px rgba(59, 130, 246, 0.2)',
+            },
+          },
+        }}
       >
         {/* Character Image */}
-        <div className="relative w-full aspect-[2/3] bg-gradient-to-br from-gray-900 to-gray-950 overflow-hidden">
+        <Box
+          style={{
+            position: 'relative',
+            width: '100%',
+            aspectRatio: '2/3',
+            background: 'linear-gradient(to bottom right, rgb(17, 24, 39), rgb(3, 7, 18))',
+            overflow: 'hidden',
+          }}
+        >
           {character.avatar ? (
             <img
               src={character.avatar}
               alt={character.name}
-              className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                transition: 'all 0.5s ease',
+              }}
+              className="group-hover:scale-110"
               loading="lazy"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
@@ -68,165 +100,296 @@ export default function CharacterCard({
             />
           ) : null}
           <div 
-            className="w-full h-full flex items-center justify-center text-6xl font-bold"
             style={{ 
               display: character.avatar ? 'none' : 'flex',
+              width: '100%',
+              height: '100%',
+              alignItems: 'center',
+              justifyContent: 'center',
               background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2))'
             }}
           >
-            <span className="gradient-text text-7xl">{character.name.charAt(0).toUpperCase()}</span>
+            <Text
+              size="72px"
+              fw={700}
+              style={{
+                background: 'linear-gradient(to right, rgb(96, 165, 250), rgb(168, 85, 247))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              {character.name.charAt(0).toUpperCase()}
+            </Text>
           </div>
 
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-transparent to-transparent opacity-60"></div>
+          <div 
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(to top, rgb(3, 7, 18), transparent, transparent)',
+              opacity: 0.6,
+            }}
+          />
           
           {/* Hover overlay with actions */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end justify-center p-4 backdrop-blur-sm">
-            <div className="w-full space-y-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+          <div 
+            className="group-hover:opacity-100"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.6), transparent)',
+              opacity: 0,
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              padding: '1rem',
+              backdropFilter: 'blur(4px)',
+            }}
+          >
+            <Stack 
+              gap="xs" 
+              style={{ 
+                width: '100%',
+                transform: 'translateY(16px)',
+                transition: 'transform 0.3s ease',
+              }}
+              className="group-hover:translate-y-0"
+            >
               {onSelect && (
                 <Button
                   onClick={(e) => handleAction(e, () => onSelect(character))}
-                  className="w-full gradient-btn-primary text-sm py-2.5 shadow-lg"
+                  fullWidth
                   size="sm"
+                  variant="gradient"
+                  gradient={{ from: 'cyan', to: 'blue', deg: 90 }}
+                  leftSection={<IconMessageCircle size={16} />}
+                  styles={{
+                    root: {
+                      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+                    },
+                  }}
                 >
-                  <MessageSquare className="w-4 h-4 mr-2" />
                   开始对话
                 </Button>
               )}
-              <div className="grid grid-cols-3 gap-2">
+              <Group gap="xs" grow>
                 {onEdit && (
-                  <Button
-                    onClick={(e) => handleAction(e, () => onEdit(character))}
-                    variant="outline"
-                    size="sm"
-                    className="glass-light hover:bg-white/10 text-white border-white/20 text-xs px-2 py-2"
-                    title="编辑"
-                  >
-                    <Edit className="w-3.5 h-3.5" />
-                  </Button>
+                  <Tooltip label="编辑">
+                    <ActionIcon
+                      onClick={(e) => handleAction(e, () => onEdit(character))}
+                      variant="light"
+                      color="gray"
+                      size="lg"
+                      style={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                      }}
+                    >
+                      <IconEdit size={18} />
+                    </ActionIcon>
+                  </Tooltip>
                 )}
                 {onExport && (
-                  <Button
-                    onClick={(e) => handleAction(e, () => onExport(character.id))}
-                    variant="outline"
-                    size="sm"
-                    className="glass-light hover:bg-white/10 text-white border-white/20 text-xs px-2 py-2"
-                    title="导出"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </Button>
+                  <Tooltip label="导出">
+                    <ActionIcon
+                      onClick={(e) => handleAction(e, () => onExport(character.id))}
+                      variant="light"
+                      color="gray"
+                      size="lg"
+                      style={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                      }}
+                    >
+                      <IconDownload size={18} />
+                    </ActionIcon>
+                  </Tooltip>
                 )}
                 {onDelete && (
-                  <Button
-                    onClick={(e) => handleAction(e, () => onDelete(character.id))}
-                    variant="destructive"
-                    size="sm"
-                    className="bg-red-600/80 hover:bg-red-700 text-white text-xs px-2 py-2"
-                    title="删除"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
+                  <Tooltip label="删除">
+                    <ActionIcon
+                      onClick={(e) => handleAction(e, () => onDelete(character.id))}
+                      variant="filled"
+                      color="red"
+                      size="lg"
+                      styles={{
+                        root: {
+                          backgroundColor: 'rgba(220, 38, 38, 0.8)',
+                          '&:hover': {
+                            backgroundColor: 'rgb(185, 28, 28)',
+                          },
+                        },
+                      }}
+                    >
+                      <IconTrash size={18} />
+                    </ActionIcon>
+                  </Tooltip>
                 )}
-              </div>
-            </div>
+              </Group>
+            </Stack>
           </div>
-        </div>
+        </Box>
 
         {/* Character Info */}
-        <div className="p-4 space-y-2.5">
-          <h3 className="text-base font-semibold text-gray-100 truncate group-hover:text-blue-400 transition-colors">
+        <Stack gap="sm" p="md">
+          <Text
+            size="md"
+            fw={600}
+            lineClamp={1}
+            className="group-hover:text-blue-400"
+            style={{
+              color: 'rgb(243, 244, 246)',
+              transition: 'color 0.2s ease',
+            }}
+          >
             {character.name}
-          </h3>
+          </Text>
           
           {character.description && (
-            <p className="text-sm text-gray-400 line-clamp-2 min-h-[2.5rem] leading-relaxed">
+            <Text
+              size="sm"
+              c="dimmed"
+              lineClamp={2}
+              style={{
+                minHeight: '2.5rem',
+                lineHeight: 1.5,
+              }}
+            >
               {character.description}
-            </p>
+            </Text>
           )}
 
           {character.tags && character.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-1">
+            <Group gap={6} pt="xs">
               {character.tags.slice(0, 3).map((tag: string, index: number) => (
-                <span 
+                <Badge
                   key={index}
-                  className="tag-chip text-xs"
+                  size="sm"
+                  variant="light"
+                  color="cyan"
+                  styles={{
+                    root: {
+                      textTransform: 'none',
+                      fontSize: '0.75rem',
+                    },
+                  }}
                 >
                   {tag}
-                </span>
+                </Badge>
               ))}
               {character.tags.length > 3 && (
-                <span className="tag-chip text-xs">
+                <Badge
+                  size="sm"
+                  variant="light"
+                  color="gray"
+                  styles={{
+                    root: {
+                      textTransform: 'none',
+                      fontSize: '0.75rem',
+                    },
+                  }}
+                >
                   +{character.tags.length - 3}
-                </span>
+                </Badge>
               )}
-            </div>
+            </Group>
           )}
 
           {messageCount !== undefined && messageCount > 0 && (
-            <div className="flex items-center text-xs text-gray-500 pt-1.5 border-t border-gray-700/50">
-              <MessageSquare className="w-3.5 h-3.5 mr-1.5 text-blue-400" />
-              <span>{messageCount} 条消息</span>
-            </div>
+            <Group
+              gap={6}
+              pt="xs"
+              style={{
+                borderTop: '1px solid rgba(107, 114, 128, 0.3)',
+              }}
+            >
+              <IconMessageCircle size={14} color="rgb(96, 165, 250)" />
+              <Text size="xs" c="dimmed">
+                {messageCount} 条消息
+              </Text>
+            </Group>
           )}
-        </div>
-      </div>
+        </Stack>
+      </Card>
     )
   }
 
   // Default compact variant (for backward compatibility)
   return (
-    <div 
-      className="bg-gray-800 rounded-lg border border-gray-700 p-4 hover:border-blue-600 transition-colors cursor-pointer"
+    <Card
       onClick={handleClick}
+      padding="md"
+      radius="md"
+      withBorder
+      style={{
+        backgroundColor: 'rgb(31, 41, 55)',
+        borderColor: 'rgb(55, 65, 81)',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      }}
+      styles={{
+        root: {
+          '&:hover': {
+            borderColor: 'rgb(59, 130, 246)',
+          },
+        },
+      }}
     >
-      <div className="flex items-start justify-between mb-3">
+      <Stack gap="md">
         <div>
-          <h3 className="text-lg font-semibold text-gray-100">{character.name}</h3>
-          <p className="text-sm text-gray-400 line-clamp-2 mt-1">{character.description}</p>
+          <Text size="lg" fw={600} c="gray.1" mb="xs">
+            {character.name}
+          </Text>
+          <Text size="sm" c="dimmed" lineClamp={2}>
+            {character.description}
+          </Text>
         </div>
-      </div>
 
-      {character.tags && character.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-3">
-          {character.tags.map((tag: string, index: number) => (
-            <Badge key={index} variant="secondary">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-      )}
+        {character.tags && character.tags.length > 0 && (
+          <Group gap={4}>
+            {character.tags.map((tag: string, index: number) => (
+              <Badge key={index} variant="light" size="sm">
+                {tag}
+              </Badge>
+            ))}
+          </Group>
+        )}
 
-      <div className="flex gap-2">
-        {onSelect && (
-          <Button
-            onClick={(e) => handleAction(e, () => onSelect(character))}
-            variant="default"
-            size="sm"
-            className="flex-1"
-          >
-            选择
-          </Button>
-        )}
-        {onEdit && (
-          <Button
-            onClick={(e) => handleAction(e, () => onEdit(character))}
-            variant="outline"
-            size="sm"
-          >
-            编辑
-          </Button>
-        )}
-        {onDelete && (
-          <Button
-            onClick={(e) => handleAction(e, () => onDelete(character.id))}
-            variant="destructive"
-            size="sm"
-          >
-            删除
-          </Button>
-        )}
-      </div>
-    </div>
+        <Group gap="xs">
+          {onSelect && (
+            <Button
+              onClick={(e) => handleAction(e, () => onSelect(character))}
+              variant="filled"
+              size="sm"
+              flex={1}
+            >
+              选择
+            </Button>
+          )}
+          {onEdit && (
+            <Button
+              onClick={(e) => handleAction(e, () => onEdit(character))}
+              variant="light"
+              size="sm"
+            >
+              编辑
+            </Button>
+          )}
+          {onDelete && (
+            <Button
+              onClick={(e) => handleAction(e, () => onDelete(character.id))}
+              variant="filled"
+              color="red"
+              size="sm"
+            >
+              删除
+            </Button>
+          )}
+        </Group>
+      </Stack>
+    </Card>
   )
 }
 

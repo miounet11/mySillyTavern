@@ -5,8 +5,15 @@
 
 'use client'
 
-import { AlertTriangle, RotateCcw, X, Wifi, Server, Clock } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Modal, Button, Text, Stack, Alert, Group, ThemeIcon } from '@mantine/core'
+import { 
+  IconAlertTriangle, 
+  IconRefresh, 
+  IconX, 
+  IconWifi, 
+  IconServer, 
+  IconClock 
+} from '@tabler/icons-react'
 
 interface RetryDialogProps {
   isOpen: boolean
@@ -27,18 +34,28 @@ export default function RetryDialog({
   onRetry,
   onCancel,
 }: RetryDialogProps) {
-  if (!isOpen) return null
-
   const getIcon = () => {
     switch (errorType) {
       case 'timeout':
-        return <Clock className="w-12 h-12 text-amber-400" />
+        return <IconClock size={48} />
       case 'network':
-        return <Wifi className="w-12 h-12 text-red-400" />
+        return <IconWifi size={48} />
       case 'server':
-        return <Server className="w-12 h-12 text-red-400" />
+        return <IconServer size={48} />
       default:
-        return <AlertTriangle className="w-12 h-12 text-gray-400" />
+        return <IconAlertTriangle size={48} />
+    }
+  }
+
+  const getIconColor = () => {
+    switch (errorType) {
+      case 'timeout':
+        return 'yellow'
+      case 'network':
+      case 'server':
+        return 'red'
+      default:
+        return 'gray'
     }
   }
 
@@ -67,59 +84,83 @@ export default function RetryDialog({
   const canRetry = retryCount < maxRetries && errorType !== 'cancelled'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700/50 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 animate-scale-in">
-        {/* Header */}
-        <div className="flex flex-col items-center text-center mb-6">
-          <div className="mb-4">
-            {getIcon()}
-          </div>
-          <h3 className="text-xl font-semibold text-white mb-2">{getTitle()}</h3>
-          <p className="text-gray-400 text-sm leading-relaxed">
+    <Modal
+      opened={isOpen}
+      onClose={onCancel}
+      centered
+      size="md"
+      withCloseButton={false}
+    >
+      <Stack align="center" gap="lg">
+        {/* Icon */}
+        <ThemeIcon
+          size={80}
+          radius="xl"
+          variant="light"
+          color={getIconColor()}
+        >
+          {getIcon()}
+        </ThemeIcon>
+
+        {/* Title and Description */}
+        <Stack align="center" gap="xs">
+          <Text size="xl" fw={600}>
+            {getTitle()}
+          </Text>
+          <Text size="sm" c="dimmed" ta="center">
             {getDescription()}
-          </p>
-        </div>
+          </Text>
+        </Stack>
 
         {/* Retry Info */}
         {canRetry && retryCount > 0 && (
-          <div className="mb-6 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-            <p className="text-sm text-blue-300 text-center">
-              已重试 {retryCount} 次，最多可重试 {maxRetries} 次
-            </p>
-          </div>
+          <Alert
+            variant="light"
+            color="blue"
+            title={`已重试 ${retryCount} 次，最多可重试 ${maxRetries} 次`}
+            icon={null}
+            styles={{
+              root: {
+                width: '100%',
+              },
+            }}
+          />
         )}
 
         {/* Actions */}
-        <div className="flex gap-3">
+        <Group gap="sm" justify="center" w="100%">
           {canRetry ? (
             <>
               <Button
+                variant="default"
+                leftSection={<IconX size={16} />}
                 onClick={onCancel}
-                variant="outline"
-                className="flex-1 bg-gray-700/50 hover:bg-gray-700/70 text-gray-300 border-gray-600 rounded-lg transition-all duration-200"
+                flex={1}
               >
-                <X className="w-4 h-4 mr-2" />
                 取消
               </Button>
               <Button
+                variant="gradient"
+                gradient={{ from: 'blue', to: 'cyan', deg: 90 }}
+                leftSection={<IconRefresh size={16} />}
                 onClick={onRetry}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition-all duration-200"
+                flex={1}
               >
-                <RotateCcw className="w-4 h-4 mr-2" />
                 重试 {retryCount > 0 && `(${retryCount + 1}/${maxRetries})`}
               </Button>
             </>
           ) : (
             <Button
+              variant="default"
               onClick={onCancel}
-              className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg transition-all duration-200"
+              fullWidth
             >
               关闭
             </Button>
           )}
-        </div>
-      </div>
-    </div>
+        </Group>
+      </Stack>
+    </Modal>
   )
 }
 

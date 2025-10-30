@@ -1,6 +1,7 @@
 'use client'
 
 import { ReactNode, useState, useEffect } from 'react'
+import { AppShell } from '@mantine/core'
 import TopNavigation from '@/components/layout/TopNavigation'
 import SettingsDrawer from '@/components/settings/SettingsDrawer'
 
@@ -24,17 +25,29 @@ export default function DashboardLayout({
   }, [])
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-950">
-      <TopNavigation />
-      <main className="flex-1">
+    <AppShell
+      header={{ height: 60 }}
+      padding="md"
+      styles={{
+        main: {
+          backgroundColor: 'var(--mantine-color-dark-8)',
+          minHeight: '100vh'
+        }
+      }}
+    >
+      <AppShell.Header>
+        <TopNavigation />
+      </AppShell.Header>
+
+      <AppShell.Main>
         {children}
-      </main>
+      </AppShell.Main>
       
       {/* Settings Drawer - Fixed on right as overlay */}
       <SettingsDrawer 
         isOpen={isSettingsOpen} 
         onClose={() => setIsSettingsOpen(false)} 
       />
-    </div>
+    </AppShell>
   )
 }

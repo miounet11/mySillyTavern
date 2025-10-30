@@ -3,22 +3,35 @@
  */
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Paperclip, Mic, MicOff, RotateCcw, Sparkles, Zap, Radio, X } from 'lucide-react'
 import { useChatStore } from '@/stores/chatStore'
 import { useCharacterStore } from '@/stores/characterStore'
 import { useCreativeStore } from '@/stores/creativeStore'
 import { useModelGuard } from '@/hooks/useModelGuard'
 import { useAIModelStore } from '@/stores/aiModelStore'
 import toast from 'react-hot-toast'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { useTranslation } from '@/lib/i18n'
+import {
+  Box,
+  Textarea,
+  Button,
+  ActionIcon,
+  Menu,
+  Group,
+  Text,
+  Tooltip,
+  Badge,
+  Stack,
+} from '@mantine/core'
+import {
+  IconSend,
+  IconPaperclip,
+  IconMicrophone,
+  IconMicrophoneOff,
+  IconSparkles,
+  IconBolt,
+  IconBroadcast,
+  IconX,
+} from '@tabler/icons-react'
 
 interface MessageInputProps {
   className?: string
@@ -281,93 +294,172 @@ export default function MessageInput({
   const [showShortcuts, setShowShortcuts] = useState(false)
 
   return (
-    <div className={`border-t border-gray-800/50 glass-card backdrop-blur-lg ${className}`}>
-      <div className="p-3">
-
+    <Box
+      className={className}
+      style={{
+        borderTop: '1px solid rgba(55, 65, 81, 0.5)',
+        backgroundColor: 'rgba(17, 24, 39, 0.8)',
+        backdropFilter: 'blur(16px)',
+      }}
+    >
+      <Stack gap="md" p="md">
         {/* Compact Header: Character + Model + Mode Toggles */}
         {currentCharacter && (
-          <div className="flex items-center justify-between px-2 py-1.5 mb-2 border-b border-gray-800/30">
+          <Group
+            justify="space-between"
+            px="xs"
+            py={6}
+            style={{
+              borderBottom: '1px solid rgba(55, 65, 81, 0.3)',
+            }}
+          >
             {/* Left: Character info */}
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-xs font-bold">{currentCharacter.name.charAt(0)}</span>
-              </div>
-              <span className="text-sm font-medium truncate">{currentCharacter.name}</span>
-            </div>
+            <Group gap="xs" style={{ minWidth: 0 }}>
+              <Box
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(to bottom right, rgb(59, 130, 246), rgb(168, 85, 247))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Text size="xs" fw={700} c="white">
+                  {currentCharacter.name.charAt(0)}
+                </Text>
+              </Box>
+              <Text size="sm" fw={500} truncate>
+                {currentCharacter.name}
+              </Text>
+            </Group>
             
             {/* Right: Model + Mode toggles */}
-            <div className="flex items-center gap-1.5">
+            <Group gap={6}>
               {activeModel && (
-                <span className="text-xs text-gray-400 hidden sm:inline truncate max-w-[200px]" title={`${activeModel.provider} - ${activeModel.model}`}>
+                <Text
+                  size="xs"
+                  c="dimmed"
+                  truncate
+                  visibleFrom="sm"
+                  maw={200}
+                  title={`${activeModel.provider} - ${activeModel.model}`}
+                >
                   {activeModel.provider}/{activeModel.model}
-                </span>
+                </Text>
               )}
               
               {/* Compact Mode Toggles */}
-              <button
-                onClick={handleToggleStreaming}
-                disabled={disabled || isLoading}
-                className={`h-7 w-7 flex items-center justify-center rounded-md transition-all ${
-                  isStreamingEnabled 
-                    ? 'bg-blue-500/20 text-blue-400 border border-blue-400/30' 
-                    : 'text-gray-500 hover:text-gray-400 hover:bg-gray-800/50'
-                }`}
-                title={isStreamingEnabled ? '流式输出已开启' : '流式输出已关闭'}
-              >
-                <Radio className={`w-3.5 h-3.5 ${isStreamingEnabled ? 'animate-pulse' : ''}`} />
-              </button>
+              <Tooltip label={isStreamingEnabled ? '流式输出已开启' : '流式输出已关闭'}>
+                <ActionIcon
+                  variant={isStreamingEnabled ? 'light' : 'subtle'}
+                  color={isStreamingEnabled ? 'blue' : 'gray'}
+                  onClick={handleToggleStreaming}
+                  disabled={disabled || isLoading}
+                  size="sm"
+                  style={{
+                    border: isStreamingEnabled ? '1px solid rgba(59, 130, 246, 0.3)' : 'none',
+                  }}
+                >
+                  <IconBroadcast
+                    size={14}
+                    className={isStreamingEnabled ? 'animate-pulse' : ''}
+                  />
+                </ActionIcon>
+              </Tooltip>
 
-              <button
-                onClick={handleToggleFastMode}
-                disabled={disabled || isLoading}
-                className={`h-7 w-7 flex items-center justify-center rounded-md transition-all ${
-                  isFastModeEnabled 
-                    ? 'bg-amber-500/20 text-amber-400 border border-amber-400/30' 
-                    : 'text-gray-500 hover:text-gray-400 hover:bg-gray-800/50'
-                }`}
-                title={isFastModeEnabled ? '快速模式已开启' : '快速模式已关闭'}
-              >
-                <Zap className={`w-3.5 h-3.5 ${isFastModeEnabled ? 'animate-pulse' : ''}`} />
-              </button>
+              <Tooltip label={isFastModeEnabled ? '快速模式已开启' : '快速模式已关闭'}>
+                <ActionIcon
+                  variant={isFastModeEnabled ? 'light' : 'subtle'}
+                  color={isFastModeEnabled ? 'yellow' : 'gray'}
+                  onClick={handleToggleFastMode}
+                  disabled={disabled || isLoading}
+                  size="sm"
+                  style={{
+                    border: isFastModeEnabled ? '1px solid rgba(251, 191, 36, 0.3)' : 'none',
+                  }}
+                >
+                  <IconBolt
+                    size={14}
+                    className={isFastModeEnabled ? 'animate-pulse' : ''}
+                  />
+                </ActionIcon>
+              </Tooltip>
               
               {/* Loading indicator */}
               {isLoading && (
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse ml-1"></div>
+                <Box
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgb(96, 165, 250)',
+                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                  }}
+                />
               )}
-            </div>
-          </div>
+            </Group>
+          </Group>
         )}
 
-        {/* Recording Status - Keep as-is (important status) */}
+        {/* Recording Status */}
         {isRecording && (
-          <div className="flex items-center justify-between mb-2 p-2 glass-card rounded-lg border border-red-500/30 animate-fade-in">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-red-400 font-medium">{t('chat.status.recording')}</span>
-              <span className="text-xs text-red-300 font-mono bg-red-950/50 px-2 py-0.5 rounded">
+          <Group
+            justify="space-between"
+            p="xs"
+            style={{
+              borderRadius: '0.5rem',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              animation: 'fadeIn 0.3s ease-in-out',
+            }}
+          >
+            <Group gap="xs">
+              <Box
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgb(239, 68, 68)',
+                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                }}
+              />
+              <Text size="xs" c="red.4" fw={500}>
+                {t('chat.status.recording')}
+              </Text>
+              <Badge
+                size="xs"
+                variant="filled"
+                color="red"
+                style={{
+                  fontFamily: 'monospace',
+                }}
+              >
                 {formatRecordingTime(recordingTime)}
-              </span>
-            </div>
+              </Badge>
+            </Group>
             <Button
-              size="sm"
-              variant="outline"
+              size="xs"
+              variant="light"
+              color="red"
               onClick={stopRecording}
-              className="glass-light border-red-500/30 text-red-400 hover:bg-red-900/30 h-6 text-xs"
+              leftSection={<IconMicrophoneOff size={12} />}
             >
-              <MicOff className="w-3 h-3 sm:mr-1.5" />
-              <span className="hidden sm:inline">{t('chat.status.stopRecording')}</span>
+              <Text visibleFrom="sm">{t('chat.status.stopRecording')}</Text>
             </Button>
-          </div>
+          </Group>
         )}
 
         {/* Compact Input Area - ChatGPT/Grok Style */}
-        <div className="flex items-end gap-1.5">
+        <Group gap={6} align="flex-end">
           {/* Main Input Container */}
-          <div className="flex-1 relative">
+          <Box style={{ flex: 1, position: 'relative' }}>
             <Textarea
               ref={textareaRef}
               value={message}
-              onChange={(e) => handleSetMessage(e.target.value)}
+              onChange={(e) => handleSetMessage(e.currentTarget.value)}
               onKeyDown={handleKeyDown}
               onCompositionStart={() => { composingRef.current = true }}
               onCompositionEnd={() => { composingRef.current = false }}
@@ -375,168 +467,256 @@ export default function MessageInput({
               onBlur={() => setShowShortcuts(false)}
               placeholder={placeholder || t('chat.message.placeholder')}
               disabled={disabled || isLoading || isRecording}
-              className="glass-input input-focus min-h-[44px] max-h-[120px] resize-none text-sm rounded-lg border-white/10 focus:border-blue-400/30 transition-all pr-1"
-              rows={1}
+              minRows={1}
+              maxRows={5}
+              autosize
+              styles={{
+                input: {
+                  backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'rgb(243, 244, 246)',
+                  minHeight: '44px',
+                  fontSize: '0.875rem',
+                  transition: 'all 0.2s',
+                  '&:focus': {
+                    borderColor: 'rgba(59, 130, 246, 0.3)',
+                  },
+                  '&::placeholder': {
+                    color: 'rgb(156, 163, 175)',
+                  },
+                },
+              }}
             />
-          </div>
+          </Box>
 
           {/* Compact Action Buttons - Right Side */}
-          <div className="flex items-center gap-1">
+          <Group gap={4}>
             {/* File Upload */}
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={handleFileUpload}
-              disabled={disabled || isLoading || isRecording}
-              className="glass-light hover:bg-white/10 text-gray-400 hover:text-white border-white/10 h-9 w-9 rounded-lg"
-              title={t('chat.file.upload')}
-            >
-              <Paperclip className="w-4 h-4" />
-            </Button>
+            <Tooltip label={t('chat.file.upload')}>
+              <ActionIcon
+                variant="light"
+                onClick={handleFileUpload}
+                disabled={disabled || isLoading || isRecording}
+                size="lg"
+              >
+                <IconPaperclip size={16} />
+              </ActionIcon>
+            </Tooltip>
 
             {/* Voice Recording */}
-            <Button
-              type="button"
-              variant={isRecording ? "destructive" : "outline"}
-              size="icon"
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={disabled || isLoading}
-              className={isRecording 
-                ? "bg-red-600 hover:bg-red-700 h-9 w-9 rounded-lg" 
-                : "glass-light hover:bg-white/10 text-gray-400 hover:text-white border-white/10 h-9 w-9 rounded-lg"}
-              title={isRecording ? t('chat.voice.stopRecording') : t('chat.voice.input')}
-            >
-              {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-            </Button>
+            <Tooltip label={isRecording ? t('chat.voice.stopRecording') : t('chat.voice.input')}>
+              <ActionIcon
+                variant={isRecording ? 'filled' : 'light'}
+                color={isRecording ? 'red' : 'gray'}
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={disabled || isLoading}
+                size="lg"
+              >
+                {isRecording ? <IconMicrophoneOff size={16} /> : <IconMicrophone size={16} />}
+              </ActionIcon>
+            </Tooltip>
 
             {/* Quick Actions */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  disabled={disabled || isLoading || isRecording || !currentCharacter}
-                  className="glass-light hover:bg-white/10 text-gray-400 hover:text-white border-white/10 h-9 w-9 rounded-lg"
-                  title={t('chat.quickActions.title')}
-                >
-                  <Sparkles className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 glass-card border-white/10 rounded-xl">
+            <Menu position="top-end" shadow="md" withinPortal>
+              <Menu.Target>
+                <Tooltip label={t('chat.quickActions.title')}>
+                  <ActionIcon
+                    variant="light"
+                    disabled={disabled || isLoading || isRecording || !currentCharacter}
+                    size="lg"
+                  >
+                    <IconSparkles size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Menu.Target>
+              <Menu.Dropdown>
                 {quickActions.map((action, index) => (
-                  <DropdownMenuItem
+                  <Menu.Item
                     key={index}
                     onClick={action.action}
-                    className="cursor-pointer hover:bg-white/10 rounded-lg text-sm"
                   >
                     {action.label}
-                  </DropdownMenuItem>
+                  </Menu.Item>
                 ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </Menu.Dropdown>
+            </Menu>
 
             {/* Send Button - Slightly larger for prominence */}
-            <Button
-              type="button"
-              onClick={handleSend}
-              disabled={
-                disabled ||
-                isLoading ||
-                isRecording ||
-                !message.trim() ||
-                !currentCharacter ||
-                !isModelReady
-              }
-              className="gradient-btn-primary h-10 w-10 rounded-lg disabled:opacity-50"
-              title={t('chat.message.sendEnter')}
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
+            <Tooltip label={t('chat.message.sendEnter')}>
+              <ActionIcon
+                variant="gradient"
+                gradient={{ from: 'cyan', to: 'blue', deg: 90 }}
+                onClick={handleSend}
+                disabled={
+                  disabled ||
+                  isLoading ||
+                  isRecording ||
+                  !message.trim() ||
+                  !currentCharacter ||
+                  !isModelReady
+                }
+                size={40}
+                style={{
+                  opacity: (disabled || isLoading || isRecording || !message.trim() || !currentCharacter || !isModelReady) ? 0.5 : 1,
+                }}
+              >
+                <IconSend size={16} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+        </Group>
 
         {/* Character Counter - Compact, shown only when typing */}
         {message.length > 100 && (
-          <div className="flex justify-end mt-1 px-1">
-            <span className={`text-xs ${message.length > 3800 ? 'text-red-400 font-bold' : 'text-gray-500'}`}>
+          <Group justify="flex-end" px="xs">
+            <Text
+              size="xs"
+              c={message.length > 3800 ? 'red.4' : 'dimmed'}
+              fw={message.length > 3800 ? 700 : 400}
+            >
               {message.length}/4000
-            </span>
-          </div>
+            </Text>
+          </Group>
         )}
 
         {/* Creative Intent Controls - Compact Single Row */}
         {currentCharacter && (
-          <div className="mt-2 px-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setStoryAdvance(!storyAdvance)}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md border transition-all ${
-                  storyAdvance 
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-400/40' 
-                    : 'bg-gray-800/40 text-amber-400/60 border-amber-400/20 hover:text-amber-300 hover:border-amber-300/30'
-                }`}
-                aria-label="剧情推进"
+          <Group gap={6} px="xs">
+            <Button
+              variant={storyAdvance ? 'light' : 'subtle'}
+              color={storyAdvance ? 'yellow' : 'gray'}
+              size="xs"
+              onClick={() => setStoryAdvance(!storyAdvance)}
+              leftSection={
+                storyAdvance && (
+                  <Box
+                    style={{
+                      width: '4px',
+                      height: '4px',
+                      borderRadius: '50%',
+                      backgroundColor: 'rgb(251, 191, 36)',
+                      animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }}
+                  />
+                )
+              }
+              styles={{
+                root: {
+                  border: storyAdvance
+                    ? '1px solid rgba(251, 191, 36, 0.4)'
+                    : '1px solid rgba(251, 191, 36, 0.2)',
+                },
+              }}
+            >
+              剧情推进
+            </Button>
+            
+            <Button
+              variant={povMode ? 'light' : 'subtle'}
+              color={povMode ? 'teal' : 'gray'}
+              size="xs"
+              onClick={() => setPovMode(povMode === null ? 'first' : povMode === 'first' ? 'third' : null)}
+              leftSection={
+                povMode && (
+                  <Box
+                    style={{
+                      width: '4px',
+                      height: '4px',
+                      borderRadius: '50%',
+                      backgroundColor: 'rgb(45, 212, 191)',
+                      animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }}
+                  />
+                )
+              }
+              styles={{
+                root: {
+                  border: povMode
+                    ? '1px solid rgba(45, 212, 191, 0.4)'
+                    : '1px solid rgba(45, 212, 191, 0.2)',
+                },
+              }}
+            >
+              {povMode ? (povMode === 'first' ? '第一人称' : '第三人称') : '视角设计'}
+            </Button>
+            
+            <Button
+              variant={sceneTransitionOnce ? 'light' : 'subtle'}
+              color={sceneTransitionOnce ? 'violet' : 'gray'}
+              size="xs"
+              onClick={() => setSceneTransitionOnce(true)}
+              leftSection={
+                sceneTransitionOnce && (
+                  <Box
+                    style={{
+                      width: '4px',
+                      height: '4px',
+                      borderRadius: '50%',
+                      backgroundColor: 'rgb(168, 85, 247)',
+                      animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }}
+                  />
+                )
+              }
+              styles={{
+                root: {
+                  border: sceneTransitionOnce
+                    ? '1px solid rgba(168, 85, 247, 0.4)'
+                    : '1px solid rgba(168, 85, 247, 0.2)',
+                },
+              }}
+            >
+              场景过渡
+            </Button>
+            
+            {(storyAdvance || povMode || sceneTransitionOnce) && (
+              <Button
+                variant="subtle"
+                color="gray"
+                size="xs"
+                onClick={clearAll}
+                leftSection={<IconX size={12} />}
               >
-                {storyAdvance && <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse"></span>}
-                剧情推进
-              </button>
-              <button
-                type="button"
-                onClick={() => setPovMode(povMode === null ? 'first' : povMode === 'first' ? 'third' : null)}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md border transition-all ${
-                  povMode 
-                    ? 'bg-teal-500/20 text-teal-300 border-teal-400/40' 
-                    : 'bg-gray-800/40 text-teal-400/60 border-teal-400/20 hover:text-teal-300 hover:border-teal-300/30'
-                }`}
-                aria-label="视角设计"
-              >
-                {povMode && <span className="w-1 h-1 rounded-full bg-teal-400 animate-pulse"></span>}
-                {povMode ? (povMode === 'first' ? '第一人称' : '第三人称') : '视角设计'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSceneTransitionOnce(true)}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md border transition-all ${
-                  sceneTransitionOnce 
-                    ? 'bg-purple-500/20 text-purple-300 border-purple-400/40' 
-                    : 'bg-gray-800/40 text-purple-400/60 border-purple-400/20 hover:text-purple-300 hover:border-purple-300/30'
-                }`}
-                aria-label="场景过渡"
-              >
-                {sceneTransitionOnce && <span className="w-1 h-1 rounded-full bg-purple-400 animate-pulse"></span>}
-                场景过渡
-              </button>
-              {(storyAdvance || povMode || sceneTransitionOnce) && (
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md border bg-gray-800/40 text-gray-400 border-white/10 hover:bg-gray-700/50 hover:text-white transition-all"
-                >
-                  <X className="w-3 h-3" />
-                  清空
-                </button>
-              )}
-            </div>
-          </div>
+                清空
+              </Button>
+            )}
+          </Group>
         )}
 
         {/* Keyboard Shortcuts - Show on focus */}
         {showShortcuts && (
-          <div className="flex items-center gap-2 mt-1.5 px-1 text-xs text-gray-500 animate-in fade-in duration-200">
-            <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-gray-800/50 rounded text-blue-400">↵</kbd>
-              <span className="hidden sm:inline">{t('chat.shortcuts.send')}</span>
-            </span>
-            <span className="hidden sm:flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-gray-800/50 rounded text-purple-400">⇧↵</kbd>
-              {t('chat.shortcuts.newline')}
-            </span>
-          </div>
+          <Group gap="sm" px="xs" style={{ fontSize: '0.75rem', color: 'rgb(107, 114, 128)' }}>
+            <Group gap={4}>
+              <kbd
+                style={{
+                  padding: '2px 6px',
+                  backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                  borderRadius: '0.25rem',
+                  color: 'rgb(96, 165, 250)',
+                }}
+              >
+                ↵
+              </kbd>
+              <Text size="xs" visibleFrom="sm">
+                {t('chat.shortcuts.send')}
+              </Text>
+            </Group>
+            <Group gap={4} visibleFrom="sm">
+              <kbd
+                style={{
+                  padding: '2px 6px',
+                  backgroundColor: 'rgba(31, 41, 55, 0.5)',
+                  borderRadius: '0.25rem',
+                  color: 'rgb(168, 85, 247)',
+                }}
+              >
+                ⇧↵
+              </kbd>
+              <Text size="xs">{t('chat.shortcuts.newline')}</Text>
+            </Group>
+          </Group>
         )}
-      </div>
-    </div>
+      </Stack>
+    </Box>
   )
 }

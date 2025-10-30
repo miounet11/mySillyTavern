@@ -5,9 +5,9 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowDown, RotateCcw, Loader2, AlertCircle } from 'lucide-react'
 import { useChatStore } from '@/stores/chatStore'
-import { Button } from '@/components/ui/button'
+import { Group, Button, Badge, Tooltip, Loader } from '@mantine/core'
+import { IconArrowDown, IconRefresh, IconAlertCircle } from '@tabler/icons-react'
 import toast from 'react-hot-toast'
 import { useTranslation } from '@/lib/i18n'
 
@@ -51,69 +51,169 @@ export default function ChatControlBar({
   const shouldShowCheckButton = messages.length > 0
 
   return (
-    <div className="flex items-center justify-between gap-3 px-3 sm:px-4 py-2 glass-light border-b border-gray-800/30 backdrop-blur-sm">
+    <Group
+      justify="space-between"
+      gap="xs"
+      px={{ base: 'xs', sm: 'md' }}
+      py="xs"
+      style={{
+        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+        borderBottom: '1px solid rgba(55, 65, 81, 0.3)',
+        backdropFilter: 'blur(8px)',
+      }}
+    >
       {/* Left Side - Info */}
-      <div className="flex items-center gap-2 text-xs text-gray-400">
+      <Group gap="xs">
         {messages.length > 0 && (
-          <span className="glass-light px-2.5 py-1 rounded-md flex items-center gap-1.5">
-            <span className="hidden sm:inline">共</span>
-            <span className="font-medium text-blue-400">{messages.length}</span>
-            <span className="hidden sm:inline">条消息</span>
-            <span className="sm:hidden">条</span>
-          </span>
+          <Badge
+            variant="light"
+            color="blue"
+            size="md"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            }}
+          >
+            {messages.length} 条消息
+          </Badge>
         )}
-      </div>
+      </Group>
 
       {/* Right Side - Action Controls */}
-      <div className="flex items-center gap-1.5">
+      <Group gap={6}>
         {/* Check Incomplete Button */}
         {shouldShowCheckButton && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCheckIncomplete}
-            disabled={disabled || isGenerating}
-            className="h-7 px-2.5 text-xs font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-500/20 transition-all duration-300 rounded-lg"
-            title="检查对话完整性"
-          >
-            <AlertCircle className="w-3.5 h-3.5 sm:mr-1.5" />
-            <span className="hidden sm:inline">检测中断</span>
-          </Button>
+          <Tooltip label="检查对话完整性" position="top">
+            <Button
+              variant="subtle"
+              size="compact-sm"
+              color="yellow"
+              onClick={handleCheckIncomplete}
+              disabled={disabled || isGenerating}
+              leftSection={<IconAlertCircle size={14} />}
+              styles={{
+                root: {
+                  height: '28px',
+                  fontSize: '0.75rem',
+                },
+              }}
+              visibleFrom="sm"
+            >
+              检测中断
+            </Button>
+          </Tooltip>
+        )}
+        {shouldShowCheckButton && (
+          <Tooltip label="检查对话完整性" position="top" hiddenFrom="sm">
+            <Button
+              variant="subtle"
+              size="compact-sm"
+              color="yellow"
+              onClick={handleCheckIncomplete}
+              disabled={disabled || isGenerating}
+              styles={{
+                root: {
+                  height: '28px',
+                  padding: '0 8px',
+                },
+              }}
+              hiddenFrom="sm"
+            >
+              <IconAlertCircle size={14} />
+            </Button>
+          </Tooltip>
         )}
 
         {/* Regenerate Button */}
         {showRegenerate && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRegenerate}
-            disabled={disabled || isGenerating}
-            className="h-7 px-2.5 text-xs font-medium text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 transition-all duration-300 rounded-lg"
-            title="重新生成最后一条回复"
-          >
-            {isGenerating ? (
-              <Loader2 className="w-3.5 h-3.5 sm:mr-1.5 animate-spin" />
-            ) : (
-              <RotateCcw className="w-3.5 h-3.5 sm:mr-1.5" />
-            )}
-            <span className="hidden sm:inline">重新生成</span>
-          </Button>
+          <Tooltip label="重新生成最后一条回复" position="top">
+            <Button
+              variant="subtle"
+              size="compact-sm"
+              onClick={onRegenerate}
+              disabled={disabled || isGenerating}
+              leftSection={
+                isGenerating ? (
+                  <Loader size={14} />
+                ) : (
+                  <IconRefresh size={14} />
+                )
+              }
+              styles={{
+                root: {
+                  height: '28px',
+                  fontSize: '0.75rem',
+                },
+              }}
+              visibleFrom="sm"
+            >
+              重新生成
+            </Button>
+          </Tooltip>
+        )}
+        {showRegenerate && (
+          <Tooltip label="重新生成最后一条回复" position="top" hiddenFrom="sm">
+            <Button
+              variant="subtle"
+              size="compact-sm"
+              onClick={onRegenerate}
+              disabled={disabled || isGenerating}
+              styles={{
+                root: {
+                  height: '28px',
+                  padding: '0 8px',
+                },
+              }}
+              hiddenFrom="sm"
+            >
+              {isGenerating ? (
+                <Loader size={14} />
+              ) : (
+                <IconRefresh size={14} />
+              )}
+            </Button>
+          </Tooltip>
         )}
 
         {/* Scroll to Bottom Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onScrollToBottom}
-          disabled={disabled}
-          className="h-7 px-2.5 text-xs font-medium text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 transition-all duration-300 rounded-lg"
-          title="跳转到对话底部"
-        >
-          <ArrowDown className="w-3.5 h-3.5 sm:mr-1.5" />
-          <span className="hidden sm:inline">跳转底部</span>
-        </Button>
-      </div>
-    </div>
+        <Tooltip label="跳转到对话底部" position="top">
+          <Button
+            variant="subtle"
+            size="compact-sm"
+            color="cyan"
+            onClick={onScrollToBottom}
+            disabled={disabled}
+            leftSection={<IconArrowDown size={14} />}
+            styles={{
+              root: {
+                height: '28px',
+                fontSize: '0.75rem',
+              },
+            }}
+            visibleFrom="sm"
+          >
+            跳转底部
+          </Button>
+        </Tooltip>
+        <Tooltip label="跳转到对话底部" position="top" hiddenFrom="sm">
+          <Button
+            variant="subtle"
+            size="compact-sm"
+            color="cyan"
+            onClick={onScrollToBottom}
+            disabled={disabled}
+            styles={{
+              root: {
+                height: '28px',
+                padding: '0 8px',
+              },
+            }}
+            hiddenFrom="sm"
+          >
+            <IconArrowDown size={14} />
+          </Button>
+        </Tooltip>
+      </Group>
+    </Group>
   )
 }
 

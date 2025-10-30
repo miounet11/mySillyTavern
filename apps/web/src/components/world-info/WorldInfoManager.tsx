@@ -3,27 +3,35 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Plus, Search, Edit, Trash2, Globe, Users, Book, Settings, Eye, EyeOff } from 'lucide-react'
+import { 
+  IconPlus, 
+  IconSearch, 
+  IconEdit, 
+  IconTrash, 
+  IconWorld, 
+  IconUsers, 
+  IconBook, 
+  IconDots, 
+  IconEye, 
+  IconEyeOff 
+} from '@tabler/icons-react'
 import { WorldInfo } from '@sillytavern-clone/shared'
 import { useCharacterStore } from '@/stores/characterStore'
 import toast from 'react-hot-toast'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
+import { 
+  Button, 
+  TextInput, 
+  Table, 
+  Badge, 
+  Menu, 
+  ActionIcon, 
+  Loader, 
+  Stack, 
+  Group, 
+  Text, 
+  Box,
+  SegmentedControl
+} from '@mantine/core'
 import WorldInfoModal from './WorldInfoModal'
 
 interface WorldInfoManagerProps {
@@ -170,188 +178,176 @@ export default function WorldInfoManager({ className = '' }: WorldInfoManagerPro
   }
 
   return (
-    <div className={`space-y-6 ${className}`}>
+    <Stack gap="lg" className={className}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-100">世界信息</h2>
-          <p className="text-gray-400">管理聊天中的背景知识和世界设定</p>
-        </div>
-        <Button onClick={handleCreateWorldInfo} className="tavern-button">
-          <Plus className="w-4 h-4 mr-2" />
+      <Group justify="space-between" align="flex-start">
+        <Box>
+          <Text size="xl" fw={700}>世界信息</Text>
+          <Text size="sm" c="dimmed">管理聊天中的背景知识和世界设定</Text>
+        </Box>
+        <Button 
+          onClick={handleCreateWorldInfo} 
+          leftSection={<IconPlus size={16} />}
+          gradient={{ from: 'teal', to: 'cyan' }}
+          variant="gradient"
+        >
           创建世界信息
         </Button>
-      </div>
+      </Group>
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder="搜索世界信息..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 tavern-input"
-          />
-        </div>
+      <Group gap="md" wrap="nowrap">
+        <TextInput
+          placeholder="搜索世界信息..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.currentTarget.value)}
+          leftSection={<IconSearch size={16} />}
+          style={{ flex: 1 }}
+        />
 
-        <div className="flex border border-gray-700 rounded-lg">
-          {[
-            { key: 'all', label: '全部', icon: Book },
-            { key: 'global', label: '全局', icon: Globe },
-            { key: 'character', label: '角色专用', icon: Users },
-          ].map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setFilterMode(key as any)}
-              className={`flex items-center space-x-2 px-4 py-2 text-sm transition-colors ${
-                filterMode === key
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+        <SegmentedControl
+          value={filterMode}
+          onChange={(value) => setFilterMode(value as 'all' | 'global' | 'character')}
+          data={[
+            { value: 'all', label: '全部' },
+            { value: 'global', label: '全局' },
+            { value: 'character', label: '角色专用' }
+          ]}
+        />
+      </Group>
 
       {/* World Info List */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+      <Box 
+        style={{
+          backgroundColor: 'var(--mantine-color-dark-7)',
+          borderRadius: 'var(--mantine-radius-md)',
+          border: '1px solid var(--mantine-color-dark-5)',
+          overflow: 'hidden'
+        }}
+      >
         {isLoading ? (
-          <div className="flex items-center justify-center py-12 text-gray-500">
-            <div className="text-center">
-              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p>加载世界信息...</p>
-            </div>
-          </div>
+          <Stack align="center" gap="md" py={60}>
+            <Loader color="blue" />
+            <Text c="dimmed">加载世界信息...</Text>
+          </Stack>
         ) : filteredWorldInfos.length === 0 ? (
-          <div className="flex items-center justify-center py-12 text-gray-500">
-            <div className="text-center">
-              <Book className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-medium mb-2">
-                {searchQuery ? '没有找到匹配的世界信息' : '还没有世界信息'}
-              </h3>
-              <p className="text-sm mb-4">
-                {searchQuery ? '尝试其他搜索词' : '创建第一个世界信息来开始'}
-              </p>
-              {!searchQuery && (
-                <Button onClick={handleCreateWorldInfo} className="tavern-button">
-                  <Plus className="w-4 h-4 mr-2" />
-                  创建世界信息
-                </Button>
-              )}
-            </div>
-          </div>
+          <Stack align="center" gap="md" py={60}>
+            <IconBook size={48} opacity={0.5} />
+            <Text size="lg" fw={500}>
+              {searchQuery ? '没有找到匹配的世界信息' : '还没有世界信息'}
+            </Text>
+            <Text size="sm" c="dimmed">
+              {searchQuery ? '尝试其他搜索词' : '创建第一个世界信息来开始'}
+            </Text>
+            {!searchQuery && (
+              <Button 
+                onClick={handleCreateWorldInfo}
+                leftSection={<IconPlus size={16} />}
+              >
+                创建世界信息
+              </Button>
+            )}
+          </Stack>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>名称</TableHead>
-                  <TableHead>类型</TableHead>
-                  <TableHead>条目数量</TableHead>
-                  <TableHead>关联角色</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>更新时间</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredWorldInfos.map((info) => (
-                  <TableRow key={info.id} className="border-gray-700">
-                    <TableCell>
-                      <div>
-                        <h3 className="font-medium text-gray-100">{info.name}</h3>
-                        <p className="text-sm text-gray-400 line-clamp-1">{info.description}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={info.isGlobal ? 'default' : 'secondary'}>
-                        {info.isGlobal ? '全局' : '角色专用'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-gray-300">{info.entries?.length || 0}</span>
-                    </TableCell>
-                    <TableCell>
-                      {info.characterIds.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {info.characterIds.slice(0, 2).map((characterId: string) => (
-                            <Badge key={characterId} variant="outline" className="text-xs">
-                              {getCharacterName(characterId)}
-                            </Badge>
-                          ))}
-                          {info.characterIds.length > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{info.characterIds.length - 2}
-                            </Badge>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-gray-500">无</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <button
-                        onClick={() => handleToggleActive(info.id, info.isActive || false)}
-                        className="flex items-center space-x-1 text-sm"
-                      >
-                        {info.isActive ? (
-                          <Eye className="w-4 h-4 text-green-400" />
-                        ) : (
-                          <EyeOff className="w-4 h-4 text-gray-400" />
+          <Table highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>名称</Table.Th>
+                <Table.Th>类型</Table.Th>
+                <Table.Th>条目数量</Table.Th>
+                <Table.Th>关联角色</Table.Th>
+                <Table.Th>状态</Table.Th>
+                <Table.Th>更新时间</Table.Th>
+                <Table.Th ta="right">操作</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {filteredWorldInfos.map((info) => (
+                <Table.Tr key={info.id}>
+                  <Table.Td>
+                    <Stack gap={4}>
+                      <Text fw={500}>{info.name}</Text>
+                      <Text size="sm" c="dimmed" lineClamp={1}>{info.description}</Text>
+                    </Stack>
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge color={info.isGlobal ? 'blue' : 'gray'} variant="light">
+                      {info.isGlobal ? '全局' : '角色专用'}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text>{info.entries?.length || 0}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    {info.characterIds.length > 0 ? (
+                      <Group gap={4}>
+                        {info.characterIds.slice(0, 2).map((characterId: string) => (
+                          <Badge key={characterId} variant="outline" size="xs">
+                            {getCharacterName(characterId)}
+                          </Badge>
+                        ))}
+                        {info.characterIds.length > 2 && (
+                          <Badge variant="outline" size="xs">
+                            +{info.characterIds.length - 2}
+                          </Badge>
                         )}
-                        <span className={info.isActive ? 'text-green-400' : 'text-gray-400'}>
-                          {info.isActive ? '启用' : '禁用'}
-                        </span>
-                      </button>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-gray-400">
-                        {formatDate(info.updatedAt)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-200">
-                            <Settings className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEditWorldInfo(info)}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            编辑
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleToggleActive(info.id, info.isActive || false)}
-                          >
-                            {info.isActive ? (
-                              <EyeOff className="w-4 h-4 mr-2" />
-                            ) : (
-                              <Eye className="w-4 h-4 mr-2" />
-                            )}
-                            {info.isActive ? '禁用' : '启用'}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteWorldInfo(info.id)}
-                            className="text-red-500 hover:text-red-400"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            删除
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                      </Group>
+                    ) : (
+                      <Text c="dimmed">无</Text>
+                    )}
+                  </Table.Td>
+                  <Table.Td>
+                    <Button
+                      onClick={() => handleToggleActive(info.id, info.isActive || false)}
+                      variant="subtle"
+                      size="compact-sm"
+                      leftSection={info.isActive ? <IconEye size={16} /> : <IconEyeOff size={16} />}
+                      color={info.isActive ? 'green' : 'gray'}
+                    >
+                      {info.isActive ? '启用' : '禁用'}
+                    </Button>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm" c="dimmed">
+                      {formatDate(info.updatedAt)}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td ta="right">
+                    <Menu position="bottom-end">
+                      <Menu.Target>
+                        <ActionIcon variant="subtle" color="gray">
+                          <IconDots size={16} />
+                        </ActionIcon>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        <Menu.Item 
+                          leftSection={<IconEdit size={16} />}
+                          onClick={() => handleEditWorldInfo(info)}
+                        >
+                          编辑
+                        </Menu.Item>
+                        <Menu.Item
+                          leftSection={info.isActive ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+                          onClick={() => handleToggleActive(info.id, info.isActive || false)}
+                        >
+                          {info.isActive ? '禁用' : '启用'}
+                        </Menu.Item>
+                        <Menu.Item
+                          leftSection={<IconTrash size={16} />}
+                          color="red"
+                          onClick={() => handleDeleteWorldInfo(info.id)}
+                        >
+                          删除
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
         )}
-      </div>
+      </Box>
 
       {/* World Info Modal */}
       <WorldInfoModal
@@ -364,6 +360,6 @@ export default function WorldInfoManager({ className = '' }: WorldInfoManagerPro
         editingWorldInfo={editingWorldInfo}
         characters={characters}
       />
-    </div>
+    </Stack>
   )
 }

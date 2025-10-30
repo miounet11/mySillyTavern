@@ -1,23 +1,28 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { 
-  Search, 
-  Star, 
-  Copy, 
-  Check,
-  FileText,
-  Sparkles 
-} from 'lucide-react'
+  Modal, 
+  Button, 
+  TextInput, 
+  Stack, 
+  Group, 
+  Text, 
+  Badge, 
+  ActionIcon, 
+  Loader, 
+  ScrollArea,
+  Box
+} from '@mantine/core'
+import { 
+  IconSearch, 
+  IconStar, 
+  IconStarFilled,
+  IconCopy, 
+  IconCheck,
+  IconFileText,
+  IconSparkles 
+} from '@tabler/icons-react'
 import toast from 'react-hot-toast'
 
 interface PromptTemplate {
@@ -122,134 +127,144 @@ export default function ExternalPromptsDialog({
   }, [searchQuery, isOpen])
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] bg-gray-900/95 backdrop-blur-xl rounded-lg border border-gray-700/50 flex flex-col shadow-2xl overflow-y-auto tavern-scrollbar">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-gray-100 flex items-center gap-2">
-            <FileText className="w-6 h-6 text-blue-400" />
-            外部提示词库
-          </DialogTitle>
-          <DialogDescription className="text-gray-400">
-            选择一个提示词模板来增强AI的回复效果
-          </DialogDescription>
-        </DialogHeader>
+    <Modal
+      opened={isOpen}
+      onClose={onClose}
+      size="xl"
+      title={
+        <Group gap="xs">
+          <IconFileText size={24} color="var(--mantine-color-blue-4)" />
+          <Text size="xl" fw={700}>外部提示词库</Text>
+        </Group>
+      }
+      styles={{
+        content: { maxHeight: '90vh' },
+        body: { height: 'calc(90vh - 60px)', display: 'flex', flexDirection: 'column' }
+      }}
+    >
+      <Stack style={{ flex: 1, overflow: 'hidden' }} gap="md">
+        <Text size="sm" c="dimmed">
+          选择一个提示词模板来增强AI的回复效果
+        </Text>
 
         {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input
-            placeholder="搜索提示词..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 tavern-input"
-          />
-        </div>
+        <TextInput
+          placeholder="搜索提示词..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.currentTarget.value)}
+          leftSection={<IconSearch size={16} />}
+        />
 
         {/* Templates List */}
-        <div className="flex-1 overflow-y-auto tavern-scrollbar pr-2">
+        <ScrollArea style={{ flex: 1 }}>
           {isLoading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
-              <p className="mt-4 text-gray-400">加载中...</p>
-            </div>
+            <Stack align="center" gap="md" py={60}>
+              <Loader color="blue" />
+              <Text c="dimmed">加载中...</Text>
+            </Stack>
           ) : templates.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <Sparkles className="w-16 h-16 mx-auto mb-4 opacity-30" />
-              <p>没有找到匹配的提示词</p>
-            </div>
+            <Stack align="center" gap="md" py={60}>
+              <IconSparkles size={64} opacity={0.3} />
+              <Text c="dimmed">没有找到匹配的提示词</Text>
+            </Stack>
           ) : (
-            <div className="space-y-3">
+            <Stack gap="xs">
               {templates.map((template) => (
-                <div
+                <Box
                   key={template.id}
-                  className={`p-4 rounded-lg border transition-all cursor-pointer ${
-                    selectedTemplate?.id === template.id
-                      ? 'border-blue-500 bg-blue-900/20'
-                      : 'border-gray-700 bg-gray-800/50 hover:border-gray-600 hover:bg-gray-800'
-                  }`}
+                  p="md"
+                  style={{
+                    borderRadius: 'var(--mantine-radius-md)',
+                    border: selectedTemplate?.id === template.id 
+                      ? '1px solid var(--mantine-color-blue-5)' 
+                      : '1px solid var(--mantine-color-dark-5)',
+                    backgroundColor: selectedTemplate?.id === template.id
+                      ? 'var(--mantine-color-blue-9)'
+                      : 'var(--mantine-color-dark-7)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
                   onClick={() => setSelectedTemplate(template)}
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-white flex items-center gap-2">
-                        {template.name}
+                  <Group justify="space-between" align="flex-start" mb={selectedTemplate?.id === template.id ? "sm" : 0}>
+                    <Stack gap={4} style={{ flex: 1 }}>
+                      <Group gap="xs">
+                        <Text fw={600}>{template.name}</Text>
                         {template.isBuiltin && (
-                          <span className="text-xs px-2 py-0.5 bg-purple-600/20 text-purple-300 rounded">
-                            官方
-                          </span>
+                          <Badge size="sm" variant="light" color="violet">官方</Badge>
                         )}
-                      </h4>
+                      </Group>
                       {template.description && (
-                        <p className="text-sm text-gray-400 mt-1">{template.description}</p>
+                        <Text size="sm" c="dimmed">{template.description}</Text>
                       )}
-                    </div>
+                    </Stack>
                     
-                    <button
+                    <ActionIcon
                       onClick={(e) => {
                         e.stopPropagation()
                         handleToggleFavorite(template)
                       }}
-                      className={`ml-2 p-1.5 rounded-lg transition-colors ${
-                        template.isFavorite
-                          ? 'text-yellow-400 hover:text-yellow-300'
-                          : 'text-gray-500 hover:text-yellow-400'
-                      }`}
+                      variant="subtle"
+                      color="yellow"
                     >
-                      <Star className={`w-4 h-4 ${template.isFavorite ? 'fill-current' : ''}`} />
-                    </button>
-                  </div>
+                      {template.isFavorite ? (
+                        <IconStarFilled size={16} />
+                      ) : (
+                        <IconStar size={16} />
+                      )}
+                    </ActionIcon>
+                  </Group>
 
                   {selectedTemplate?.id === template.id && (
-                    <div className="mt-3 pt-3 border-t border-gray-700">
-                      <p className="text-sm text-gray-300 mb-3 whitespace-pre-wrap">
+                    <Stack gap="sm" mt="md" pt="md" style={{ borderTop: '1px solid var(--mantine-color-dark-5)' }}>
+                      <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
                         {template.content}
-                      </p>
-                      <div className="flex gap-2">
+                      </Text>
+                      <Group gap="xs">
                         <Button
                           onClick={(e) => {
                             e.stopPropagation()
                             handleApply(template)
                           }}
-                          className="flex-1 tavern-button"
+                          style={{ flex: 1 }}
                           size="sm"
                         >
                           应用提示词
                         </Button>
-                        <Button
+                        <ActionIcon
                           onClick={(e) => {
                             e.stopPropagation()
                             handleCopy(template)
                           }}
-                          variant="outline"
-                          className="tavern-button-secondary"
-                          size="sm"
+                          variant="default"
+                          size="lg"
                         >
                           {copiedId === template.id ? (
-                            <Check className="w-4 h-4" />
+                            <IconCheck size={18} />
                           ) : (
-                            <Copy className="w-4 h-4" />
+                            <IconCopy size={18} />
                           )}
-                        </Button>
-                      </div>
-                    </div>
+                        </ActionIcon>
+                      </Group>
+                    </Stack>
                   )}
-                </div>
+                </Box>
               ))}
-            </div>
+            </Stack>
           )}
-        </div>
+        </ScrollArea>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-800">
-          <div className="text-sm text-gray-500">
+        <Group justify="space-between" pt="md" style={{ borderTop: '1px solid var(--mantine-color-dark-5)' }}>
+          <Text size="sm" c="dimmed">
             共 {templates.length} 个提示词模板
-          </div>
-          <Button variant="ghost" onClick={onClose}>
+          </Text>
+          <Button variant="subtle" onClick={onClose}>
             关闭
           </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </Group>
+      </Stack>
+    </Modal>
   )
 }
 

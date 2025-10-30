@@ -6,25 +6,25 @@
 
 import { useState, useEffect } from 'react'
 import {
-  Settings,
-  User,
-  Database,
-  Puzzle,
-  Palette,
-  Save,
-  Download,
-  Upload,
-  Plus,
-  Edit,
-  Trash2,
-  Power,
-  X,
-} from 'lucide-react'
+  IconSettings,
+  IconUser,
+  IconDatabase,
+  IconPuzzle,
+  IconPalette,
+  IconDeviceFloppy,
+  IconDownload,
+  IconUpload,
+  IconPlus,
+  IconEdit,
+  IconTrash,
+  IconPower,
+  IconX,
+} from '@tabler/icons-react'
+import { Button as MantineButton, TextInput, Badge, Stack, Box, Text } from '@mantine/core'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import AIModelDrawer from '@/components/ai/AIModelDrawer'
 import { useAIModelStore } from '@/stores/aiModelStore'
 import { ProviderList } from './ProviderList'
@@ -328,7 +328,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
-                <Settings className="w-5 h-5 text-white" />
+                <IconSettings className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-gray-100">
@@ -345,7 +345,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
               title="关闭设置"
             >
-              <X className="w-5 h-5" />
+              <IconX className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -353,19 +353,19 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <TabsList className="mx-6 mt-3 grid w-[calc(100%-3rem)] grid-cols-4 flex-shrink-0">
               <TabsTrigger value="general" className="text-xs">
-                <User className="w-3.5 h-3.5 mr-1.5" />
+                <IconUser className="w-3.5 h-3.5 mr-1.5" />
                 常规
               </TabsTrigger>
               <TabsTrigger value="models" className="text-xs">
-                <Database className="w-3.5 h-3.5 mr-1.5" />
+                <IconDatabase className="w-3.5 h-3.5 mr-1.5" />
                 模型
               </TabsTrigger>
               <TabsTrigger value="interface" className="text-xs">
-                <Palette className="w-3.5 h-3.5 mr-1.5" />
+                <IconPalette className="w-3.5 h-3.5 mr-1.5" />
                 界面
               </TabsTrigger>
               <TabsTrigger value="plugins" className="text-xs">
-                <Puzzle className="w-3.5 h-3.5 mr-1.5" />
+                <IconPuzzle className="w-3.5 h-3.5 mr-1.5" />
                 插件
               </TabsTrigger>
             </TabsList>
@@ -447,17 +447,17 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                 <div className="flex items-center justify-between pt-4">
                   <div className="space-y-1">
                     <Button onClick={saveGeneralSettings} className="tavern-button">
-                      <Save className="w-4 h-4 mr-2" />
+                      <IconDeviceFloppy className="w-4 h-4 mr-2" />
                       保存设置
                     </Button>
                   </div>
                   <div className="flex gap-2">
                     <Button onClick={handleExportData} variant="outline" size="sm" className="tavern-button-secondary">
-                      <Download className="w-4 h-4 mr-2" />
+                      <IconDownload className="w-4 h-4 mr-2" />
                       导出
                     </Button>
                     <Button onClick={handleImportData} variant="outline" size="sm" className="tavern-button-secondary">
-                      <Upload className="w-4 h-4 mr-2" />
+                      <IconUpload className="w-4 h-4 mr-2" />
                       导入
                     </Button>
                   </div>
@@ -595,7 +595,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                 </div>
 
                 <Button onClick={saveGeneralSettings} className="w-full tavern-button">
-                  <Save className="w-4 h-4 mr-2" />
+                  <IconDeviceFloppy className="w-4 h-4 mr-2" />
                   保存界面设置
                 </Button>
               </div>
@@ -607,7 +607,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-semibold text-gray-300">插件管理</h3>
                   <Button size="sm" variant="outline" className="tavern-button-secondary text-xs">
-                    <Plus className="w-3 h-3 mr-1" />
+                    <IconPlus className="w-3 h-3 mr-1" />
                     安装插件
                   </Button>
                 </div>
@@ -618,7 +618,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                   </div>
                 ) : plugins.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
-                    <Puzzle className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                    <IconPuzzle className="w-16 h-16 mx-auto mb-4 opacity-30" />
                     <p className="text-sm mb-2">还没有安装插件</p>
                     <p className="text-xs text-gray-600">点击"安装插件"按钮添加插件</p>
                   </div>

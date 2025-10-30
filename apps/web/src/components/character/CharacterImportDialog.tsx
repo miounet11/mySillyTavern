@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { X, Upload } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Modal, Button, Text, Stack, Alert, Group, FileButton } from '@mantine/core'
+import { Dropzone, FileWithPath } from '@mantine/dropzone'
+import { IconUpload, IconX, IconFile } from '@tabler/icons-react'
 
 interface CharacterImportDialogProps {
   isOpen: boolean
@@ -14,16 +15,7 @@ export default function CharacterImportDialog({ isOpen, onClose, onImported }: C
   const [preview, setPreview] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
-  if (!isOpen) return null
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault()
-    const f = e.dataTransfer.files?.[0]
-    if (!f) return
-    handleFile(f)
-  }
-
-  const handleFile = async (f: File) => {
+  const handleFile = async (f: File | FileWithPath) => {
     setError(null)
     setIsLoading(true)
     setFile(f)
@@ -61,67 +53,123 @@ export default function CharacterImportDialog({ isOpen, onClose, onImported }: C
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-[640px] rounded-xl border border-gray-700 bg-gray-900 shadow-xl">
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          <h3 className="text-sm font-semibold text-gray-200">导入角色</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-200">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="p-4 space-y-4">
-          <div
-            onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
-            className="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center bg-gray-800/40"
+    <Modal
+      opened={isOpen}
+      onClose={onClose}
+      title="导入角色"
+      size="lg"
+      centered
+    >
+      <Stack gap="md">
+        <Dropzone
+          onDrop={(files) => files[0] && handleFile(files[0])}
+          accept={['application/json', 'image/png']}
+          maxFiles={1}
+          loading={isLoading}
+          styles={{
+            root: {
+              backgroundColor: 'rgba(31, 41, 55, 0.5)',
+              borderColor: 'rgb(75, 85, 99)',
+              borderWidth: '2px',
+              borderStyle: 'dashed',
+              borderRadius: '0.5rem',
+              padding: '2rem',
+              transition: 'all 0.2s',
+              '&:hover': {
+                backgroundColor: 'rgba(31, 41, 55, 0.8)',
+                borderColor: 'rgb(96, 165, 250)',
+              },
+            },
+          }}
+        >
+          <Stack align="center" gap="sm">
+            <IconUpload size={40} color="rgb(156, 163, 175)" />
+            <Text size="sm" c="dimmed">
+              拖拽文件至此
+            </Text>
+            <FileButton
+              onChange={(file) => file && handleFile(file)}
+              accept="application/json,image/png"
+            >
+              {(props) => (
+                <Button {...props} variant="light">
+                  或选择文件
+                </Button>
+              )}
+            </FileButton>
+            <Text size="xs" c="dimmed">
+              支持 Tavern 卡片 JSON 或 PNG
+            </Text>
+          </Stack>
+        </Dropzone>
+
+        {error && (
+          <Alert
+            icon={<IconX size={16} />}
+            color="red"
+            variant="light"
+            title="错误"
           >
-            <div className="flex flex-col items-center gap-2 text-gray-300">
-              <Upload className="w-6 h-6" />
-              <p className="text-sm">拖拽文件至此，或</p>
-              <label className="tavern-button-secondary inline-flex items-center gap-2 cursor-pointer">
-                <input type="file" accept=".json,.png" className="hidden" onChange={(e) => e.target.files && handleFile(e.target.files[0])} />
-                选择文件
-              </label>
-              <p className="text-xs text-gray-500">支持 Tavern 卡片 JSON 或 PNG</p>
-            </div>
-          </div>
+            {error}
+          </Alert>
+        )}
 
-          {error && (
-            <div className="text-sm text-red-400">{error}</div>
-          )}
+        {isLoading && (
+          <Text size="sm" c="dimmed" ta="center">
+            解析中…
+          </Text>
+        )}
 
-          {isLoading && <div className="text-sm text-gray-400">解析中…</div>}
-
-          {preview && (
-            <div className="rounded-lg border border-gray-700 p-4 bg-gray-800/40">
-              <h4 className="text-xs text-gray-400 mb-2">预览映射</h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <div className="text-gray-500">名称</div>
-                  <div className="text-gray-200">{preview.mapping.name}</div>
-                </div>
-                <div>
-                  <div className="text-gray-500">问候</div>
-                  <div className="text-gray-200 line-clamp-3">{preview.normalized.greeting || '-'}</div>
-                </div>
-                <div className="col-span-2">
-                  <div className="text-gray-500">场景</div>
-                  <div className="text-gray-200 whitespace-pre-wrap">{preview.normalized.scenario || '-'}</div>
-                </div>
-                <div className="col-span-2">
-                  <div className="text-gray-500">人物设定</div>
-                  <div className="text-gray-200 whitespace-pre-wrap">{preview.normalized.personality || '-'}</div>
-                </div>
+        {preview && (
+          <Stack
+            gap="sm"
+            p="md"
+            style={{
+              backgroundColor: 'rgba(31, 41, 55, 0.5)',
+              borderRadius: '0.5rem',
+              border: '1px solid rgb(75, 85, 99)',
+            }}
+          >
+            <Text size="xs" c="dimmed" fw={600}>
+              预览映射
+            </Text>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div>
+                <Text size="xs" c="dimmed">名称</Text>
+                <Text size="sm">{preview.mapping.name}</Text>
+              </div>
+              <div>
+                <Text size="xs" c="dimmed">问候</Text>
+                <Text size="sm" lineClamp={3}>
+                  {preview.normalized.greeting || '-'}
+                </Text>
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <Text size="xs" c="dimmed">场景</Text>
+                <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
+                  {preview.normalized.scenario || '-'}
+                </Text>
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <Text size="xs" c="dimmed">人物设定</Text>
+                <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
+                  {preview.normalized.personality || '-'}
+                </Text>
               </div>
             </div>
-          )}
-        </div>
-        <div className="p-4 border-t border-gray-800 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} className="tavern-button-secondary">取消</Button>
-          <Button onClick={handleImport} disabled={!file || isLoading} className="tavern-button">导入</Button>
-        </div>
-      </div>
-    </div>
+          </Stack>
+        )}
+
+        <Group justify="flex-end" gap="sm" mt="md">
+          <Button variant="default" onClick={onClose}>
+            取消
+          </Button>
+          <Button onClick={handleImport} disabled={!file || isLoading} loading={isLoading}>
+            导入
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
   )
 }
 

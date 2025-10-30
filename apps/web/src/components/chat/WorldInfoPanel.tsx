@@ -1,23 +1,36 @@
 "use client"
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
+import { 
+  Drawer, 
+  Button, 
+  TextInput, 
+  NumberInput, 
+  Textarea, 
+  Badge, 
+  SegmentedControl, 
+  Switch, 
+  Checkbox, 
+  ActionIcon, 
+  Stack, 
+  Group, 
+  Text,
+  ScrollArea,
+  Box
+} from '@mantine/core'
 import WorldInfoTableView from './WorldInfoTableView'
 import { 
-  X, 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
-  ChevronDown,
-  ChevronUp,
-  BookOpen,
-  Table,
-  LayoutGrid
-} from 'lucide-react'
+  IconX, 
+  IconPlus, 
+  IconSearch, 
+  IconEdit, 
+  IconTrash, 
+  IconChevronDown,
+  IconChevronUp,
+  IconBook,
+  IconTable,
+  IconLayoutGrid
+} from '@tabler/icons-react'
 import { useTranslation } from '@/lib/i18n'
 
 interface WorldInfoEntry {
@@ -59,8 +72,6 @@ export default function WorldInfoPanel({
     depth: 4,
     priority: 100
   })
-
-  if (!isOpen) return null
 
   const filteredEntries = entries.filter(entry =>
     entry.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -140,92 +151,69 @@ export default function WorldInfoPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-4xl h-[80vh] bg-gray-900/95 backdrop-blur-xl rounded-lg border border-gray-700/50 flex flex-col shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-800/50">
-          <div className="flex items-center gap-3">
-            <BookOpen className="w-6 h-6 text-teal-400" />
-            <h2 className="text-2xl font-bold text-gray-100">{t('chat.worldInfo.title')}</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-hidden flex flex-col p-6">
+    <Drawer
+      opened={isOpen}
+      onClose={onClose}
+      size="xl"
+      position="right"
+      title={
+        <Group gap="xs">
+          <IconBook size={24} color="var(--mantine-color-teal-4)" />
+          <Text size="xl" fw={700}>{t('chat.worldInfo.title')}</Text>
+        </Group>
+      }
+    >
+      <Stack style={{ height: '100%' }} gap="md">
         {!isCreating ? (
           <>
             {/* Search and Add */}
-            <div className="flex gap-3 mb-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
+            <Group gap="xs" wrap="nowrap">
+              <TextInput
                 placeholder={t('chat.worldInfo.searchPlaceholder')}
                 value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 tavern-input"
-                />
-              </div>
+                onChange={(e) => setSearchQuery(e.currentTarget.value)}
+                leftSection={<IconSearch size={16} />}
+                style={{ flex: 1 }}
+              />
               
               {/* View Mode Toggle */}
-              <div className="flex border border-gray-700 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => setViewMode('table')}
-                  className={`px-3 py-2 flex items-center gap-2 transition-colors ${
-                    viewMode === 'table'
-                      ? 'bg-teal-500 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
-                  }`}
-                  title="表格视图"
-                >
-                  <Table className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('card')}
-                  className={`px-3 py-2 flex items-center gap-2 transition-colors ${
-                    viewMode === 'card'
-                      ? 'bg-teal-500 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
-                  }`}
-                  title="卡片视图"
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-              </div>
+              <SegmentedControl
+                value={viewMode}
+                onChange={(value) => setViewMode(value as 'table' | 'card')}
+                data={[
+                  { value: 'table', label: <IconTable size={16} /> },
+                  { value: 'card', label: <IconLayoutGrid size={16} /> }
+                ]}
+              />
               
               <Button
                 onClick={handleCreate}
-                className="tavern-button gap-2"
+                leftSection={<IconPlus size={16} />}
+                gradient={{ from: 'teal', to: 'cyan' }}
+                variant="gradient"
               >
-                <Plus className="w-4 h-4" />
                 {t('chat.worldInfo.addEntry')}
               </Button>
-            </div>
+            </Group>
 
             {/* Entries List/Table */}
-            <div className="flex-1 overflow-y-auto tavern-scrollbar">
+            <ScrollArea style={{ flex: 1 }}>
               {filteredEntries.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                  <p className="mb-2">
+                <Stack align="center" gap="md" py={60}>
+                  <IconBook size={64} opacity={0.3} />
+                  <Text c="dimmed">
                     {searchQuery ? t('chat.worldInfo.noMatchingEntries') : t('chat.worldInfo.noEntries')}
-                  </p>
+                  </Text>
                   {!searchQuery && (
                     <Button
                       onClick={handleCreate}
-                      variant="outline"
-                      className="tavern-button-secondary gap-2 mt-4"
+                      variant="light"
+                      leftSection={<IconPlus size={16} />}
                     >
-                      <Plus className="w-4 h-4" />
                       {t('chat.worldInfo.createFirstEntry')}
                     </Button>
                   )}
-                </div>
+                </Stack>
               ) : viewMode === 'table' ? (
                 <WorldInfoTableView
                   entries={filteredEntries}
@@ -235,170 +223,148 @@ export default function WorldInfoPanel({
                   onUpdate={handleUpdate}
                 />
               ) : (
-                <div className="space-y-2">{
-                  filteredEntries.map((entry) => (
-                    <div
+                <Stack gap="xs">
+                  {filteredEntries.map((entry) => (
+                    <Box
                       key={entry.id}
-                      className="p-4 rounded-lg bg-gray-800/50 border border-gray-700/50 hover:border-gray-600/50 transition-colors"
+                      p="md"
+                      style={{
+                        borderRadius: 'var(--mantine-radius-md)',
+                        backgroundColor: 'var(--mantine-color-dark-7)',
+                        border: '1px solid var(--mantine-color-dark-5)'
+                      }}
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold text-gray-100">{entry.name}</h3>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={entry.enabled}
-                                onChange={() => toggleEntry(entry.id)}
-                                className="sr-only peer"
-                              />
-                              <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
-                            </label>
-                          </div>
+                      <Group justify="space-between" align="flex-start">
+                        <Stack gap="xs" style={{ flex: 1 }}>
+                          <Group gap="xs">
+                            <Text fw={600}>{entry.name}</Text>
+                            <Switch
+                              checked={entry.enabled}
+                              onChange={() => toggleEntry(entry.id)}
+                              color="teal"
+                              size="sm"
+                            />
+                          </Group>
                           
-                          <div className="flex flex-wrap gap-1 mb-2">
+                          <Group gap={4}>
                             {entry.keywords.map((keyword, i) => (
                               <Badge
                                 key={i}
-                                variant="secondary"
-                                className="text-xs bg-teal-500/20 text-teal-300 border-teal-500/30"
+                                size="sm"
+                                variant="light"
+                                color="teal"
                               >
                                 {keyword}
                               </Badge>
                             ))}
-                          </div>
+                          </Group>
 
                           {expandedEntries.has(entry.id) && (
-                            <p className="text-sm text-gray-400 mt-2 whitespace-pre-wrap">
+                            <Text size="sm" c="dimmed" style={{ whiteSpace: 'pre-wrap' }}>
                               {entry.content}
-                            </p>
+                            </Text>
                           )}
-                        </div>
+                        </Stack>
 
-                        <div className="flex gap-1 ml-4">
-                          <button
+                        <Group gap={4}>
+                          <ActionIcon
                             onClick={() => toggleExpand(entry.id)}
-                            className="p-2 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                            variant="subtle"
+                            color="gray"
                           >
                             {expandedEntries.has(entry.id) ? (
-                              <ChevronUp className="w-4 h-4" />
+                              <IconChevronUp size={16} />
                             ) : (
-                              <ChevronDown className="w-4 h-4" />
+                              <IconChevronDown size={16} />
                             )}
-                          </button>
-                          <button
+                          </ActionIcon>
+                          <ActionIcon
                             onClick={() => handleEdit(entry)}
-                            className="p-2 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                            variant="subtle"
+                            color="gray"
                           >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
+                            <IconEdit size={16} />
+                          </ActionIcon>
+                          <ActionIcon
                             onClick={() => handleDelete(entry.id)}
-                            className="p-2 rounded hover:bg-red-900/50 text-gray-400 hover:text-red-400 transition-colors"
+                            variant="subtle"
+                            color="red"
                           >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                  </div>
-                ))}
-                </div>
+                            <IconTrash size={16} />
+                          </ActionIcon>
+                        </Group>
+                      </Group>
+                    </Box>
+                  ))}
+                </Stack>
               )}
-            </div>
-            </>
+            </ScrollArea>
+          </>
           ) : (
             /* Create/Edit Form */
-            <div className="space-y-4">
-            <div>
-              <label className="tavern-label">{t('chat.worldInfo.entryName')}</label>
-              <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="例如: 魔法系统"
-                  className="tavern-input"
-                />
-              </div>
-
-              <div>
-                <label className="tavern-label">关键词（用逗号分隔）</label>
-                <Input
-                  value={formData.keywords}
-                  onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
-                  placeholder="例如: 魔法, 法术, 咒语"
-                  className="tavern-input"
-                />
-              <p className="text-xs text-gray-500 mt-1">
-                {t('chat.worldInfo.keywordsHelp')}
-              </p>
-              </div>
-
-            <div>
-              <label className="tavern-label">{t('chat.worldInfo.entryContent')}</label>
-              <Textarea
-                value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                placeholder={t('chat.worldInfo.contentPlaceholder')}
-                className="tavern-textarea min-h-[200px]"
+            <Stack gap="md">
+              <TextInput
+                label={t('chat.worldInfo.entryName')}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.currentTarget.value })}
+                placeholder="例如: 魔法系统"
+                required
               />
-              </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="tavern-label">位置</label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={formData.position}
-                    onChange={(e) => setFormData({ ...formData, position: parseInt(e.target.value) || 0 })}
-                    className="tavern-input"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">插入位置 (0-100)</p>
-                </div>
+              <TextInput
+                label="关键词（用逗号分隔）"
+                value={formData.keywords}
+                onChange={(e) => setFormData({ ...formData, keywords: e.currentTarget.value })}
+                placeholder="例如: 魔法, 法术, 咒语"
+                description={t('chat.worldInfo.keywordsHelp')}
+              />
 
-                <div>
-                  <label className="tavern-label">深度</label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={formData.depth}
-                    onChange={(e) => setFormData({ ...formData, depth: parseInt(e.target.value) || 0 })}
-                    className="tavern-input"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">扫描深度</p>
-                </div>
+              <Textarea
+                label={t('chat.worldInfo.entryContent')}
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.currentTarget.value })}
+                placeholder={t('chat.worldInfo.contentPlaceholder')}
+                minRows={8}
+                required
+              />
 
-                <div>
-                  <label className="tavern-label">优先级</label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
-                    className="tavern-input"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">数值越高越优先</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="enabled"
-                  checked={formData.enabled}
-                  onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
-                  className="tavern-checkbox"
+              <Group grow>
+                <NumberInput
+                  label="位置"
+                  value={formData.position}
+                  onChange={(value) => setFormData({ ...formData, position: Number(value) || 0 })}
+                  min={0}
+                  max={100}
+                  description="插入位置 (0-100)"
                 />
-              <label htmlFor="enabled" className="text-sm text-gray-300 cursor-pointer">
-                {t('chat.worldInfo.enableEntry')}
-              </label>
-              </div>
 
-              <div className="flex gap-3 pt-4">
+                <NumberInput
+                  label="深度"
+                  value={formData.depth}
+                  onChange={(value) => setFormData({ ...formData, depth: Number(value) || 0 })}
+                  min={0}
+                  description="扫描深度"
+                />
+
+                <NumberInput
+                  label="优先级"
+                  value={formData.priority}
+                  onChange={(value) => setFormData({ ...formData, priority: Number(value) || 0 })}
+                  min={0}
+                  description="数值越高越优先"
+                />
+              </Group>
+
+              <Checkbox
+                label={t('chat.worldInfo.enableEntry')}
+                checked={formData.enabled}
+                onChange={(e) => setFormData({ ...formData, enabled: e.currentTarget.checked })}
+              />
+
+              <Group grow>
                 <Button
                   onClick={handleSave}
                   disabled={!formData.name || !formData.content}
-                  className="tavern-button flex-1"
                 >
                   {t('chat.worldInfo.save')}
                 </Button>
@@ -407,17 +373,15 @@ export default function WorldInfoPanel({
                     setIsCreating(false)
                     setEditingEntry(null)
                   }}
-                  variant="outline"
-                  className="tavern-button-secondary flex-1"
+                  variant="default"
                 >
                   {t('chat.worldInfo.cancel')}
                 </Button>
-              </div>
-            </div>
+              </Group>
+            </Stack>
           )}
-        </div>
-      </div>
-    </div>
+      </Stack>
+    </Drawer>
   )
 }
 

@@ -3,29 +3,33 @@
  */
 
 import { useState, useEffect } from 'react'
-import { X, Save, Plus, Trash2, Globe, Users, Key, Hash } from 'lucide-react'
+import { 
+  IconDeviceFloppy, 
+  IconPlus, 
+  IconTrash, 
+  IconWorld, 
+  IconUsers, 
+  IconKey, 
+  IconHash 
+} from '@tabler/icons-react'
 import { WorldInfo, Character } from '@sillytavern-clone/shared'
 import toast from 'react-hot-toast'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
+import { 
+  Modal, 
+  Button, 
+  TextInput, 
+  Textarea, 
+  Checkbox, 
+  Tabs, 
+  Stack, 
+  Group, 
+  Text, 
+  ActionIcon, 
+  Slider, 
+  Box, 
+  Divider,
+  ScrollArea
+} from '@mantine/core'
 
 interface WorldInfoModalProps {
   isOpen: boolean
@@ -234,363 +238,318 @@ export default function WorldInfoModal({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto tavern-scrollbar">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-gray-100">
-            {editingWorldInfo ? '编辑世界信息' : '创建世界信息'}
-          </DialogTitle>
-        </DialogHeader>
+    <Modal
+      opened={isOpen}
+      onClose={onClose}
+      size="xl"
+      title={
+        <Text size="xl" fw={700}>
+          {editingWorldInfo ? '编辑世界信息' : '创建世界信息'}
+        </Text>
+      }
+      styles={{
+        content: { maxHeight: '90vh' },
+        body: { height: 'calc(90vh - 60px)', display: 'flex', flexDirection: 'column' }
+      }}
+    >
+      <form onSubmit={handleSubmit} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Tabs defaultValue="basic" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <Tabs.List grow>
+            <Tabs.Tab value="basic">基本信息</Tabs.Tab>
+            <Tabs.Tab value="entries">条目管理</Tabs.Tab>
+            <Tabs.Tab value="settings">高级设置</Tabs.Tab>
+          </Tabs.List>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="basic">基本信息</TabsTrigger>
-              <TabsTrigger value="entries">条目管理</TabsTrigger>
-              <TabsTrigger value="settings">高级设置</TabsTrigger>
-            </TabsList>
+          {/* Basic Information */}
+          <Tabs.Panel value="basic" pt="md">
+            <ScrollArea style={{ height: 'calc(90vh - 200px)' }}>
+              <Stack gap="md">
+                <TextInput
+                  label={<><Text component="span">名称</Text> <Text component="span" c="red">*</Text></>}
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.currentTarget.value }))}
+                  placeholder="例如: 魔法世界的设定"
+                  maxLength={100}
+                  required
+                />
 
-            {/* Basic Information */}
-            <TabsContent value="basic" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-300">
-                    名称 <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="例如: 魔法世界的设定"
-                    className="tavern-input"
-                    maxLength={100}
-                    required
-                  />
-                </div>
+                <Textarea
+                  label="描述"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.currentTarget.value }))}
+                  placeholder="描述这个世界信息的用途和内容..."
+                  minRows={4}
+                  maxLength={500}
+                />
 
-                <div className="md:col-span-2">
-                  <Label htmlFor="description" className="text-sm font-medium text-gray-300">
-                    描述
-                  </Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="描述这个世界信息的用途和内容..."
-                    className="tavern-input min-h-[100px]"
-                    maxLength={500}
-                  />
-                </div>
-
-                <div className="flex items-center space-x-3">
+                <Group gap="xl">
                   <Checkbox
-                    id="isGlobal"
+                    label="全局世界信息（适用于所有角色）"
                     checked={formData.isGlobal}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isGlobal: !!checked }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isGlobal: e.currentTarget.checked }))}
                   />
-                  <Label htmlFor="isGlobal" className="text-sm text-gray-300">
-                    全局世界信息（适用于所有角色）
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-3">
                   <Checkbox
-                    id="isActive"
+                    label="启用这个世界信息"
                     checked={formData.isActive}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: !!checked }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.currentTarget.checked }))}
                   />
-                  <Label htmlFor="isActive" className="text-sm text-gray-300">
-                    启用这个世界信息
-                  </Label>
-                </div>
-              </div>
+                </Group>
 
-              {/* Character Selection */}
-              {!formData.isGlobal && (
-                <div>
-                  <Label className="text-sm font-medium text-gray-300">关联角色</Label>
-                  <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
-                    {characters.length === 0 ? (
-                      <p className="text-sm text-gray-500">还没有创建任何角色</p>
-                    ) : (
-                      characters.map((character) => (
-                        <div key={character.id} className="flex items-center space-x-2">
+                {/* Character Selection */}
+                {!formData.isGlobal && (
+                  <Box>
+                    <Text size="sm" fw={500} mb="xs">关联角色</Text>
+                    <Stack gap="xs" style={{ maxHeight: 160, overflowY: 'auto' }}>
+                      {characters.length === 0 ? (
+                        <Text size="sm" c="dimmed">还没有创建任何角色</Text>
+                      ) : (
+                        characters.map((character) => (
                           <Checkbox
-                            id={`character-${character.id}`}
+                            key={character.id}
+                            label={character.name}
                             checked={selectedCharacterIds.includes(character.id)}
-                            onCheckedChange={() => toggleCharacterSelection(character.id)}
+                            onChange={() => toggleCharacterSelection(character.id)}
                           />
-                          <Label
-                            htmlFor={`character-${character.id}`}
-                            className="text-sm text-gray-300 cursor-pointer flex-1"
-                          >
-                            {character.name}
-                          </Label>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500">
-                    选择可以使用这个世界信息的角色，留空则适用于所有角色
-                  </div>
-                </div>
-              )}
-            </TabsContent>
+                        ))
+                      )}
+                    </Stack>
+                    <Text size="xs" c="dimmed" mt="xs">
+                      选择可以使用这个世界信息的角色，留空则适用于所有角色
+                    </Text>
+                  </Box>
+                )}
+              </Stack>
+            </ScrollArea>
+          </Tabs.Panel>
 
             {/* Entries Management */}
-            <TabsContent value="entries" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium text-gray-300">世界信息条目</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addEntry}
-                  className="tavern-button-secondary"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  添加条目
-                </Button>
-              </div>
+          <Tabs.Panel value="entries" pt="md">
+            <ScrollArea style={{ height: 'calc(90vh - 200px)' }}>
+              <Stack gap="md">
+                <Group justify="space-between">
+                  <Text size="sm" fw={500}>世界信息条目</Text>
+                  <Button
+                    type="button"
+                    variant="light"
+                    size="compact-sm"
+                    onClick={addEntry}
+                    leftSection={<IconPlus size={16} />}
+                  >
+                    添加条目
+                  </Button>
+                </Group>
 
-              <div className="space-y-6">
+                <Stack gap="lg">
                 {entries.map((entry, entryIndex) => (
-                  <div key={entryIndex} className="border border-gray-700 rounded-lg p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium text-gray-300">条目 {entryIndex + 1}</h4>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          checked={entry.enabled}
-                          onCheckedChange={(checked) => updateEntry(entryIndex, { enabled: !!checked })}
-                        />
-                        <Label className="text-xs text-gray-400">启用</Label>
-                        {entries.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeEntry(entryIndex)}
-                            className="text-red-500 hover:text-red-400"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Keywords */}
-                      <div>
-                        <Label className="text-sm font-medium text-gray-300">触发关键词</Label>
-                        <div className="space-y-2 mt-2">
-                          {entry.keywords.map((keyword, keywordIndex) => (
-                            <div key={keywordIndex} className="flex space-x-2">
-                              <Input
-                                value={keyword}
-                                onChange={(e) => updateKeyword(entryIndex, keywordIndex, e.target.value)}
-                                placeholder="关键词..."
-                                className="tavern-input flex-1"
-                              />
-                              {entry.keywords.length > 1 && (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => removeKeyword(entryIndex, keywordIndex)}
-                                  className="tavern-button-secondary"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              )}
-                            </div>
-                          ))}
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addKeyword(entryIndex)}
-                            className="tavern-button-secondary"
-                          >
-                            <Plus className="w-3 h-3 mr-1" />
-                            添加关键词
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Category and Priority */}
-                      <div className="space-y-3">
-                        <div>
-                          <Label htmlFor={`category-${entryIndex}`} className="text-sm font-medium text-gray-300">
-                            分类 (可选)
-                          </Label>
-                          <Input
-                            id={`category-${entryIndex}`}
-                            value={entry.category || ''}
-                            onChange={(e) => updateEntry(entryIndex, { category: e.target.value })}
-                            placeholder="例如: 人物、地点、魔法..."
-                            className="tavern-input"
+                  <Box key={entryIndex} p="md" style={{ border: '1px solid var(--mantine-color-dark-5)', borderRadius: 'var(--mantine-radius-md)' }}>
+                    <Stack gap="md">
+                      <Group justify="space-between">
+                        <Text size="sm" fw={500}>条目 {entryIndex + 1}</Text>
+                        <Group gap="xs">
+                          <Checkbox
+                            label="启用"
+                            checked={entry.enabled}
+                            onChange={(e) => updateEntry(entryIndex, { enabled: e.currentTarget.checked })}
                           />
-                        </div>
+                          {entries.length > 1 && (
+                            <ActionIcon
+                              variant="subtle"
+                              color="red"
+                              onClick={() => removeEntry(entryIndex)}
+                            >
+                              <IconTrash size={16} />
+                            </ActionIcon>
+                          )}
+                        </Group>
+                      </Group>
 
-                        <div>
-                          <Label htmlFor={`priority-${entryIndex}`} className="text-sm font-medium text-gray-300">
-                            优先级: {entry.priority}
-                          </Label>
-                          <input
-                            type="range"
-                            id={`priority-${entryIndex}`}
-                            min="0"
-                            max="100"
-                            value={entry.priority}
-                            onChange={(e) => updateEntry(entryIndex, { priority: parseInt(e.target.value) })}
-                            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer mt-1"
-                          />
-                          <div className="flex justify-between text-xs text-gray-500">
-                            <span>低</span>
-                            <span>高</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div>
-                      <Label htmlFor={`content-${entryIndex}`} className="text-sm font-medium text-gray-300">
-                        内容 <span className="text-red-500">*</span>
-                      </Label>
-                      <Textarea
-                        id={`content-${entryIndex}`}
-                        value={entry.content}
-                        onChange={(e) => updateEntry(entryIndex, { content: e.target.value })}
-                        placeholder="输入世界信息内容，当触发关键词出现时会将这些信息提供给AI..."
-                        className="tavern-input min-h-[120px]"
-                        required
-                      />
-                    </div>
-
-                    {/* Advanced Options */}
-                    <div className="border-t border-gray-700 pt-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={entry.caseSensitive}
-                              onCheckedChange={(checked) => updateEntry(entryIndex, { caseSensitive: !!checked })}
-                            />
-                            <Label className="text-sm text-gray-400">区分大小写</Label>
-                          </div>
-
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={entry.matchWholeWords}
-                              onCheckedChange={(checked) => updateEntry(entryIndex, { matchWholeWords: !!checked })}
-                            />
-                            <Label className="text-sm text-gray-400">匹配完整单词</Label>
-                          </div>
-                        </div>
-
-                        {/* Activation Keys */}
-                        <div>
-                          <Label className="text-sm font-medium text-gray-300">激活密钥 (可选)</Label>
-                          <div className="space-y-2 mt-2">
-                            {entry.activationKeys.map((key, keyIndex) => (
-                              <div key={keyIndex} className="flex space-x-2">
-                                <Input
-                                  value={key}
-                                  onChange={(e) => updateActivationKey(entryIndex, keyIndex, e.target.value)}
-                                  placeholder="激活密钥..."
-                                  className="tavern-input flex-1"
+                      <Group align="flex-start" grow>
+                        {/* Keywords */}
+                        <Box>
+                          <Text size="sm" fw={500} mb="xs">触发关键词</Text>
+                          <Stack gap="xs">
+                            {entry.keywords.map((keyword, keywordIndex) => (
+                              <Group key={keywordIndex} gap="xs" wrap="nowrap">
+                                <TextInput
+                                  value={keyword}
+                                  onChange={(e) => updateKeyword(entryIndex, keywordIndex, e.currentTarget.value)}
+                                  placeholder="关键词..."
+                                  style={{ flex: 1 }}
                                 />
-                                {entry.activationKeys.length > 1 && (
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => removeActivationKey(entryIndex, keyIndex)}
-                                    className="tavern-button-secondary"
+                                {entry.keywords.length > 1 && (
+                                  <ActionIcon
+                                    variant="light"
+                                    color="red"
+                                    onClick={() => removeKeyword(entryIndex, keywordIndex)}
                                   >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
+                                    <IconTrash size={14} />
+                                  </ActionIcon>
                                 )}
-                              </div>
+                              </Group>
                             ))}
                             <Button
                               type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => addActivationKey(entryIndex)}
-                              className="tavern-button-secondary"
+                              variant="light"
+                              size="compact-xs"
+                              onClick={() => addKeyword(entryIndex)}
+                              leftSection={<IconPlus size={14} />}
                             >
-                              <Plus className="w-3 h-3 mr-1" />
+                              添加关键词
+                            </Button>
+                          </Stack>
+                        </Box>
+
+                        {/* Category and Priority */}
+                        <Stack gap="xs">
+                          <TextInput
+                            label="分类 (可选)"
+                            value={entry.category || ''}
+                            onChange={(e) => updateEntry(entryIndex, { category: e.currentTarget.value })}
+                            placeholder="例如: 人物、地点、魔法..."
+                          />
+
+                          <Box>
+                            <Text size="sm" fw={500} mb="xs">优先级: {entry.priority}</Text>
+                            <Slider
+                              value={entry.priority}
+                              onChange={(value) => updateEntry(entryIndex, { priority: value })}
+                              min={0}
+                              max={100}
+                              marks={[
+                                { value: 0, label: '低' },
+                                { value: 100, label: '高' }
+                              ]}
+                            />
+                          </Box>
+                        </Stack>
+                      </Group>
+
+                      {/* Content */}
+                      <Textarea
+                        label={<><Text component="span">内容</Text> <Text component="span" c="red">*</Text></>}
+                        value={entry.content}
+                        onChange={(e) => updateEntry(entryIndex, { content: e.currentTarget.value })}
+                        placeholder="输入世界信息内容，当触发关键词出现时会将这些信息提供给AI..."
+                        minRows={4}
+                        required
+                      />
+
+                      {/* Advanced Options */}
+                      <Divider />
+                      <Group align="flex-start" grow>
+                        <Stack gap="xs">
+                          <Checkbox
+                            label="区分大小写"
+                            checked={entry.caseSensitive}
+                            onChange={(e) => updateEntry(entryIndex, { caseSensitive: e.currentTarget.checked })}
+                          />
+                          <Checkbox
+                            label="匹配完整单词"
+                            checked={entry.matchWholeWords}
+                            onChange={(e) => updateEntry(entryIndex, { matchWholeWords: e.currentTarget.checked })}
+                          />
+                        </Stack>
+
+                        {/* Activation Keys */}
+                        <Box>
+                          <Text size="sm" fw={500} mb="xs">激活密钥 (可选)</Text>
+                          <Stack gap="xs">
+                            {entry.activationKeys.map((key, keyIndex) => (
+                              <Group key={keyIndex} gap="xs" wrap="nowrap">
+                                <TextInput
+                                  value={key}
+                                  onChange={(e) => updateActivationKey(entryIndex, keyIndex, e.currentTarget.value)}
+                                  placeholder="激活密钥..."
+                                  style={{ flex: 1 }}
+                                />
+                                {entry.activationKeys.length > 1 && (
+                                  <ActionIcon
+                                    variant="light"
+                                    color="red"
+                                    onClick={() => removeActivationKey(entryIndex, keyIndex)}
+                                  >
+                                    <IconTrash size={14} />
+                                  </ActionIcon>
+                                )}
+                              </Group>
+                            ))}
+                            <Button
+                              type="button"
+                              variant="light"
+                              size="compact-xs"
+                              onClick={() => addActivationKey(entryIndex)}
+                              leftSection={<IconPlus size={14} />}
+                            >
                               添加激活密钥
                             </Button>
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">
+                          </Stack>
+                          <Text size="xs" c="dimmed" mt="xs">
                             只有当激活密钥也出现在对话中时，这个条目才会被触发
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                          </Text>
+                        </Box>
+                      </Group>
+                    </Stack>
+                  </Box>
                 ))}
-              </div>
-            </TabsContent>
+                </Stack>
+              </Stack>
+            </ScrollArea>
+          </Tabs.Panel>
 
-            {/* Advanced Settings */}
-            <TabsContent value="settings" className="space-y-4">
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <h3 className="text-lg font-medium text-gray-100 mb-4">使用说明</h3>
-                <div className="space-y-4 text-sm text-gray-300">
-                  <div>
-                    <h4 className="font-medium text-gray-200 mb-2">关键词匹配</h4>
-                    <p>当用户消息中包含设置的关键词时，对应的世界信息条目会被自动激活并添加到AI的上下文中。</p>
-                  </div>
+          {/* Advanced Settings */}
+          <Tabs.Panel value="settings" pt="md">
+            <ScrollArea style={{ height: 'calc(90vh - 200px)' }}>
+              <Box p="lg" style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderRadius: 'var(--mantine-radius-md)', border: '1px solid var(--mantine-color-dark-5)' }}>
+                <Text size="lg" fw={600} mb="md">使用说明</Text>
+                <Stack gap="md">
+                  <Box>
+                    <Text fw={500} mb="xs">关键词匹配</Text>
+                    <Text size="sm" c="dimmed">当用户消息中包含设置的关键词时，对应的世界信息条目会被自动激活并添加到AI的上下文中。</Text>
+                  </Box>
 
-                  <div>
-                    <h4 className="font-medium text-gray-200 mb-2">优先级</h4>
-                    <p>优先级高的条目会优先被激活，数值范围为0-100，数字越大优先级越高。</p>
-                  </div>
+                  <Box>
+                    <Text fw={500} mb="xs">优先级</Text>
+                    <Text size="sm" c="dimmed">优先级高的条目会优先被激活，数值范围为0-100，数字越大优先级越高。</Text>
+                  </Box>
 
-                  <div>
-                    <h4 className="font-medium text-gray-200 mb-2">激活密钥</h4>
-                    <p>可选的额外条件，只有当关键词和激活密钥同时出现在对话中时，条目才会被激活。</p>
-                  </div>
+                  <Box>
+                    <Text fw={500} mb="xs">激活密钥</Text>
+                    <Text size="sm" c="dimmed">可选的额外条件，只有当关键词和激活密钥同时出现在对话中时，条目才会被激活。</Text>
+                  </Box>
 
-                  <div>
-                    <h4 className="font-medium text-gray-200 mb-2">全局 vs 角色专用</h4>
-                    <p>全局世界信息适用于所有角色，角色专用的世界信息只在关联角色的对话中使用。</p>
-                  </div>
+                  <Box>
+                    <Text fw={500} mb="xs">全局 vs 角色专用</Text>
+                    <Text size="sm" c="dimmed">全局世界信息适用于所有角色，角色专用的世界信息只在关联角色的对话中使用。</Text>
+                  </Box>
 
-                  <div>
-                    <h4 className="font-medium text-gray-200 mb-2">性能提示</h4>
-                    <p>过多的世界信息条目可能会影响响应速度，建议定期清理不常用的条目。</p>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
+                  <Box>
+                    <Text fw={500} mb="xs">性能提示</Text>
+                    <Text size="sm" c="dimmed">过多的世界信息条目可能会影响响应速度，建议定期清理不常用的条目。</Text>
+                  </Box>
+                </Stack>
+              </Box>
+            </ScrollArea>
+          </Tabs.Panel>
+        </Tabs>
 
-          {/* Form Actions */}
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-800">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="tavern-button-secondary"
-            >
-              取消
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="tavern-button"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {isLoading ? '保存中...' : (editingWorldInfo ? '更新世界信息' : '创建世界信息')}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        {/* Form Actions */}
+        <Group justify="flex-end" pt="md" mt="md" style={{ borderTop: '1px solid var(--mantine-color-dark-5)' }}>
+          <Button
+            type="button"
+            variant="default"
+            onClick={onClose}
+          >
+            取消
+          </Button>
+          <Button
+            type="submit"
+            loading={isLoading}
+            leftSection={<IconDeviceFloppy size={16} />}
+          >
+            {editingWorldInfo ? '更新世界信息' : '创建世界信息'}
+          </Button>
+        </Group>
+      </form>
+    </Modal>
   )
 }

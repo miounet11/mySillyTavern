@@ -3,29 +3,39 @@
  */
 
 import { useState, useEffect } from 'react'
-import { X, Save, TestTube, Key, Globe, Settings, Check, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react'
+import { 
+  IconX, 
+  IconDeviceFloppy, 
+  IconFlask, 
+  IconKey, 
+  IconWorld, 
+  IconSettings, 
+  IconCheck, 
+  IconAlertCircle, 
+  IconChevronDown, 
+  IconChevronRight 
+} from '@tabler/icons-react'
 import { AIModelConfig } from '@sillytavern-clone/shared'
 import { useAIModelStore } from '@/stores/aiModelStore'
 import toast from 'react-hot-toast'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetPortal,
-  SheetOverlay,
-} from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import {
+  Drawer,
+  Button,
+  TextInput,
+  Textarea,
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  NumberInput,
+  PasswordInput,
+  Checkbox,
+  Slider,
+  Stack,
+  Group,
+  Box,
+  Text,
+  Collapse,
+  ScrollArea,
+  Loader
+} from '@mantine/core'
 
 interface AIModelDrawerProps {
   isOpen: boolean
@@ -489,522 +499,485 @@ function AIModelDrawer({
   }
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-[500px] p-0 flex flex-col overflow-hidden !z-[60]">
-        <SheetHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0">
-          <SheetTitle className="text-xl font-semibold text-gray-100">
-            {editingModel ? '编辑模型' : '新建配置'}
-          </SheetTitle>
-        </SheetHeader>
-
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
-          {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4">
+    <Drawer
+      opened={isOpen}
+      onClose={onClose}
+      position="right"
+      size="500px"
+      title={
+        <Text fw={600} size="xl">
+          {editingModel ? '编辑模型' : '新建配置'}
+        </Text>
+      }
+      styles={{
+        content: {
+          display: 'flex',
+          flexDirection: 'column'
+        },
+        body: {
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          overflow: 'hidden'
+        }
+      }}
+      zIndex={60}
+    >
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        {/* Scrollable Content */}
+        <ScrollArea style={{ flex: 1 }} px="md" py="md">
             <div className="space-y-4">
               
               {/* API Configurations */}
               <div>
                 <h3 className="text-xs font-semibold text-gray-400 uppercase mb-3">API Configurations</h3>
                 
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="provider" className="text-xs text-gray-400">
-                      提供商
-                    </Label>
-                    <Select
-                      value={formData.provider}
-                      onValueChange={(value: any) => {
-                        console.log('[AIModelDrawer] 选择提供商:', value)
-                        setFormData(prev => ({
-                          ...prev,
-                          provider: value,
-                          model: '',
-                          baseUrl: defaultBaseUrls[value as keyof typeof defaultBaseUrls] || ''
-                        }))
-                        setAvailableModels([])
-                        setModelInputMode('select')
-                      }}
-                    >
-                      <SelectTrigger className="tavern-input h-9 mt-1">
-                        <SelectValue placeholder="请选择提供商..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {/* 国外主流提供商 */}
-                        <SelectItem value="openai">OpenAI (ChatGPT)</SelectItem>
-                        <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                        <SelectItem value="google">Google (Gemini)</SelectItem>
-                        <SelectItem value="azure">Azure OpenAI</SelectItem>
-                        
-                        {/* 国内主流提供商 */}
-                        <SelectItem value="deepseek">DeepSeek (深度求索)</SelectItem>
-                        <SelectItem value="zhipu">智谱 AI (GLM)</SelectItem>
-                        
-                        {/* 自定义OpenAI格式 */}
-                        <SelectItem value="custom">自定义 OpenAI 格式</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <Stack gap="sm">
+                  <Select
+                    label="提供商"
+                    placeholder="请选择提供商..."
+                    value={formData.provider}
+                    onChange={(value: any) => {
+                      console.log('[AIModelDrawer] 选择提供商:', value)
+                      setFormData(prev => ({
+                        ...prev,
+                        provider: value,
+                        model: '',
+                        baseUrl: defaultBaseUrls[value as keyof typeof defaultBaseUrls] || ''
+                      }))
+                      setAvailableModels([])
+                      setModelInputMode('select')
+                    }}
+                    data={[
+                      { value: 'openai', label: 'OpenAI (ChatGPT)' },
+                      { value: 'anthropic', label: 'Anthropic (Claude)' },
+                      { value: 'google', label: 'Google (Gemini)' },
+                      { value: 'azure', label: 'Azure OpenAI' },
+                      { value: 'deepseek', label: 'DeepSeek (深度求索)' },
+                      { value: 'zhipu', label: '智谱 AI (GLM)' },
+                      { value: 'custom', label: '自定义 OpenAI 格式' }
+                    ]}
+                    styles={{ label: { fontSize: '0.75rem', color: 'var(--mantine-color-gray-5)' } }}
+                  />
                   
-                  <div>
-                    <Label htmlFor="baseUrl" className="text-xs text-gray-400">
-                      API 地址 {(formData.provider === 'azure' || formData.provider === 'custom') && <span className="text-red-500">*</span>}
-                    </Label>
-                    <Input
-                      id="baseUrl"
-                      type="url"
-                      value={formData.baseUrl}
-                      onChange={(e) => setFormData(prev => ({ ...prev, baseUrl: e.target.value }))}
-                      placeholder={defaultBaseUrls[formData.provider as keyof typeof defaultBaseUrls] || 'https://api.example.com/v1'}
-                      className="tavern-input h-9 mt-1 text-sm"
-                    />
-                    <div className="text-xs text-gray-500 mt-1">
-                      {formData.provider === 'azure' ? (
-                        '请输入您的Azure资源地址（如：https://your-resource.openai.azure.com）'
-                      ) : formData.provider === 'custom' ? (
-                        '请输入自定义的OpenAI兼容API地址'
-                      ) : (
-                        `默认：${defaultBaseUrls[formData.provider as keyof typeof defaultBaseUrls] || '需要手动输入'}`
-                      )}
-                    </div>
-                  </div>
+                  <TextInput
+                    label={
+                      <>
+                        API 地址{' '}
+                        {(formData.provider === 'azure' || formData.provider === 'custom') && (
+                          <span style={{ color: 'var(--mantine-color-red-6)' }}>*</span>
+                        )}
+                      </>
+                    }
+                    value={formData.baseUrl}
+                    onChange={(e) => setFormData(prev => ({ ...prev, baseUrl: e.target.value }))}
+                    placeholder={defaultBaseUrls[formData.provider as keyof typeof defaultBaseUrls] || 'https://api.example.com/v1'}
+                    description={
+                      formData.provider === 'azure' 
+                        ? '请输入您的Azure资源地址（如：https://your-resource.openai.azure.com）'
+                        : formData.provider === 'custom' 
+                        ? '请输入自定义的OpenAI兼容API地址'
+                        : `默认：${defaultBaseUrls[formData.provider as keyof typeof defaultBaseUrls] || '需要手动输入'}`
+                    }
+                    styles={{ 
+                      label: { fontSize: '0.75rem', color: 'var(--mantine-color-gray-5)' },
+                      description: { fontSize: '0.75rem' }
+                    }}
+                  />
 
                   {/* 获取模型列表按钮 - 所有提供商都显示 */}
                   <Button
                     type="button"
                     onClick={fetchModelsFromAPI}
                     disabled={isFetchingModels || !formData.baseUrl || !formData.apiKey}
-                    className="w-full h-10 bg-transparent border-2 border-amber-600 text-amber-500 hover:bg-amber-600/10 hover:text-amber-400 hover:shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all duration-200"
-                    style={{
-                      boxShadow: '0 0 12px rgba(245, 158, 11, 0.2)'
+                    fullWidth
+                    variant="outline"
+                    color="orange"
+                    leftSection={
+                      isFetchingModels ? (
+                        <Loader size="xs" />
+                      ) : (
+                        <IconWorld size={16} />
+                      )
+                    }
+                    styles={{
+                      root: {
+                        borderWidth: 2,
+                        boxShadow: '0 0 12px rgba(245, 158, 11, 0.2)',
+                        '&:hover': {
+                          boxShadow: '0 0 15px rgba(245, 158, 11, 0.3)'
+                        }
+                      }
                     }}
                   >
-                    {isFetchingModels ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-500 mr-2"></div>
-                        获取模型列表...
-                      </>
-                    ) : (
-                      <>
-                        <Globe className="w-4 h-4 mr-2" />
-                        Get Model List
-                      </>
-                    )}
+                    {isFetchingModels ? '获取模型列表...' : 'Get Model List'}
                   </Button>
-                </div>
+                </Stack>
               </div>
 
               <hr className="border-gray-800 my-4" />
 
               {/* API Key */}
-              <div>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase mb-3">API Key</h3>
-                <div>
-                  <Input
-                    id="apiKey"
-                    type="password"
-                    value={formData.apiKey}
-                    onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
-                    placeholder="sk-..."
-                    className="tavern-input h-9 text-sm"
-                  />
-                  <div className="text-xs text-gray-500 mt-1">
-                    请输入您的API密钥，用于访问{formData.provider === 'openai' ? 'OpenAI' : formData.provider === 'anthropic' ? 'Anthropic' : formData.provider === 'google' ? 'Google' : formData.provider === 'azure' ? 'Azure' : formData.provider === 'deepseek' ? 'DeepSeek' : formData.provider === 'zhipu' ? '智谱AI' : '自定义'}服务
-                  </div>
-                </div>
-              </div>
+              <Box>
+                <Text size="xs" fw={600} c="gray.5" tt="uppercase" mb="sm">
+                  API Key
+                </Text>
+                <PasswordInput
+                  placeholder="sk-..."
+                  value={formData.apiKey}
+                  onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
+                  description={`请输入您的API密钥，用于访问${formData.provider === 'openai' ? 'OpenAI' : formData.provider === 'anthropic' ? 'Anthropic' : formData.provider === 'google' ? 'Google' : formData.provider === 'azure' ? 'Azure' : formData.provider === 'deepseek' ? 'DeepSeek' : formData.provider === 'zhipu' ? '智谱AI' : '自定义'}服务`}
+                  styles={{ description: { fontSize: '0.75rem' } }}
+                />
+              </Box>
 
               <hr className="border-gray-800 my-4" />
 
               {/* Model */}
-              <div>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase mb-3">Model</h3>
+              <Box>
+                <Text size="xs" fw={600} c="gray.5" tt="uppercase" mb="sm">
+                  Model
+                </Text>
                 
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <Label htmlFor="model" className="text-xs text-gray-400">
-                        模型名称
-                      </Label>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setModelInputMode(modelInputMode === 'select' ? 'input' : 'select')}
-                        className="text-xs h-6 px-2"
-                      >
-                        {modelInputMode === 'select' ? '手动输入' : '选择模型'}
-                      </Button>
-                    </div>
-                    {modelInputMode === 'select' ? (
-                      <Select
-                        value={formData.model}
-                        onValueChange={(value) => {
-                          console.log('[AIModelDrawer] 选择模型:', value)
+                <Stack gap="sm">
+                  <Group justify="space-between" align="center">
+                    <Text size="xs" c="gray.5">
+                      模型名称
+                    </Text>
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="subtle"
+                      onClick={() => setModelInputMode(modelInputMode === 'select' ? 'input' : 'select')}
+                    >
+                      {modelInputMode === 'select' ? '手动输入' : '选择模型'}
+                    </Button>
+                  </Group>
+                  {modelInputMode === 'select' ? (
+                    <Select
+                      placeholder="选择模型..."
+                      value={formData.model}
+                      onChange={(value) => {
+                        console.log('[AIModelDrawer] 选择模型:', value)
+                        if (value) {
                           setFormData(prev => ({ 
                             ...prev, 
                             model: value,
                             name: prev.name || value
                           }))
-                        }}
-                      >
-                        <SelectTrigger className="tavern-input h-9">
-                          <SelectValue placeholder="选择模型..." />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          {availableModels.length > 0 ? (
-                            // 优先显示从API获取的模型
-                            <>
-                              <div className="px-2 py-1.5 text-xs font-semibold text-gray-400 bg-gray-800/50 sticky top-0">
-                                从 API 获取 ({availableModels.length} 个模型)
-                              </div>
-                              {availableModels.map((model) => (
-                                <SelectItem key={model} value={model}>
-                                  {model}
-                                </SelectItem>
-                              ))}
-                            </>
-                          ) : (
-                            // 回退到预设模型
-                            providerModels[formData.provider as keyof typeof providerModels]?.length > 0 ? (
-                              <>
-                                <div className="px-2 py-1.5 text-xs font-semibold text-gray-400 bg-gray-800/50 sticky top-0">
-                                  预设模型
-                                </div>
-                                {providerModels[formData.provider as keyof typeof providerModels].map((model) => (
-                                  <SelectItem key={model} value={model}>
-                                    {model}
-                                  </SelectItem>
-                                ))}
-                              </>
-                            ) : (
-                              <div className="px-2 py-1.5 text-xs text-gray-500">
-                                暂无预设模型，请点击"Get Model List"或切换为手动输入
-                              </div>
-                            )
-                          )}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        id="model"
-                        value={formData.model}
-                        onChange={(e) => {
-                          const value = e.target.value
-                          setFormData(prev => ({ 
-                            ...prev, 
-                            model: value,
-                            name: prev.name || value
-                          }))
-                        }}
-                        placeholder="输入模型ID，例如 gpt-4o、claude-3-5-sonnet、deepseek-chat"
-                        className="tavern-input h-9 text-sm"
-                      />
-                    )}
-                  </div>
-                  
-                </div>
-              </div>
+                        }
+                      }}
+                      data={
+                        availableModels.length > 0 
+                          ? [
+                              { group: `从 API 获取 (${availableModels.length} 个模型)`, items: availableModels.map(m => ({ value: m, label: m })) }
+                            ]
+                          : providerModels[formData.provider as keyof typeof providerModels]?.length > 0
+                          ? [
+                              { group: '预设模型', items: providerModels[formData.provider as keyof typeof providerModels].map(m => ({ value: m, label: m })) }
+                            ]
+                          : []
+                      }
+                      nothingFoundMessage="暂无预设模型，请点击「Get Model List」或切换为手动输入"
+                      maxDropdownHeight={300}
+                    />
+                  ) : (
+                    <TextInput
+                      value={formData.model}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          model: value,
+                          name: prev.name || value
+                        }))
+                      }}
+                      placeholder="输入模型ID，例如 gpt-4o、claude-3-5-sonnet、deepseek-chat"
+                    />
+                  )}
+                </Stack>
+              </Box>
 
               <hr className="border-gray-800 my-4" />
 
               {/* Display Name */}
-              <div>
-                <Label htmlFor="name" className="text-xs text-gray-400">
-                  显示名称（可选）
-                </Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder={formData.model || "自定义显示名称"}
-                  className="tavern-input h-9 mt-1 text-sm"
-                />
-              </div>
+              <TextInput
+                label="显示名称（可选）"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder={formData.model || "自定义显示名称"}
+                styles={{ label: { fontSize: '0.75rem', color: 'var(--mantine-color-gray-5)' } }}
+              />
 
               <hr className="border-gray-800 my-4" />
 
               {/* Model Parameters - Collapsible */}
-              <div>
-                <button
-                  type="button"
+              <Box>
+                <Group
                   onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex items-center justify-between w-full text-xs font-semibold text-gray-400 uppercase hover:text-gray-300 transition-colors"
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                  justify="space-between"
+                  mb="sm"
                 >
-                  <span>模型参数</span>
-                  {showAdvanced ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                </button>
+                  <Text size="xs" fw={600} c="gray.5" tt="uppercase">
+                    模型参数
+                  </Text>
+                  {showAdvanced ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+                </Group>
 
-                {showAdvanced && (
-                  <div className="mt-3 space-y-3">
-                    <div>
-                      <Label htmlFor="temperature" className="text-xs text-gray-400">
+                <Collapse in={showAdvanced}>
+                  <Stack gap="sm" mt="sm">
+                    <Box>
+                      <Text size="xs" c="gray.5" mb={8}>
                         Temperature: {formData.settings.temperature}
-                      </Label>
-                      <input
-                        type="range"
-                        id="temperature"
-                        min="0"
-                        max="2"
-                        step="0.1"
+                      </Text>
+                      <Slider
+                        min={0}
+                        max={2}
+                        step={0.1}
                         value={formData.settings.temperature}
-                        onChange={(e) => updateSetting('temperature', parseFloat(e.target.value))}
-                        className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer mt-2"
+                        onChange={(value) => updateSetting('temperature', value)}
+                        marks={[
+                          { value: 0, label: '0' },
+                          { value: 1, label: '1' },
+                          { value: 2, label: '2' }
+                        ]}
                       />
-                    </div>
+                    </Box>
 
-                    <div>
-                      <Label htmlFor="maxTokens" className="text-xs text-gray-400">
-                        Max Tokens
-                      </Label>
-                      <Input
-                        id="maxTokens"
-                        type="number"
-                        value={formData.settings.maxTokens}
-                        onChange={(e) => updateSetting('maxTokens', parseInt(e.target.value))}
-                        className="tavern-input h-9 mt-1 text-sm"
-                      />
-                    </div>
+                    <NumberInput
+                      label="Max Tokens"
+                      value={formData.settings.maxTokens}
+                      onChange={(value) => updateSetting('maxTokens', value)}
+                      min={1}
+                      styles={{ label: { fontSize: '0.75rem', color: 'var(--mantine-color-gray-5)' } }}
+                    />
 
-                    <div>
-                      <Label htmlFor="topP" className="text-xs text-gray-400">
+                    <Box>
+                      <Text size="xs" c="gray.5" mb={8}>
                         Top P: {formData.settings.topP}
-                      </Label>
-                      <input
-                        type="range"
-                        id="topP"
-                        min="0"
-                        max="1"
-                        step="0.1"
+                      </Text>
+                      <Slider
+                        min={0}
+                        max={1}
+                        step={0.1}
                         value={formData.settings.topP}
-                        onChange={(e) => updateSetting('topP', parseFloat(e.target.value))}
-                        className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer mt-2"
+                        onChange={(value) => updateSetting('topP', value)}
+                        marks={[
+                          { value: 0, label: '0' },
+                          { value: 0.5, label: '0.5' },
+                          { value: 1, label: '1' }
+                        ]}
                       />
-                    </div>
+                    </Box>
 
-                    <div>
-                      <Label htmlFor="contextWindow" className="text-xs text-gray-400">
-                        Context Window
-                      </Label>
-                      <Input
-                        id="contextWindow"
-                        type="number"
-                        value={formData.settings.contextWindow}
-                        onChange={(e) => updateSetting('contextWindow', parseInt(e.target.value))}
-                        className="tavern-input h-9 mt-1 text-sm"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
+                    <NumberInput
+                      label="Context Window"
+                      value={formData.settings.contextWindow}
+                      onChange={(value) => updateSetting('contextWindow', value)}
+                      min={1}
+                      styles={{ label: { fontSize: '0.75rem', color: 'var(--mantine-color-gray-5)' } }}
+                    />
+                  </Stack>
+                </Collapse>
+              </Box>
 
               <hr className="border-gray-800 my-4" />
 
               {/* Capabilities Configuration */}
-              <div>
-                <Label className="text-xs text-gray-400 uppercase">模型能力</Label>
-                <div className="mt-3 space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="cap-vision"
-                      checked={formData.capabilities?.vision || false}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        capabilities: { ...prev.capabilities!, vision: e.target.checked }
-                      }))}
-                      className="rounded border-gray-600 bg-gray-700 text-blue-600"
-                    />
-                    <Label htmlFor="cap-vision" className="text-xs text-gray-400">Vision Support (图像识别)</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="cap-tools"
-                      checked={formData.capabilities?.tools || false}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        capabilities: { ...prev.capabilities!, tools: e.target.checked }
-                      }))}
-                      className="rounded border-gray-600 bg-gray-700 text-blue-600"
-                    />
-                    <Label htmlFor="cap-tools" className="text-xs text-gray-400">Tool Calling (函数调用)</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="cap-streaming"
-                      checked={formData.capabilities?.streaming ?? true}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        capabilities: { ...prev.capabilities!, streaming: e.target.checked }
-                      }))}
-                      className="rounded border-gray-600 bg-gray-700 text-blue-600"
-                    />
-                    <Label htmlFor="cap-streaming" className="text-xs text-gray-400">Streaming (流式输出)</Label>
-                  </div>
-                </div>
-              </div>
+              <Box>
+                <Text size="xs" fw={600} c="gray.5" tt="uppercase" mb="sm">
+                  模型能力
+                </Text>
+                <Stack gap="xs">
+                  <Checkbox
+                    label="Vision Support (图像识别)"
+                    checked={formData.capabilities?.vision || false}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      capabilities: { ...prev.capabilities!, vision: e.currentTarget.checked }
+                    }))}
+                    styles={{ label: { fontSize: '0.75rem' } }}
+                  />
+                  <Checkbox
+                    label="Tool Calling (函数调用)"
+                    checked={formData.capabilities?.tools || false}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      capabilities: { ...prev.capabilities!, tools: e.currentTarget.checked }
+                    }))}
+                    styles={{ label: { fontSize: '0.75rem' } }}
+                  />
+                  <Checkbox
+                    label="Streaming (流式输出)"
+                    checked={formData.capabilities?.streaming ?? true}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      capabilities: { ...prev.capabilities!, streaming: e.currentTarget.checked }
+                    }))}
+                    styles={{ label: { fontSize: '0.75rem' } }}
+                  />
+                </Stack>
+              </Box>
 
               <hr className="border-gray-800 my-4" />
 
               {/* Metadata Configuration */}
-              <div>
-                <Label className="text-xs text-gray-400 uppercase">模型元数据</Label>
-                <div className="mt-3 space-y-3">
-                  <div>
-                    <Label htmlFor="inputWindow" className="text-xs text-gray-400">
-                      Input Window (输入窗口)
-                    </Label>
-                    <Input
-                      id="inputWindow"
-                      type="number"
-                      value={formData.metadata?.inputWindow || 4096}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        metadata: { ...prev.metadata!, inputWindow: parseInt(e.target.value) }
-                      }))}
-                      className="tavern-input h-9 mt-1 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="outputWindow" className="text-xs text-gray-400">
-                      Output Window (输出窗口)
-                    </Label>
-                    <Input
-                      id="outputWindow"
-                      type="number"
-                      value={formData.metadata?.outputWindow || 4096}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        metadata: { ...prev.metadata!, outputWindow: parseInt(e.target.value) }
-                      }))}
-                      className="tavern-input h-9 mt-1 text-sm"
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="isReasoning"
-                      checked={formData.metadata?.isReasoning || false}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        metadata: { ...prev.metadata!, isReasoning: e.target.checked }
-                      }))}
-                      className="rounded border-gray-600 bg-gray-700 text-blue-600"
-                    />
-                    <Label htmlFor="isReasoning" className="text-xs text-gray-400">
-                      Reasoning Model (推理模型，如 o1/o3)
-                    </Label>
-                  </div>
-                </div>
-              </div>
+              <Box>
+                <Text size="xs" fw={600} c="gray.5" tt="uppercase" mb="sm">
+                  模型元数据
+                </Text>
+                <Stack gap="sm">
+                  <NumberInput
+                    label="Input Window (输入窗口)"
+                    value={formData.metadata?.inputWindow || 4096}
+                    onChange={(value) => setFormData(prev => ({
+                      ...prev,
+                      metadata: { ...prev.metadata!, inputWindow: Number(value) }
+                    }))}
+                    min={1}
+                    styles={{ label: { fontSize: '0.75rem', color: 'var(--mantine-color-gray-5)' } }}
+                  />
+                  <NumberInput
+                    label="Output Window (输出窗口)"
+                    value={formData.metadata?.outputWindow || 4096}
+                    onChange={(value) => setFormData(prev => ({
+                      ...prev,
+                      metadata: { ...prev.metadata!, outputWindow: Number(value) }
+                    }))}
+                    min={1}
+                    styles={{ label: { fontSize: '0.75rem', color: 'var(--mantine-color-gray-5)' } }}
+                  />
+                  <Checkbox
+                    label="Reasoning Model (推理模型，如 o1/o3)"
+                    checked={formData.metadata?.isReasoning || false}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      metadata: { ...prev.metadata!, isReasoning: e.currentTarget.checked }
+                    }))}
+                    styles={{ label: { fontSize: '0.75rem' } }}
+                  />
+                </Stack>
+              </Box>
 
               <hr className="border-gray-800 my-4" />
 
               {/* Advanced Settings - Collapsible */}
-              <div>
-                <button
-                  type="button"
+              <Box>
+                <Group
                   onClick={() => setShowTestSection(!showTestSection)}
-                  className="flex items-center justify-between w-full text-xs font-semibold text-gray-400 uppercase hover:text-gray-300 transition-colors"
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                  justify="space-between"
+                  mb="sm"
                 >
-                  <span>连接测试</span>
-                  {showTestSection ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                </button>
+                  <Text size="xs" fw={600} c="gray.5" tt="uppercase">
+                    连接测试
+                  </Text>
+                  {showTestSection ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+                </Group>
 
-                {showTestSection && (
-                  <div className="mt-3 space-y-3">
-                    <div>
-                      <Label htmlFor="testMessage" className="text-xs text-gray-400">
-                        测试消息
-                      </Label>
-                      <Textarea
-                        id="testMessage"
-                        value={testMessage}
-                        onChange={(e) => setTestMessage(e.target.value)}
-                        placeholder="输入测试消息..."
-                        className="tavern-input min-h-[60px] mt-1 text-sm"
-                      />
-                    </div>
+                <Collapse in={showTestSection}>
+                  <Stack gap="sm" mt="sm">
+                    <Textarea
+                      label="测试消息"
+                      value={testMessage}
+                      onChange={(e) => setTestMessage(e.currentTarget.value)}
+                      placeholder="输入测试消息..."
+                      minRows={3}
+                      styles={{ label: { fontSize: '0.75rem', color: 'var(--mantine-color-gray-5)' } }}
+                    />
 
                     <Button
                       type="button"
                       onClick={handleTestConnection}
                       disabled={isTesting || !formData.model || !formData.apiKey}
-                      className="w-full tavern-button h-9"
+                      fullWidth
+                      leftSection={isTesting ? <Loader size="xs" /> : <IconFlask size={16} />}
                     >
-                      <TestTube className="w-4 h-4 mr-2" />
                       {isTesting ? '测试中...' : '测试连接'}
                     </Button>
 
                     {testResult && (
-                      <div className={`p-3 rounded-lg border text-sm ${
-                        testResult.success
-                          ? 'bg-green-900/20 border-green-800 text-green-200'
-                          : 'bg-red-900/20 border-red-800 text-red-200'
-                      }`}>
-                        <div className="flex items-start space-x-2">
+                      <Box
+                        p="sm"
+                        style={{
+                          borderRadius: 'var(--mantine-radius-md)',
+                          border: testResult.success 
+                            ? '1px solid var(--mantine-color-green-8)'
+                            : '1px solid var(--mantine-color-red-8)',
+                          backgroundColor: testResult.success
+                            ? 'rgba(64, 192, 87, 0.1)'
+                            : 'rgba(250, 82, 82, 0.1)'
+                        }}
+                      >
+                        <Group align="flex-start" gap="xs">
                           {testResult.success ? (
-                            <Check className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                            <IconCheck size={16} style={{ color: 'var(--mantine-color-green-4)', flexShrink: 0, marginTop: 2 }} />
                           ) : (
-                            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                            <IconAlertCircle size={16} style={{ color: 'var(--mantine-color-red-4)', flexShrink: 0, marginTop: 2 }} />
                           )}
-                          <div className="flex-1 text-xs">
-                            <p className="font-medium mb-1">
+                          <Box style={{ flex: 1 }}>
+                            <Text size="xs" fw={500} mb={4} c={testResult.success ? 'green.2' : 'red.2'}>
                               {testResult.success ? '连接成功' : '连接失败'}
-                            </p>
-                            {testResult.response && <p>{testResult.response}</p>}
-                            {testResult.error && <p>错误: {testResult.error}</p>}
-                          </div>
-                        </div>
-                      </div>
+                            </Text>
+                            {testResult.response && <Text size="xs" c="gray.3">{testResult.response}</Text>}
+                            {testResult.error && <Text size="xs" c="red.3">错误: {testResult.error}</Text>}
+                          </Box>
+                        </Group>
+                      </Box>
                     )}
-                  </div>
-                )}
-              </div>
+                  </Stack>
+                </Collapse>
+              </Box>
 
               <hr className="border-gray-800 my-4" />
 
               {/* Active Model */}
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                  className="rounded border-gray-600 bg-gray-700 text-blue-600"
-                />
-                <Label htmlFor="isActive" className="text-xs text-gray-400">
-                  设为活跃模型
-                </Label>
-              </div>
+              <Checkbox
+                label="设为活跃模型"
+                checked={formData.isActive}
+                onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.currentTarget.checked }))}
+                styles={{ label: { fontSize: '0.75rem' } }}
+              />
 
             </div>
-          </div>
+          </ScrollArea>
 
           {/* Footer Actions */}
-          <div className="px-6 py-4 border-t border-gray-800 flex gap-3 flex-shrink-0">
+          <Group p="md" style={{ borderTop: '1px solid var(--mantine-color-dark-4)' }}>
             <Button
               type="button"
-              variant="outline"
+              variant="default"
               onClick={onClose}
-              className="flex-1 tavern-button-secondary h-10"
+              style={{ flex: 1 }}
             >
               取消
             </Button>
             <Button
               type="submit"
               disabled={isLoading}
-              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white border-2 border-amber-600 hover:shadow-[0_0_15px_rgba(245,158,11,0.3)] h-10"
+              color="orange"
+              leftSection={isLoading ? <Loader size="xs" /> : <IconDeviceFloppy size={16} />}
+              style={{ 
+                flex: 1,
+                borderWidth: 2,
+                boxShadow: '0 0 12px rgba(245, 158, 11, 0.2)'
+              }}
+              styles={{
+                root: {
+                  '&:hover': {
+                    boxShadow: '0 0 15px rgba(245, 158, 11, 0.3)'
+                  }
+                }
+              }}
             >
               {isLoading ? '保存中...' : '创建配置'}
             </Button>
-          </div>
+          </Group>
         </form>
-      </SheetContent>
-    </Sheet>
-  )
+      </Drawer>
+    )
 }
 
 export default AIModelDrawer
-

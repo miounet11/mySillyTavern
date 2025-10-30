@@ -2,24 +2,37 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
+import { 
+  Modal, 
+  Button, 
+  TextInput, 
+  Textarea, 
+  Badge, 
+  Table, 
+  Select, 
+  Switch, 
+  Group, 
+  Stack, 
+  Text, 
+  ActionIcon, 
+  ScrollArea,
+  FileButton,
+  Alert
+} from '@mantine/core'
 import {
-  X,
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Copy,
-  Upload,
-  Download,
-  FileText,
-  ChevronDown,
-  ChevronUp,
-  MessageSquare
-} from 'lucide-react'
+  IconX,
+  IconPlus,
+  IconSearch,
+  IconEdit,
+  IconTrash,
+  IconCopy,
+  IconUpload,
+  IconDownload,
+  IconFileText,
+  IconChevronDown,
+  IconChevronUp,
+  IconMessage
+} from '@tabler/icons-react'
 import toast from 'react-hot-toast'
 
 interface Preset {
@@ -54,8 +67,6 @@ export default function PresetEditor({
     category: '',
     enabled: true
   })
-
-  if (!isOpen) return null
 
   const filteredPresets = presets
     .filter(preset =>
@@ -147,8 +158,7 @@ export default function PresetEditor({
     URL.revokeObjectURL(url)
   }
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+  const handleImport = (file: File | null) => {
     if (!file) return
 
     const reader = new FileReader()
@@ -157,14 +167,13 @@ export default function PresetEditor({
         const imported = JSON.parse(event.target?.result as string)
         if (Array.isArray(imported)) {
           setPresets([...presets, ...imported])
-          alert('导入成功')
+          toast.success('导入成功')
         }
       } catch (error) {
-        alert('导入失败：文件格式错误')
+        toast.error('导入失败：文件格式错误')
       }
     }
     reader.readAsText(file)
-    e.target.value = ''
   }
 
   const handlePresetClick = (preset: Preset) => {
@@ -183,136 +192,123 @@ export default function PresetEditor({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-5xl h-[85vh] bg-gray-900/95 backdrop-blur-xl rounded-lg border border-gray-700/50 flex flex-col shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-800/50">
-          <div className="flex items-center gap-3">
-            <FileText className="w-6 h-6 text-teal-400" />
-            <h2 className="text-2xl font-bold text-gray-100">预设编辑器</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-hidden flex flex-col p-6">
+    <Modal
+      opened={isOpen}
+      onClose={onClose}
+      size="xl"
+      title={
+        <Group gap="xs">
+          <IconFileText size={24} color="var(--mantine-color-teal-4)" />
+          <Text size="xl" fw={700}>预设编辑器</Text>
+        </Group>
+      }
+      styles={{
+        content: { height: '85vh' },
+        body: { height: 'calc(100% - 60px)', display: 'flex', flexDirection: 'column' }
+      }}
+    >
+      <Stack style={{ flex: 1, overflow: 'hidden' }} gap="md">
           {!isEditing ? (
             <>
               {/* Search and Actions */}
-              <div className="flex gap-3 mb-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="搜索预设..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 tavern-input"
-                  />
-                </div>
+              <Group gap="xs">
+                <TextInput
+                  placeholder="搜索预设..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.currentTarget.value)}
+                  leftSection={<IconSearch size={16} />}
+                  style={{ flex: 1 }}
+                />
 
-                <select
+                <Select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as 'name' | 'updated')}
-                  className="tavern-input w-32"
-                >
-                  <option value="name">名称</option>
-                  <option value="updated">更新时间</option>
-                </select>
+                  onChange={(value) => setSortBy(value as 'name' | 'updated')}
+                  data={[
+                    { value: 'name', label: '名称' },
+                    { value: 'updated', label: '更新时间' }
+                  ]}
+                  w={120}
+                />
 
-                <Button
+                <ActionIcon
                   onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  variant="outline"
-                  className="tavern-button-secondary"
+                  variant="default"
+                  size="lg"
                 >
-                  {sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </Button>
+                  {sortOrder === 'asc' ? <IconChevronUp size={18} /> : <IconChevronDown size={18} />}
+                </ActionIcon>
 
-                <label htmlFor="import-preset">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="tavern-button-secondary gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    导入
-                  </Button>
-                  <input
-                    id="import-preset"
-                    type="file"
-                    accept=".json"
-                    onChange={handleImport}
-                    className="hidden"
-                  />
-                </label>
+                <FileButton onChange={handleImport} accept=".json">
+                  {(props) => (
+                    <Button {...props} variant="default" leftSection={<IconUpload size={16} />}>
+                      导入
+                    </Button>
+                  )}
+                </FileButton>
 
                 <Button
                   onClick={handleExport}
                   disabled={presets.length === 0}
-                  variant="outline"
-                  className="tavern-button-secondary gap-2"
+                  variant="default"
+                  leftSection={<IconDownload size={16} />}
                 >
-                  <Download className="w-4 h-4" />
                   导出
                 </Button>
 
                 <Button
                   onClick={handleCreate}
-                  className="tavern-button gap-2"
+                  leftSection={<IconPlus size={16} />}
+                  gradient={{ from: 'teal', to: 'cyan' }}
+                  variant="gradient"
                 >
-                  <Plus className="w-4 h-4" />
                   创建预设
                 </Button>
-              </div>
+              </Group>
 
               {/* Hint */}
               {filteredPresets.length > 0 && (
-                <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-teal-500/10 border border-teal-500/20 rounded-lg">
-                  <MessageSquare className="w-4 h-4 text-teal-400 flex-shrink-0" />
-                  <p className="text-sm text-teal-300">
-                    点击预设行可应用并进入对话
-                  </p>
-                </div>
+                <Alert
+                  icon={<IconMessage size={16} />}
+                  color="teal"
+                  variant="light"
+                >
+                  <Text size="sm">点击预设行可应用并进入对话</Text>
+                </Alert>
               )}
 
               {/* Presets Table */}
-              <div className="flex-1 overflow-y-auto tavern-scrollbar">
+              <ScrollArea style={{ flex: 1 }}>
                 {filteredPresets.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <FileText className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                    <p className="mb-2">
+                  <Stack align="center" gap="md" py={60}>
+                    <IconFileText size={64} opacity={0.3} />
+                    <Text c="dimmed">
                       {searchQuery ? '未找到匹配的预设' : '还没有预设'}
-                    </p>
+                    </Text>
                     {!searchQuery && (
                       <Button
                         onClick={handleCreate}
-                        variant="outline"
-                        className="tavern-button-secondary gap-2 mt-4"
+                        variant="light"
+                        leftSection={<IconPlus size={16} />}
                       >
-                        <Plus className="w-4 h-4" />
                         创建第一个预设
                       </Button>
                     )}
-                  </div>
+                  </Stack>
                 ) : (
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-700">
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-400 uppercase">开关</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-400 uppercase">状态</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-400 uppercase">名称</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-400 uppercase">分类</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-400 uppercase">更新时间</th>
-                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-400 uppercase">操作</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table highlightOnHover>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>开关</Table.Th>
+                        <Table.Th>状态</Table.Th>
+                        <Table.Th>名称</Table.Th>
+                        <Table.Th>分类</Table.Th>
+                        <Table.Th>更新时间</Table.Th>
+                        <Table.Th ta="center">操作</Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
                       {filteredPresets.map((preset) => (
-                        <tr
+                        <Table.Tr
                           key={preset.id}
                           onClick={(e) => {
                             // Don't trigger row click if clicking on buttons or toggles
@@ -321,173 +317,155 @@ export default function PresetEditor({
                               handlePresetClick(preset)
                             }
                           }}
-                          className="border-b border-gray-800 hover:bg-gray-800/30 transition-colors cursor-pointer"
+                          style={{ cursor: 'pointer' }}
                         >
-                          <td className="px-3 py-3">
-                            <label 
-                              className="relative inline-flex items-center cursor-pointer"
+                          <Table.Td>
+                            <Switch
+                              checked={preset.enabled}
+                              onChange={() => togglePreset(preset.id)}
                               onClick={(e) => e.stopPropagation()}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={preset.enabled}
-                                onChange={() => togglePreset(preset.id)}
-                                className="sr-only peer"
-                              />
-                              <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
-                            </label>
-                          </td>
+                              color="teal"
+                            />
+                          </Table.Td>
 
-                          <td className="px-3 py-3">
+                          <Table.Td>
                             <Badge
-                              variant={preset.enabled ? "default" : "secondary"}
-                              className={preset.enabled
-                                ? "bg-teal-500/20 text-teal-300 border-teal-500/30"
-                                : "bg-gray-700/50 text-gray-400 border-gray-600/50"
-                              }
+                              color={preset.enabled ? "teal" : "gray"}
+                              variant="light"
                             >
                               {preset.enabled ? '启用' : '禁用'}
                             </Badge>
-                          </td>
+                          </Table.Td>
 
-                          <td className="px-3 py-3">
-                            <div className="text-sm text-gray-200 font-medium">
+                          <Table.Td>
+                            <Text size="sm" fw={500}>
                               {preset.name}
-                            </div>
-                          </td>
+                            </Text>
+                          </Table.Td>
 
-                          <td className="px-3 py-3">
+                          <Table.Td>
                             {preset.category && (
                               <Badge
-                                variant="secondary"
-                                className="text-xs bg-gray-700/50 text-gray-300"
+                                variant="light"
+                                color="gray"
+                                size="sm"
                               >
                                 {preset.category}
                               </Badge>
                             )}
-                          </td>
+                          </Table.Td>
 
-                          <td className="px-3 py-3">
-                            <div className="text-sm text-gray-400">
+                          <Table.Td>
+                            <Text size="sm" c="dimmed">
                               {new Date(preset.updatedAt).toLocaleString('zh-CN')}
-                            </div>
-                          </td>
+                            </Text>
+                          </Table.Td>
 
-                          <td className="px-3 py-3">
-                            <div className="flex items-center justify-center gap-1">
-                              <button
+                          <Table.Td>
+                            <Group gap={4} justify="center">
+                              <ActionIcon
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleEdit(preset)
                                 }}
-                                className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-teal-400 transition-colors"
+                                variant="subtle"
+                                color="teal"
                                 title="编辑"
                               >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button
+                                <IconEdit size={16} />
+                              </ActionIcon>
+                              <ActionIcon
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleDuplicate(preset)
                                 }}
-                                className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-blue-400 transition-colors"
+                                variant="subtle"
+                                color="blue"
                                 title="复制"
                               >
-                                <Copy className="w-4 h-4" />
-                              </button>
-                              <button
+                                <IconCopy size={16} />
+                              </ActionIcon>
+                              <ActionIcon
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleDelete(preset.id)
                                 }}
-                                className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-red-400 transition-colors"
+                                variant="subtle"
+                                color="red"
                                 title="删除"
                               >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
+                                <IconTrash size={16} />
+                              </ActionIcon>
+                            </Group>
+                          </Table.Td>
+                        </Table.Tr>
                       ))}
-                    </tbody>
-                  </table>
+                    </Table.Tbody>
+                  </Table>
                 )}
-              </div>
+              </ScrollArea>
             </>
           ) : (
             /* Edit Form */
-            <div className="flex-1 flex flex-col">
-              <div className="flex-1 overflow-y-auto tavern-scrollbar">
-                <div className="space-y-4">
-                  <div>
-                    <label className="tavern-label">预设名称</label>
-                    <Input
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="例如: 标准对话、创意写作"
-                      className="tavern-input"
-                    />
-                  </div>
+            <ScrollArea style={{ flex: 1 }}>
+              <Stack gap="md">
+                <TextInput
+                  label="预设名称"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.currentTarget.value })}
+                  placeholder="例如: 标准对话、创意写作"
+                  required
+                />
 
-                  <div>
-                    <label className="tavern-label">分类</label>
-                    <Input
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      placeholder="例如: 对话、写作、编程"
-                      className="tavern-input"
-                    />
-                  </div>
+                <TextInput
+                  label="分类"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.currentTarget.value })}
+                  placeholder="例如: 对话、写作、编程"
+                />
 
-                  <div>
-                    <label className="tavern-label">预设内容</label>
-                    <Textarea
-                      value={formData.content}
-                      onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                      placeholder="输入预设的内容和参数..."
-                      className="tavern-textarea min-h-[300px]"
-                    />
-                  </div>
+                <Textarea
+                  label="预设内容"
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.currentTarget.value })}
+                  placeholder="输入预设的内容和参数..."
+                  minRows={12}
+                  required
+                />
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="enabled-preset"
-                      checked={formData.enabled}
-                      onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
-                      className="tavern-checkbox"
-                    />
-                    <label htmlFor="enabled-preset" className="text-sm text-gray-300 cursor-pointer">
-                      启用此预设
-                    </label>
-                  </div>
+                <Switch
+                  label="启用此预设"
+                  checked={formData.enabled}
+                  onChange={(e) => setFormData({ ...formData, enabled: e.currentTarget.checked })}
+                  color="teal"
+                />
 
-                  <div className="flex gap-3 pt-4">
-                    <Button
-                      onClick={handleSave}
-                      disabled={!formData.name || !formData.content}
-                      className="tavern-button flex-1"
-                    >
-                      保存
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setIsEditing(false)
-                        setEditingPreset(null)
-                      }}
-                      variant="outline"
-                      className="tavern-button-secondary flex-1"
-                    >
-                      取消
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
+                <Group gap="xs" mt="md">
+                  <Button
+                    onClick={handleSave}
+                    disabled={!formData.name || !formData.content}
+                    style={{ flex: 1 }}
+                    gradient={{ from: 'teal', to: 'cyan' }}
+                    variant="gradient"
+                  >
+                    保存
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setIsEditing(false)
+                      setEditingPreset(null)
+                    }}
+                    variant="default"
+                    style={{ flex: 1 }}
+                  >
+                    取消
+                  </Button>
+                </Group>
+              </Stack>
+            </ScrollArea>
           )}
-        </div>
-      </div>
-    </div>
+      </Stack>
+    </Modal>
   )
 }
 

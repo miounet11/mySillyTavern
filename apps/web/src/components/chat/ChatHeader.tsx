@@ -3,21 +3,22 @@
  */
 
 import { useState } from 'react'
-import { MoreVertical, ArrowLeft, Settings, Share2, Download, Trash2, Users, Star, Edit } from 'lucide-react'
 import { Chat, Character } from '@sillytavern-clone/shared'
 import { useChatStore } from '@/stores/chatStore'
 import { useCharacterStore } from '@/stores/characterStore'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Group, Button, Badge, Avatar, Text, ActionIcon, Menu } from '@mantine/core'
+import { 
+  IconDotsVertical, 
+  IconArrowLeft, 
+  IconShare2, 
+  IconDownload, 
+  IconTrash, 
+  IconUsers, 
+  IconStar, 
+  IconEdit 
+} from '@tabler/icons-react'
 import { useTranslation } from '@/lib/i18n'
 
 interface ChatHeaderProps {
@@ -151,199 +152,259 @@ export default function ChatHeader({
   const stats = getChatStats()
 
   return (
-    <div className={`border-b border-gray-800/50 glass-card backdrop-blur-lg ${className}`}>
-      <div className="p-5">
-        {/* Header Content */}
-        <div className="flex items-center justify-between">
-          {/* Left Section - Back Button and Character Info */}
-          <div className="flex items-center space-x-4">
-            {onBack && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onBack}
-                className="glass-light hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            )}
+    <div 
+      className={className}
+      style={{
+        borderBottom: '1px solid rgba(55, 65, 81, 0.5)',
+        backgroundColor: 'rgba(17, 24, 39, 0.8)',
+        backdropFilter: 'blur(16px)',
+        padding: '1.25rem',
+      }}
+    >
+      {/* Header Content */}
+      <Group justify="space-between" align="flex-start">
+        {/* Left Section - Back Button and Character Info */}
+        <Group gap="md">
+          {onBack && (
+            <ActionIcon
+              variant="subtle"
+              size="lg"
+              onClick={onBack}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              <IconArrowLeft size={20} />
+            </ActionIcon>
+          )}
 
-            {/* Character Avatar */}
-            <div className="relative group">
-              {currentCharacter?.avatar ? (
-                <img
-                  src={currentCharacter.avatar}
-                  alt={currentCharacter.name}
-                  className="w-14 h-14 rounded-full object-cover border-2 border-blue-500/50 shadow-lg transition-all group-hover:scale-105 group-hover:border-blue-400"
-                />
-              ) : (
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg group-hover:scale-105 transition-all">
-                  <Users className="w-7 h-7 text-white" />
-                </div>
+          {/* Character Avatar */}
+          <div style={{ position: 'relative' }}>
+            <Avatar
+              src={currentCharacter?.avatar}
+              size={56}
+              radius="xl"
+              style={{
+                border: '2px solid rgba(59, 130, 246, 0.5)',
+                transition: 'all 0.3s',
+              }}
+            >
+              <IconUsers size={28} />
+            </Avatar>
+            
+            {/* Online Status Indicator */}
+            <div 
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                width: '16px',
+                height: '16px',
+                backgroundColor: '#22c55e',
+                borderRadius: '50%',
+                border: '2px solid rgb(17, 24, 39)',
+              }}
+            />
+          </div>
+
+          {/* Character Name and Status */}
+          <div>
+            <Group gap="xs" mb="xs">
+              <Text
+                size="xl"
+                fw={700}
+                style={{
+                  background: 'linear-gradient(to right, #60a5fa, #a78bfa)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                {currentCharacter?.name || 'AI Assistant'}
+              </Text>
+              {currentChat?.isFavorite && (
+                <IconStar size={20} fill="#fbbf24" color="#fbbf24" />
+              )}
+            </Group>
+
+            <Group gap="sm">
+              <Badge 
+                size="sm" 
+                color="green" 
+                variant="light"
+                leftSection={
+                  <div style={{ 
+                    width: '8px', 
+                    height: '8px', 
+                    borderRadius: '50%', 
+                    backgroundColor: '#22c55e' 
+                  }} />
+                }
+              >
+                {t('chat.chatHeader.online')}
+              </Badge>
+
+              {stats && (
+                <>
+                  <Text size="sm" c="dimmed">•</Text>
+                  <Text size="sm" fw={500}>{stats.total} {t('chat.chatHeader.messagesCount')}</Text>
+                  <Text size="sm" c="dimmed">•</Text>
+                  <Text size="sm" c="dimmed">{stats.lastActivity}</Text>
+                </>
+              )}
+            </Group>
+          </div>
+        </Group>
+
+        {/* Right Section - Actions */}
+        <Group gap="xs">
+          {/* Edit Character Button */}
+          {currentCharacter && onEditCharacter && (
+            <Button
+              variant="light"
+              size="sm"
+              leftSection={<IconEdit size={16} />}
+              onClick={onEditCharacter}
+            >
+              {t('chat.editCharacter')}
+            </Button>
+          )}
+
+          {/* New Chat Button */}
+          {onNewChat && (
+            <Button
+              variant="gradient"
+              gradient={{ from: 'cyan', to: 'blue', deg: 90 }}
+              size="sm"
+              onClick={onNewChat}
+            >
+              {t('chat.chatHeader.newChat')}
+            </Button>
+          )}
+
+          {/* Actions Menu */}
+          <Menu position="bottom-end" shadow="md">
+            <Menu.Target>
+              <ActionIcon
+                variant="subtle"
+                size="lg"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                }}
+              >
+                <IconDotsVertical size={20} />
+              </ActionIcon>
+            </Menu.Target>
+
+            <Menu.Dropdown style={{ minWidth: '200px' }}>
+              {/* Character Info */}
+              {currentCharacter && (
+                <>
+                  <Menu.Label>
+                    <Text fw={600} size="sm">{currentCharacter.name}</Text>
+                    <Text size="xs" c="dimmed" lineClamp={1}>{currentCharacter.description}</Text>
+                    {currentCharacter.tags && Array.isArray(currentCharacter.tags) && currentCharacter.tags.length > 0 && (
+                      <Group gap={4} mt="xs">
+                        {currentCharacter.tags.slice(0, 3).map((tag: string) => (
+                          <Badge key={tag} size="xs" variant="light">
+                            {tag}
+                          </Badge>
+                        ))}
+                        {currentCharacter.tags.length > 3 && (
+                          <Badge size="xs" variant="light">
+                            +{currentCharacter.tags.length - 3}
+                          </Badge>
+                        )}
+                      </Group>
+                    )}
+                  </Menu.Label>
+                  <Menu.Divider />
+                </>
               )}
 
-              {/* Online Status Indicator with Glow */}
-              <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse-glow"></div>
-            </div>
-
-            {/* Character Name and Status */}
-            <div>
-              <h2 className="text-xl font-bold gradient-text flex items-center space-x-2">
-                <span>{currentCharacter?.name || 'AI Assistant'}</span>
-                {currentChat?.isFavorite && (
-                  <Star className="w-5 h-5 text-yellow-400 fill-current animate-bounce-subtle" />
-                )}
-              </h2>
-
-              <div className="flex items-center space-x-3 text-sm text-gray-300 mt-1">
-                <span className="flex items-center space-x-1.5 glass-light px-2 py-1 rounded-full">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="font-medium">{t('chat.chatHeader.online')}</span>
-                </span>
-
-                {stats && (
-                  <>
-                    <span className="text-gray-500">•</span>
-                    <span className="font-medium">{stats.total} {t('chat.chatHeader.messagesCount')}</span>
-                    <span className="text-gray-500">•</span>
-                    <span className="text-gray-400">{stats.lastActivity}</span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Section - Actions */}
-          <div className="flex items-center space-x-3">
-            {/* Edit Character Button */}
-            {currentCharacter && onEditCharacter && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onEditCharacter}
-                className="glass-light hover:bg-white/10 text-white border-white/20 hover-lift transition-all"
+              {/* Chat Actions */}
+              <Menu.Item
+                leftSection={<IconStar size={16} />}
+                onClick={handleToggleFavorite}
               >
-                <Edit className="w-4 h-4 mr-2" />
-                {t('chat.editCharacter')}
-              </Button>
-            )}
+                {currentChat?.isFavorite ? t('chat.chatHeader.unfavoriteChat') : t('chat.chatHeader.favoriteChat')}
+              </Menu.Item>
 
-            {/* New Chat Button */}
-            {onNewChat && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onNewChat}
-                className="gradient-btn-primary hover-lift transition-all"
+              <Menu.Item
+                leftSection={<IconShare2 size={16} />}
+                onClick={handleShareChat}
               >
-                {t('chat.chatHeader.newChat')}
-              </Button>
-            )}
+                {t('chat.chatHeader.shareChat')}
+              </Menu.Item>
 
-            {/* Actions Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="glass-light hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all"
+              <Menu.Item
+                leftSection={<IconDownload size={16} />}
+                onClick={handleExportChat}
+                disabled={isExporting || !currentChat}
+              >
+                {isExporting ? t('chat.chatHeader.exportingChat') : t('chat.chatHeader.exportChat')}
+              </Menu.Item>
+
+              {currentCharacter && onEditCharacter && (
+                <Menu.Item
+                  leftSection={<IconEdit size={16} />}
+                  onClick={onEditCharacter}
                 >
-                  <MoreVertical className="w-5 h-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                {/* Character Info */}
-                {currentCharacter && (
-                  <>
-                    <div className="px-2 py-1.5 text-sm text-gray-400 border-b border-gray-800">
-                      <div className="font-medium text-gray-300">{currentCharacter.name}</div>
-                      <div className="truncate">{currentCharacter.description}</div>
-                      {currentCharacter.tags && Array.isArray(currentCharacter.tags) && currentCharacter.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {currentCharacter.tags.slice(0, 3).map((tag: string) => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {currentCharacter.tags.length > 3 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{currentCharacter.tags.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <DropdownMenuSeparator />
-                  </>
-                )}
+                  {t('chat.editCharacter')}
+                </Menu.Item>
+              )}
 
-                {/* Chat Actions */}
-                <DropdownMenuItem onClick={handleToggleFavorite}>
-                  <Star className="w-4 h-4 mr-2" />
-                  {currentChat?.isFavorite ? t('chat.chatHeader.unfavoriteChat') : t('chat.chatHeader.favoriteChat')}
-                </DropdownMenuItem>
+              <Menu.Divider />
 
-                <DropdownMenuItem onClick={handleShareChat}>
-                  <Share2 className="w-4 h-4 mr-2" />
-                  {t('chat.chatHeader.shareChat')}
-                </DropdownMenuItem>
+              {/* Destructive Actions */}
+              <Menu.Item
+                leftSection={<IconTrash size={16} />}
+                onClick={handleDeleteChat}
+                disabled={!currentChat}
+                color="red"
+              >
+                {t('chat.deleteChat')}
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </Group>
+      </Group>
 
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={handleExportChat} disabled={isExporting || !currentChat}>
-                  <Download className="w-4 h-4 mr-2" />
-                  {isExporting ? t('chat.chatHeader.exportingChat') : t('chat.chatHeader.exportChat')}
-                </DropdownMenuItem>
+      {/* Chat Stats Bar */}
+      {stats && stats.total > 0 && (
+        <Group 
+          justify="space-between" 
+          mt="lg" 
+          pt="md"
+          style={{ borderTop: '1px solid rgba(107, 114, 128, 0.5)' }}
+        >
+          <Group gap="sm">
+            <Badge variant="light" size="md">
+              👤 {stats.user}
+            </Badge>
+            <Badge variant="light" size="md" color="violet">
+              🤖 {stats.ai}
+            </Badge>
+            <Badge variant="light" size="md" color="cyan">
+              💬 {stats.total}
+            </Badge>
+          </Group>
 
-                {currentCharacter && onEditCharacter && (
-                  <DropdownMenuItem onClick={onEditCharacter}>
-                    <Edit className="w-4 h-4 mr-2" />
-                    {t('chat.editCharacter')}
-                  </DropdownMenuItem>
-                )}
-
-                <DropdownMenuSeparator />
-
-                {/* Destructive Actions */}
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={handleDeleteChat} disabled={!currentChat} className="text-red-500 hover:text-red-400 focus:text-red-400">
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  {t('chat.deleteChat')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* Chat Stats Bar */}
-        {stats && stats.total > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-700/50">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center space-x-3">
-                <span className="glass-light px-3 py-1.5 rounded-lg text-gray-300 font-medium">
-                  <span className="text-blue-400">👤</span> {stats.user}
-                </span>
-                <span className="glass-light px-3 py-1.5 rounded-lg text-gray-300 font-medium">
-                  <span className="text-purple-400">🤖</span> {stats.ai}
-                </span>
-                <span className="glass-light px-3 py-1.5 rounded-lg text-gray-300 font-medium">
-                  <span className="text-teal-400">💬</span> {stats.total}
-                </span>
-              </div>
-
-              <div className="flex items-center space-x-3 text-gray-400">
-                {currentCharacter?.settings?.temperature && (
-                  <span className="glass-light px-3 py-1.5 rounded-lg">
-                    🎨 {currentCharacter.settings.temperature.toFixed(1)}
-                  </span>
-                )}
-                {currentChat?.modelUsed && (
-                  <span className="glass-light px-3 py-1.5 rounded-lg">
-                    ⚡ {currentChat.modelUsed}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+          <Group gap="sm">
+            {currentCharacter?.settings?.temperature && (
+              <Badge variant="light" size="md">
+                🎨 {currentCharacter.settings.temperature.toFixed(1)}
+              </Badge>
+            )}
+            {currentChat?.modelUsed && (
+              <Badge variant="light" size="md" color="yellow">
+                ⚡ {currentChat.modelUsed}
+              </Badge>
+            )}
+          </Group>
+        </Group>
+      )}
     </div>
   )
 }

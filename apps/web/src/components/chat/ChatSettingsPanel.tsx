@@ -1,18 +1,18 @@
 "use client"
 
-import { Button } from '@/components/ui/button'
+import { Button, ActionIcon, Stack, Text, Group, Box, ScrollArea, Divider } from '@mantine/core'
 import { 
-  ArrowLeft, 
-  PanelLeftClose, 
-  PanelLeftOpen,
-  GitBranch, 
-  FileText, 
-  BookOpen,
-  Settings,
-  Wand2,
-  Code,
-  FileJson
-} from 'lucide-react'
+  IconArrowLeft, 
+  IconLayoutSidebarLeftCollapse, 
+  IconLayoutSidebarLeftExpand,
+  IconGitBranch, 
+  IconFileText, 
+  IconBook,
+  IconSettings,
+  IconWand,
+  IconCode,
+  IconFileCode
+} from '@tabler/icons-react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
 
@@ -44,154 +44,177 @@ export default function ChatSettingsPanel({
 
   if (!isOpen) {
     return (
-      <button
+      <ActionIcon
         onClick={onToggle}
-        className="fixed left-4 top-20 z-30 p-2 rounded-lg bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 text-gray-300 hover:text-white hover:bg-gray-700/80 transition-all shadow-lg"
+        size="lg"
+        variant="filled"
+        color="dark"
+        style={{
+          position: 'fixed',
+          left: '1rem',
+          top: '5rem',
+          zIndex: 30
+        }}
         title={t('chat.settingsPanel.expandSidebar')}
       >
-        <PanelLeftOpen className="w-5 h-5" />
-      </button>
+        <IconLayoutSidebarLeftExpand size={20} />
+      </ActionIcon>
     )
   }
 
   return (
-    <div className="w-64 h-full border-r border-gray-800/50 bg-gray-900/60 backdrop-blur-sm flex flex-col relative">
+    <Box
+      style={{
+        width: '16rem',
+        height: '100%',
+        borderRight: '1px solid var(--mantine-color-dark-5)',
+        backgroundColor: 'var(--mantine-color-dark-7)',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative'
+      }}
+    >
       {/* Header */}
-      <div className="p-4 border-b border-gray-800/50">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-gray-300">{t('chat.settingsPanel.title')}</h3>
-          <button
+      <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
+        <Group justify="space-between" mb="md">
+          <Text size="sm" fw={600}>{t('chat.settingsPanel.title')}</Text>
+          <ActionIcon
             onClick={onToggle}
-            className="p-1 rounded hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+            variant="subtle"
+            color="gray"
             title={t('chat.settingsPanel.collapseSidebar')}
           >
-            <PanelLeftClose className="w-4 h-4" />
-          </button>
-        </div>
+            <IconLayoutSidebarLeftCollapse size={16} />
+          </ActionIcon>
+        </Group>
 
         {characterName && (
-          <div className="text-xs text-gray-500 mb-2">
-            {t('chat.settingsPanel.currentCharacter')}: <span className="text-teal-400">{characterName}</span>
-          </div>
+          <Text size="xs" c="dimmed">
+            {t('chat.settingsPanel.currentCharacter')}: <Text component="span" c="teal">{characterName}</Text>
+          </Text>
         )}
-      </div>
+      </Box>
 
       {/* Navigation Buttons */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        <Button
-          onClick={() => router.push('/characters')}
-          variant="outline"
-          className="w-full justify-start tavern-button-secondary gap-3"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          {t('chat.settingsPanel.backToCharacters')}
-        </Button>
+      <ScrollArea style={{ flex: 1 }} p="md">
+        <Stack gap="xs">
+          <Button
+            onClick={() => router.push('/characters')}
+            variant="default"
+            fullWidth
+            leftSection={<IconArrowLeft size={16} />}
+            justify="flex-start"
+          >
+            {t('chat.settingsPanel.backToCharacters')}
+          </Button>
 
-        <div className="pt-4 pb-2">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+          <Text size="xs" fw={600} c="dimmed" tt="uppercase" mt="md" mb="xs">
             {t('chat.settingsPanel.sections.plot')}
-          </h4>
-        </div>
+          </Text>
 
-        <Button
-          onClick={onOpenBranchView}
-          variant="outline"
-          className="w-full justify-start tavern-button-secondary gap-3"
-          title={t('chat.settingsPanel.branches.tooltip')}
-        >
-          <GitBranch className="w-4 h-4" />
-          {t('chat.settingsPanel.branches.title')}
-        </Button>
+          <Button
+            onClick={onOpenBranchView}
+            variant="default"
+            fullWidth
+            leftSection={<IconGitBranch size={16} />}
+            justify="flex-start"
+            title={t('chat.settingsPanel.branches.tooltip')}
+          >
+            {t('chat.settingsPanel.branches.title')}
+          </Button>
 
-        <div className="pt-4 pb-2">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+          <Text size="xs" fw={600} c="dimmed" tt="uppercase" mt="md" mb="xs">
             {t('chat.settingsPanel.sections.settings')}
-          </h4>
-        </div>
+          </Text>
 
-        <Button
-          onClick={onOpenExternalPrompts}
-          variant="outline"
-          className="w-full justify-start tavern-button-secondary gap-3"
-          title={t('chat.settingsPanel.externalPrompts.tooltip')}
-        >
-          <FileText className="w-4 h-4" />
-          {t('chat.settingsPanel.externalPrompts.title')}
-        </Button>
+          <Button
+            onClick={onOpenExternalPrompts}
+            variant="default"
+            fullWidth
+            leftSection={<IconFileText size={16} />}
+            justify="flex-start"
+            title={t('chat.settingsPanel.externalPrompts.tooltip')}
+          >
+            {t('chat.settingsPanel.externalPrompts.title')}
+          </Button>
 
-        <Button
-          onClick={onOpenWorldInfo}
-          variant="outline"
-          className="w-full justify-start tavern-button-secondary gap-3"
-          title={t('chat.settingsPanel.worldInfo.tooltip')}
-        >
-          <BookOpen className="w-4 h-4" />
-          {t('chat.settingsPanel.worldInfo.title')}
-        </Button>
+          <Button
+            onClick={onOpenWorldInfo}
+            variant="default"
+            fullWidth
+            leftSection={<IconBook size={16} />}
+            justify="flex-start"
+            title={t('chat.settingsPanel.worldInfo.tooltip')}
+          >
+            {t('chat.settingsPanel.worldInfo.title')}
+          </Button>
 
-        <Button
-          onClick={onOpenTemplateVariables}
-          variant="outline"
-          className="w-full justify-start tavern-button-secondary gap-3"
-          title={t('chat.settingsPanel.templateVars.tooltip')}
-        >
-          <Wand2 className="w-4 h-4" />
-          {t('chat.settingsPanel.templateVars.title')}
-        </Button>
+          <Button
+            onClick={onOpenTemplateVariables}
+            variant="default"
+            fullWidth
+            leftSection={<IconWand size={16} />}
+            justify="flex-start"
+            title={t('chat.settingsPanel.templateVars.tooltip')}
+          >
+            {t('chat.settingsPanel.templateVars.title')}
+          </Button>
 
-        <Button
-          onClick={onOpenRegexEditor}
-          variant="outline"
-          className="w-full justify-start tavern-button-secondary gap-3"
-          title={t('chat.settingsPanel.regex.tooltip')}
-        >
-          <Code className="w-4 h-4" />
-          {t('chat.settingsPanel.regex.title')}
-        </Button>
+          <Button
+            onClick={onOpenRegexEditor}
+            variant="default"
+            fullWidth
+            leftSection={<IconCode size={16} />}
+            justify="flex-start"
+            title={t('chat.settingsPanel.regex.tooltip')}
+          >
+            {t('chat.settingsPanel.regex.title')}
+          </Button>
 
-        <Button
-          onClick={onOpenPresetEditor}
-          variant="outline"
-          className="w-full justify-start tavern-button-secondary gap-3"
-          title={t('chat.settingsPanel.presets.tooltip')}
-        >
-          <FileJson className="w-4 h-4" />
-          {t('chat.settingsPanel.presets.title')}
-        </Button>
+          <Button
+            onClick={onOpenPresetEditor}
+            variant="default"
+            fullWidth
+            leftSection={<IconFileCode size={16} />}
+            justify="flex-start"
+            title={t('chat.settingsPanel.presets.tooltip')}
+          >
+            {t('chat.settingsPanel.presets.title')}
+          </Button>
 
-        <div className="pt-4 pb-2">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+          <Text size="xs" fw={600} c="dimmed" tt="uppercase" mt="md" mb="xs">
             {t('chat.settingsPanel.sections.advanced')}
-          </h4>
-        </div>
+          </Text>
 
-        <Button
-          onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
-          variant="outline"
-          className="w-full justify-start tavern-button-secondary gap-3"
-          title={t('chat.settingsPanel.advancedSettings.tooltip')}
-        >
-          <Settings className="w-4 h-4" />
-          {t('chat.settingsPanel.advancedSettings.title')}
-        </Button>
-      </div>
+          <Button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
+            variant="default"
+            fullWidth
+            leftSection={<IconSettings size={16} />}
+            justify="flex-start"
+            title={t('chat.settingsPanel.advancedSettings.tooltip')}
+          >
+            {t('chat.settingsPanel.advancedSettings.title')}
+          </Button>
+        </Stack>
+      </ScrollArea>
 
       {/* Footer Info */}
-      <div className="p-4 border-t border-gray-800/50">
-        <div className="text-xs text-gray-600 space-y-1">
-          <div className="flex justify-between">
-            <span>{t('chat.settingsPanel.stats.messageCount')}:</span>
-            <span className="text-gray-400">--</span>
-          </div>
-          <div className="flex justify-between">
-            <span>{t('chat.settingsPanel.stats.tokenUsage')}:</span>
-            <span className="text-gray-400">--</span>
-          </div>
-        </div>
-      </div>
+      <Box p="md" style={{ borderTop: '1px solid var(--mantine-color-dark-5)' }}>
+        <Stack gap={4}>
+          <Group justify="space-between">
+            <Text size="xs" c="dimmed">{t('chat.settingsPanel.stats.messageCount')}:</Text>
+            <Text size="xs" c="gray">--</Text>
+          </Group>
+          <Group justify="space-between">
+            <Text size="xs" c="dimmed">{t('chat.settingsPanel.stats.tokenUsage')}:</Text>
+            <Text size="xs" c="gray">--</Text>
+          </Group>
+        </Stack>
+      </Box>
 
       {/* Dialogs moved to chat/page to match World Info open behavior */}
-    </div>
+    </Box>
   )
 }
 
