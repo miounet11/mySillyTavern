@@ -6,33 +6,32 @@
 import { MantineThemeOverride } from '@mantine/core'
 
 export const mantineTheme: MantineThemeOverride = {
-  colorScheme: 'dark',
-  
   colors: {
     // Brand colors - matching existing design
     brand: [
-      '#e0f2ff', // 50
-      '#b8e1ff', // 100
-      '#8fcfff', // 200
-      '#66bdff', // 300
-      '#3dabff', // 400
-      '#3b82f6', // 500 - primary blue
-      '#2563eb', // 600
-      '#1d4ed8', // 700
-      '#1e40af', // 800
-      '#1e3a8a', // 900
+      '#f0f9ff', // 0
+      '#e0f2ff', // 1
+      '#b8e1ff', // 2
+      '#8fcfff', // 3
+      '#66bdff', // 4
+      '#3dabff', // 5
+      '#3b82f6', // 6 - primary blue
+      '#2563eb', // 7
+      '#1d4ed8', // 8
+      '#1e40af', // 9
     ],
     // Dark grays matching Tailwind
     dark: [
-      '#d1d5db', // 300
-      '#9ca3af', // 400
-      '#6b7280', // 500
-      '#4b5563', // 600
-      '#374151', // 700
-      '#1f2937', // 800 - bg-gray-800
-      '#111827', // 900 - bg-gray-900
-      '#0a0e1a', // 950 - custom darker
-      '#050810', // custom darkest
+      '#f3f4f6', // 0 - gray-100
+      '#e5e7eb', // 1 - gray-200
+      '#d1d5db', // 2 - gray-300
+      '#9ca3af', // 3 - gray-400
+      '#6b7280', // 4 - gray-500
+      '#4b5563', // 5 - gray-600
+      '#374151', // 6 - gray-700
+      '#1f2937', // 7 - bg-gray-800
+      '#111827', // 8 - bg-gray-900
+      '#0a0e1a', // 9 - custom darker
     ],
   },
 
@@ -110,14 +109,6 @@ export const mantineTheme: MantineThemeOverride = {
       },
     },
   },
-
-  // Global styles
-  globalStyles: (theme) => ({
-    body: {
-      backgroundColor: theme.colors.dark[6], // gray-900
-      color: theme.colors.dark[0], // gray-300
-    },
-  }),
 
   other: {
     // Custom values for specific use cases

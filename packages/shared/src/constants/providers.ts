@@ -19,7 +19,7 @@ export const PROVIDER_INFO: Record<AIProvider, ProviderInfo> = {
   openai: {
     name: 'openai',
     displayName: 'OpenAI',
-    icon: '/assets/providers/openai.png',
+    icon: '/assets/providers/openai.svg',
     color: '#10a37f',
     defaultBaseUrl: 'https://api.openai.com/v1',
     requiresApiKey: true,
@@ -28,7 +28,7 @@ export const PROVIDER_INFO: Record<AIProvider, ProviderInfo> = {
   anthropic: {
     name: 'anthropic',
     displayName: 'Anthropic',
-    icon: '/assets/providers/claude.png',
+    icon: '/assets/providers/claude.svg',
     color: '#d97757',
     defaultBaseUrl: 'https://api.anthropic.com/v1',
     requiresApiKey: true,
@@ -37,7 +37,7 @@ export const PROVIDER_INFO: Record<AIProvider, ProviderInfo> = {
   google: {
     name: 'google',
     displayName: 'Google',
-    icon: '/assets/providers/gemini.png',
+    icon: '/assets/providers/gemini.svg',
     color: '#4285f4',
     defaultBaseUrl: 'https://generativelanguage.googleapis.com/v1beta',
     requiresApiKey: true,
@@ -46,7 +46,7 @@ export const PROVIDER_INFO: Record<AIProvider, ProviderInfo> = {
   azure: {
     name: 'azure',
     displayName: 'Azure OpenAI',
-    icon: '/assets/providers/azure.png',
+    icon: '/assets/providers/azure.svg',
     color: '#0078d4',
     requiresApiKey: true,
     description: 'OpenAI models hosted on Azure',
@@ -54,7 +54,7 @@ export const PROVIDER_INFO: Record<AIProvider, ProviderInfo> = {
   deepseek: {
     name: 'deepseek',
     displayName: 'DeepSeek',
-    icon: '/assets/providers/deepseek.png',
+    icon: '/assets/providers/deepseek.svg',
     color: '#6366f1',
     defaultBaseUrl: 'https://api.deepseek.com/v1',
     requiresApiKey: true,
@@ -63,7 +63,7 @@ export const PROVIDER_INFO: Record<AIProvider, ProviderInfo> = {
   zhipu: {
     name: 'zhipu',
     displayName: '智谱 AI',
-    icon: '/assets/providers/zhipu.png',
+    icon: '/assets/providers/zhipu.svg',
     color: '#3b82f6',
     defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     requiresApiKey: true,
@@ -72,7 +72,7 @@ export const PROVIDER_INFO: Record<AIProvider, ProviderInfo> = {
   custom: {
     name: 'custom',
     displayName: 'Custom OpenAI',
-    icon: '/assets/providers/custom.png',
+    icon: '/assets/providers/custom.svg',
     color: '#8b5cf6',
     requiresApiKey: true,
     description: 'Custom OpenAI-compatible API endpoint',

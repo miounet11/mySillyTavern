@@ -4,12 +4,13 @@
 
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
-import { AIModelConfig } from '@sillytavern-clone/shared'
+import { AIModelConfig, AIProvider } from '@sillytavern-clone/shared'
 
 interface AIModelState {
   // State
   models: AIModelConfig[]
   activeModel: AIModelConfig | null
+  selectedProvider: AIProvider
   isLoading: boolean
   error: string | null
   hydrated: boolean
@@ -17,6 +18,7 @@ interface AIModelState {
   // Actions
   setModels: (models: AIModelConfig[]) => void
   setActiveModel: (model: AIModelConfig | null) => void
+  setSelectedProvider: (provider: AIProvider) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   clearError: () => void
@@ -49,6 +51,7 @@ export const useAIModelStore = create<AIModelState>()(
       // Initial state
       models: [],
       activeModel: null,
+      selectedProvider: 'openai', // Default to OpenAI
       isLoading: false,
       error: null,
       hydrated: false,
@@ -56,6 +59,7 @@ export const useAIModelStore = create<AIModelState>()(
       // Actions
       setModels: (models) => set({ models }),
       setActiveModel: (model) => set({ activeModel: model }),
+      setSelectedProvider: (provider) => set({ selectedProvider: provider }),
       setLoading: (loading) => set({ isLoading: loading }),
       setError: (error) => set({ error }),
       clearError: () => set({ error: null }),
@@ -389,10 +393,11 @@ export const useAIModelStore = create<AIModelState>()(
     ),
     {
       name: 'ai-models-storage',
-      // Only persist models and activeModel to localStorage
+      // Only persist models, activeModel and selectedProvider to localStorage
       partialize: (state) => ({
         models: state.models,
         activeModel: state.activeModel,
+        selectedProvider: state.selectedProvider,
       }),
       onRehydrateStorage: () => (state, error) => {
         if (error) {

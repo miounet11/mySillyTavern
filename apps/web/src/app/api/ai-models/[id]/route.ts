@@ -7,7 +7,7 @@ import { ensureUser } from '@/lib/auth/userManager'
 
 const updateModelSchema = z.object({
   name: z.string().min(1).max(50).optional(),
-  provider: z.enum(['openai', 'anthropic', 'google', 'local', 'custom', 'newapi']).optional(),
+  provider: z.enum(['openai', 'anthropic', 'google', 'azure', 'deepseek', 'zhipu', 'local', 'custom', 'newapi', 'kobold', 'ooba', 'novelai', 'horde']).optional(),
   model: z.string().min(1).max(100).optional(),
   apiKey: z.string().min(1).max(500).optional(),
   baseUrl: z.string().url().optional(),
@@ -21,6 +21,20 @@ const updateModelSchema = z.object({
     stopSequences: z.array(z.string()).optional(),
     systemPrompt: z.string().optional(),
     contextWindow: z.number().min(1).max(200000).optional(),
+  }).optional(),
+  capabilities: z.object({
+    streaming: z.boolean().optional(),
+    images: z.boolean().optional(),
+    tools: z.boolean().optional(),
+    vision: z.boolean().optional(),
+    audio: z.boolean().optional(),
+  }).optional(),
+  metadata: z.object({
+    inputWindow: z.number().min(1).max(10000000).optional(),
+    outputWindow: z.number().min(1).max(10000000).optional(),
+    displayName: z.string().optional(),
+    description: z.string().optional(),
+    isReasoning: z.boolean().optional(),
   }).optional(),
   isActive: z.boolean().optional(),
 })
@@ -54,6 +68,8 @@ export async function GET(
     const parsedModel = {
       ...model,
       settings: model.settings ? JSON.parse(model.settings as string) : {},
+      capabilities: model.capabilities ? JSON.parse(model.capabilities as string) : undefined,
+      metadata: model.metadata ? JSON.parse(model.metadata as string) : undefined,
       isActive: model.isActive || false,
     }
 
@@ -115,6 +131,12 @@ async function handleUpdate(
     if (validatedData.settings !== undefined) {
       updateData.settings = JSON.stringify(validatedData.settings)
     }
+    if (validatedData.capabilities !== undefined) {
+      updateData.capabilities = JSON.stringify(validatedData.capabilities)
+    }
+    if (validatedData.metadata !== undefined) {
+      updateData.metadata = JSON.stringify(validatedData.metadata)
+    }
     if (validatedData.isActive !== undefined) updateData.isActive = validatedData.isActive
 
     updateData.updatedAt = new Date()
@@ -126,6 +148,8 @@ async function handleUpdate(
     const parsedModel = {
       ...model,
       settings: model.settings ? JSON.parse(model.settings as string) : {},
+      capabilities: model.capabilities ? JSON.parse(model.capabilities as string) : undefined,
+      metadata: model.metadata ? JSON.parse(model.metadata as string) : undefined,
       isActive: model.isActive || false,
     }
 

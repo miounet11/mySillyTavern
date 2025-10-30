@@ -180,18 +180,20 @@ model WorldInfoVector {
 }
 
 model AIModelConfig {
-  id        String   @id @default(cuid())
-  name      String
-  provider  String
-  model     String
-  apiKey    String?
-  baseUrl   String?
-  settings  String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  name         String
+  provider     String
+  model        String
+  apiKey       String?
+  baseUrl      String?
+  settings     String?
+  isActive     Boolean  @default(true)
+  capabilities String?  @db.Text // JSON: ModelCapabilities
+  metadata     String?  @db.Text // JSON: ModelMetadata
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([name])

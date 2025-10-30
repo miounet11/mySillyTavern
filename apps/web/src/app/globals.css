@@ -736,4 +736,10 @@
     opacity: 0.03;
     pointer-events: none;
   }
+
+  /* Provider list hover effect - for Chatbox AI style settings */
+  .provider-list-item:hover {
+    background-color: rgba(59, 130, 246, 0.08) !important;
+    color: rgb(209, 213, 219) !important;
+  }
 }

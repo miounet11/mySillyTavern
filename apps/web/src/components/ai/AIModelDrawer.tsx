@@ -75,6 +75,20 @@ function AIModelDrawer({
       systemPrompt: string
       contextWindow: number
     }
+    capabilities?: {
+      streaming: boolean
+      images: boolean
+      tools: boolean
+      vision: boolean
+      audio: boolean
+    }
+    metadata?: {
+      inputWindow: number
+      outputWindow: number
+      displayName?: string
+      description?: string
+      isReasoning?: boolean
+    }
     isActive: boolean
   }>({
     name: '',
@@ -92,6 +106,20 @@ function AIModelDrawer({
       stopSequences: [],
       systemPrompt: '',
       contextWindow: 4096,
+    },
+    capabilities: {
+      streaming: true,
+      images: false,
+      tools: false,
+      vision: false,
+      audio: false,
+    },
+    metadata: {
+      inputWindow: 4096,
+      outputWindow: 4096,
+      displayName: '',
+      description: '',
+      isReasoning: false,
     },
     isActive: true
   })
@@ -176,6 +204,20 @@ function AIModelDrawer({
             systemPrompt: editingModel.settings?.systemPrompt || '',
             contextWindow: editingModel.settings?.contextWindow ?? 4096,
           },
+          capabilities: editingModel.capabilities || {
+            streaming: true,
+            images: false,
+            tools: false,
+            vision: false,
+            audio: false,
+          },
+          metadata: editingModel.metadata || {
+            inputWindow: 4096,
+            outputWindow: 4096,
+            displayName: '',
+            description: '',
+            isReasoning: false,
+          },
           isActive: editingModel.isActive || false
         })
         
@@ -221,6 +263,20 @@ function AIModelDrawer({
         stopSequences: [],
         systemPrompt: '',
         contextWindow: 4096,
+      },
+      capabilities: {
+        streaming: true,
+        images: false,
+        tools: false,
+        vision: false,
+        audio: false,
+      },
+      metadata: {
+        inputWindow: 4096,
+        outputWindow: 4096,
+        displayName: '',
+        description: '',
+        isReasoning: false,
       },
       isActive: true
     })
@@ -739,6 +795,108 @@ function AIModelDrawer({
                     </div>
                   </div>
                 )}
+              </div>
+
+              <hr className="border-gray-800 my-4" />
+
+              {/* Capabilities Configuration */}
+              <div>
+                <Label className="text-xs text-gray-400 uppercase">模型能力</Label>
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="cap-vision"
+                      checked={formData.capabilities?.vision || false}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        capabilities: { ...prev.capabilities!, vision: e.target.checked }
+                      }))}
+                      className="rounded border-gray-600 bg-gray-700 text-blue-600"
+                    />
+                    <Label htmlFor="cap-vision" className="text-xs text-gray-400">Vision Support (图像识别)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="cap-tools"
+                      checked={formData.capabilities?.tools || false}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        capabilities: { ...prev.capabilities!, tools: e.target.checked }
+                      }))}
+                      className="rounded border-gray-600 bg-gray-700 text-blue-600"
+                    />
+                    <Label htmlFor="cap-tools" className="text-xs text-gray-400">Tool Calling (函数调用)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="cap-streaming"
+                      checked={formData.capabilities?.streaming ?? true}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        capabilities: { ...prev.capabilities!, streaming: e.target.checked }
+                      }))}
+                      className="rounded border-gray-600 bg-gray-700 text-blue-600"
+                    />
+                    <Label htmlFor="cap-streaming" className="text-xs text-gray-400">Streaming (流式输出)</Label>
+                  </div>
+                </div>
+              </div>
+
+              <hr className="border-gray-800 my-4" />
+
+              {/* Metadata Configuration */}
+              <div>
+                <Label className="text-xs text-gray-400 uppercase">模型元数据</Label>
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <Label htmlFor="inputWindow" className="text-xs text-gray-400">
+                      Input Window (输入窗口)
+                    </Label>
+                    <Input
+                      id="inputWindow"
+                      type="number"
+                      value={formData.metadata?.inputWindow || 4096}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        metadata: { ...prev.metadata!, inputWindow: parseInt(e.target.value) }
+                      }))}
+                      className="tavern-input h-9 mt-1 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="outputWindow" className="text-xs text-gray-400">
+                      Output Window (输出窗口)
+                    </Label>
+                    <Input
+                      id="outputWindow"
+                      type="number"
+                      value={formData.metadata?.outputWindow || 4096}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        metadata: { ...prev.metadata!, outputWindow: parseInt(e.target.value) }
+                      }))}
+                      className="tavern-input h-9 mt-1 text-sm"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="isReasoning"
+                      checked={formData.metadata?.isReasoning || false}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        metadata: { ...prev.metadata!, isReasoning: e.target.checked }
+                      }))}
+                      className="rounded border-gray-600 bg-gray-700 text-blue-600"
+                    />
+                    <Label htmlFor="isReasoning" className="text-xs text-gray-400">
+                      Reasoning Model (推理模型，如 o1/o3)
+                    </Label>
+                  </div>
+                </div>
               </div>
 
               <hr className="border-gray-800 my-4" />

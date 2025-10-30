@@ -27,6 +27,8 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import AIModelDrawer from '@/components/ai/AIModelDrawer'
 import { useAIModelStore } from '@/stores/aiModelStore'
+import { ProviderList } from './ProviderList'
+import { ProviderConfigPanel } from './ProviderConfigPanel'
 import toast from 'react-hot-toast'
 
 interface SettingsDrawerProps {
@@ -43,7 +45,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
   // AI Models
   const [aiModels, setAiModels] = useState<any[]>([])
   const [isLoadingModels, setIsLoadingModels] = useState(false)
-  const { fetchModels } = useAIModelStore()
+  const { fetchModels, getModelsByProvider, selectedProvider, setSelectedProvider } = useAIModelStore()
   
   // Plugins
   const [plugins, setPlugins] = useState<any[]>([])
@@ -463,83 +465,37 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               </div>
             </TabsContent>
 
-            {/* AI Models Tab */}
-            <TabsContent value="models" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-semibold text-gray-300">AI 模型配置</h3>
-                  <Button onClick={handleAddModel} size="sm" className="tavern-button">
-                    <Plus className="w-4 h-4 mr-1" />
-                    添加模型
-                  </Button>
-                </div>
+            {/* AI Models Tab - New Provider View */}
+            <TabsContent value="models" className="flex-1 flex flex-row min-h-0 mt-0">
+              {/* Left: Provider List */}
+              <ProviderList
+                selectedProvider={selectedProvider}
+                onSelectProvider={setSelectedProvider}
+                onProviderAdded={(provider) => {
+                  setSelectedProvider(provider)
+                  fetchAIModels()
+                }}
+              />
 
-                {isLoadingModels ? (
-                  <div className="text-center py-8">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-100"></div>
-                  </div>
-                ) : aiModels.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <Database className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                    <p className="text-sm mb-2">还没有配置 AI 模型</p>
-                    <p className="text-xs text-gray-600">点击"添加模型"按钮开始配置</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {aiModels.map((model) => (
-                      <div
-                        key={model.id}
-                        className="p-4 border border-gray-700 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <h4 className="font-medium text-gray-200">{model.name}</h4>
-                              {model.isActive && (
-                                <Badge variant="default" className="bg-green-600 text-white text-xs">
-                                  活跃
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-400">
-                              {model.provider} - {model.model}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {!model.isActive && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleSetActiveModel(model.id)}
-                                className="text-xs h-8"
-                              >
-                                <Power className="w-3 h-3 mr-1" />
-                                启用
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditModel(model)}
-                              className="text-xs h-8"
-                            >
-                              <Edit className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteModel(model.id)}
-                              className="text-xs h-8 text-red-400 hover:text-red-300"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* Right: Provider Config Panel */}
+              {selectedProvider && (
+                <ProviderConfigPanel
+                  provider={selectedProvider}
+                  models={aiModels.filter((m) => m.provider === selectedProvider)}
+                  onAddModel={handleAddModel}
+                  onEditModel={handleEditModel}
+                  onDeleteModel={(model) => handleDeleteModel(model.id)}
+                  onSetActiveModel={(model) => handleSetActiveModel(model.id)}
+                  onRefreshModels={fetchAIModels}
+                  isLoading={isLoadingModels}
+                />
+              )}
+              
+              {!selectedProvider && (
+                <div className="flex-1 flex items-center justify-center text-gray-500">
+                  <p className="text-sm">请从左侧选择或添加供应商</p>
+                </div>
+              )}
             </TabsContent>
 
             {/* Interface Settings Tab */}

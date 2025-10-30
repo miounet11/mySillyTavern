@@ -8,7 +8,7 @@ import { ensureUser } from '@/lib/auth/userManager'
 
 const createModelSchema = z.object({
   name: z.string().min(1).max(50),
-  provider: z.enum(['openai', 'anthropic', 'google', 'local', 'custom', 'newapi']),
+  provider: z.enum(['openai', 'anthropic', 'google', 'azure', 'deepseek', 'zhipu', 'local', 'custom', 'newapi', 'kobold', 'ooba', 'novelai', 'horde']),
   model: z.string().min(1).max(100),
   apiKey: z.string().min(1).max(500),
   baseUrl: z.string().url().optional(),
@@ -22,6 +22,20 @@ const createModelSchema = z.object({
     stopSequences: z.array(z.string()).optional(),
     systemPrompt: z.string().optional(),
     contextWindow: z.number().min(1).max(200000).optional(),
+  }).optional(),
+  capabilities: z.object({
+    streaming: z.boolean().optional(),
+    images: z.boolean().optional(),
+    tools: z.boolean().optional(),
+    vision: z.boolean().optional(),
+    audio: z.boolean().optional(),
+  }).optional(),
+  metadata: z.object({
+    inputWindow: z.number().min(1).max(10000000).optional(),
+    outputWindow: z.number().min(1).max(10000000).optional(),
+    displayName: z.string().optional(),
+    description: z.string().optional(),
+    isReasoning: z.boolean().optional(),
   }).optional(),
   isActive: z.boolean().default(false),
 })
@@ -72,6 +86,8 @@ export async function GET(request: NextRequest) {
     const parsedModels = models.map((model: any) => ({
       ...model,
       settings: model.settings ? JSON.parse(model.settings as string) : {},
+      capabilities: model.capabilities ? JSON.parse(model.capabilities as string) : undefined,
+      metadata: model.metadata ? JSON.parse(model.metadata as string) : undefined,
       isActive: model.isActive || false,
     }))
 
@@ -122,6 +138,8 @@ export async function POST(request: NextRequest) {
       apiKey: validatedData.apiKey,
       baseUrl: validatedData.baseUrl,
       settings: JSON.stringify(validatedData.settings || {}),
+      capabilities: validatedData.capabilities ? JSON.stringify(validatedData.capabilities) : null,
+      metadata: validatedData.metadata ? JSON.stringify(validatedData.metadata) : null,
       isActive: validatedData.isActive,
     })
 
@@ -129,6 +147,8 @@ export async function POST(request: NextRequest) {
     const parsedModel = {
       ...model,
       settings: model.settings ? JSON.parse(model.settings as string) : {},
+      capabilities: model.capabilities ? JSON.parse(model.capabilities as string) : undefined,
+      metadata: model.metadata ? JSON.parse(model.metadata as string) : undefined,
       isActive: model.isActive || false,
     }
 
