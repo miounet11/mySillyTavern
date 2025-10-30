@@ -51,9 +51,21 @@ export default function ChatControlBar({
   const shouldShowCheckButton = messages.length > 0
 
   return (
-    <div className="flex items-center justify-end gap-3 px-4 py-2 glass-light border-b border-gray-800/30">
-      {/* Action Controls */}
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between gap-3 px-3 sm:px-4 py-2 glass-light border-b border-gray-800/30 backdrop-blur-sm">
+      {/* Left Side - Info */}
+      <div className="flex items-center gap-2 text-xs text-gray-400">
+        {messages.length > 0 && (
+          <span className="glass-light px-2.5 py-1 rounded-md flex items-center gap-1.5">
+            <span className="hidden sm:inline">共</span>
+            <span className="font-medium text-blue-400">{messages.length}</span>
+            <span className="hidden sm:inline">条消息</span>
+            <span className="sm:hidden">条</span>
+          </span>
+        )}
+      </div>
+
+      {/* Right Side - Action Controls */}
+      <div className="flex items-center gap-1.5">
         {/* Check Incomplete Button */}
         {shouldShowCheckButton && (
           <Button
@@ -61,12 +73,11 @@ export default function ChatControlBar({
             size="sm"
             onClick={handleCheckIncomplete}
             disabled={disabled || isGenerating}
-            className="h-8 px-3 text-xs font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-700/20 transition-all duration-200"
+            className="h-7 px-2.5 text-xs font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-500/20 transition-all duration-300 rounded-lg"
             title="检查对话完整性"
           >
-            <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
-            <span className="hidden md:inline">检测中断</span>
-            <span className="md:hidden">检测</span>
+            <AlertCircle className="w-3.5 h-3.5 sm:mr-1.5" />
+            <span className="hidden sm:inline">检测中断</span>
           </Button>
         )}
 
@@ -77,16 +88,15 @@ export default function ChatControlBar({
             size="sm"
             onClick={onRegenerate}
             disabled={disabled || isGenerating}
-            className="h-8 px-3 text-xs font-medium text-gray-400 hover:text-gray-300 hover:bg-gray-700/50 transition-all duration-200"
+            className="h-7 px-2.5 text-xs font-medium text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 transition-all duration-300 rounded-lg"
             title="重新生成最后一条回复"
           >
             {isGenerating ? (
-              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 sm:mr-1.5 animate-spin" />
             ) : (
-              <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+              <RotateCcw className="w-3.5 h-3.5 sm:mr-1.5" />
             )}
             <span className="hidden sm:inline">重新生成</span>
-            <span className="sm:hidden">重生成</span>
           </Button>
         )}
 
@@ -96,16 +106,13 @@ export default function ChatControlBar({
           size="sm"
           onClick={onScrollToBottom}
           disabled={disabled}
-          className="h-8 px-3 text-xs font-medium text-gray-400 hover:text-gray-300 hover:bg-gray-700/50 transition-all duration-200"
+          className="h-7 px-2.5 text-xs font-medium text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 transition-all duration-300 rounded-lg"
           title="跳转到对话底部"
         >
-          <ArrowDown className="w-3.5 h-3.5 mr-1.5" />
+          <ArrowDown className="w-3.5 h-3.5 sm:mr-1.5" />
           <span className="hidden sm:inline">跳转底部</span>
-          <span className="sm:hidden">底部</span>
         </Button>
       </div>
-
-      {/* Removed streaming/fast indicators (moved near input) */}
     </div>
   )
 }

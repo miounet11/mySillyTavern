@@ -52,14 +52,8 @@ export default function MessageList({
   const messages = propMessages !== undefined ? propMessages : (storeMessages || currentChat?.messages || [])
   const hasTempAI = Array.isArray(messages) && messages.some((m: Message) => typeof m.id === 'string' && m.id.startsWith('temp-ai-'))
   console.log('[MessageList] Rendering with', messages.length, 'messages, hasTempAI:', hasTempAI)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
-
-  // Auto-scroll to bottom on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
 
   const handleCopyMessage = (content: string) => {
     navigator.clipboard.writeText(content)
@@ -120,22 +114,27 @@ export default function MessageList({
 
   if (messages.length === 0 && !isLoading) {
     return (
-      <div className={`flex flex-col items-center justify-center h-full text-gray-500 ${className}`}>
-        <Bot className="w-12 h-12 mb-4 opacity-50" />
-        <h3 className="text-lg font-medium mb-2">{t('chat.startNewConversation')}</h3>
-        <p className="text-sm text-center max-w-md">
-          {character
-            ? t('chat.startChatWith', { name: character.name })
-            : t('chat.selectCharacterFirst')
-          }
-        </p>
+      <div className={`flex flex-col ${className}`}>
+        <div className="flex-1"></div>
+        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+          <Bot className="w-12 h-12 mb-4 opacity-50" />
+          <h3 className="text-lg font-medium mb-2">{t('chat.startNewConversation')}</h3>
+          <p className="text-sm text-center max-w-md">
+            {character
+              ? t('chat.startChatWith', { name: character.name })
+              : t('chat.selectCharacterFirst')
+            }
+          </p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className={`flex-1 overflow-y-auto tavern-scrollbar ${className}`}>
-      <div className="space-y-6 p-4">
+    <div className={`flex flex-col ${className}`}>
+      {/* Spacer to push messages to bottom */}
+      <div className="flex-1"></div>
+      <div className="space-y-4 px-3 sm:px-4 py-3">
         {messages.map((message: Message, index: number) => {
           const isUser = message.role === 'user'
           const isEditing = editingMessageId === message.id
@@ -414,8 +413,6 @@ export default function MessageList({
           </div>
         )}
 
-        {/* Auto-scroll anchor */}
-        <div ref={messagesEndRef} />
       </div>
     </div>
   )

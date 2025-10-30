@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import { UserInitializer } from '@/components/user/UserInitializer'
+import { MantineThemeProvider } from '@/components/providers/MantineThemeProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -28,33 +29,35 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={inter.className}>
-        <UserInitializer />
-        <div className="tavern-container">
-          {children}
-        </div>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#374151',
-              color: '#f3f4f6',
-              border: '1px solid #4b5563',
-            },
-            success: {
-              iconTheme: {
-                primary: '#10b981',
-                secondary: '#374151',
+        <MantineThemeProvider>
+          <UserInitializer />
+          <div className="tavern-container">
+            {children}
+          </div>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#374151',
+                color: '#f3f4f6',
+                border: '1px solid #4b5563',
               },
-            },
-            error: {
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: '#374151',
+              success: {
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: '#374151',
+                },
               },
-            },
-          }}
-        />
+              error: {
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#374151',
+                },
+              },
+            }}
+          />
+        </MantineThemeProvider>
       </body>
     </html>
   )

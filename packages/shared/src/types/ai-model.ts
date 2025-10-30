@@ -11,6 +11,8 @@ export interface AIModelConfig {
   baseUrl?: string;
   settings: ModelSettings;
   isActive: boolean;
+  capabilities?: ModelCapabilities;
+  metadata?: ModelMetadata;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,7 +31,7 @@ export interface ModelSettings {
   customHeaders?: Record<string, string>;
 }
 
-export type AIProvider = 'openai' | 'anthropic' | 'google' | 'local' | 'novelai' | 'horde' | 'custom' | 'kobold' | 'ooba' | 'newapi';
+export type AIProvider = 'openai' | 'anthropic' | 'google' | 'azure' | 'deepseek' | 'zhipu' | 'local' | 'novelai' | 'horde' | 'custom' | 'kobold' | 'ooba' | 'newapi';
 
 export interface CreateAIModelParams {
   name: string;
@@ -78,6 +80,14 @@ export interface ModelCapabilities {
   tools: boolean;
   vision: boolean;
   audio: boolean;
+}
+
+export interface ModelMetadata {
+  inputWindow: number;      // Input context window size (e.g., 128000 for 128K)
+  outputWindow: number;      // Output token limit (e.g., 4096 for 4K)
+  displayName?: string;      // Human-readable display name
+  description?: string;      // Model description
+  isReasoning?: boolean;     // Whether this is a reasoning model (o1/o3 series)
 }
 
 export interface AvailableModels {

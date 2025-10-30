@@ -7,6 +7,8 @@ import { Send, Paperclip, Mic, MicOff, RotateCcw, Sparkles, Zap, Radio, X } from
 import { useChatStore } from '@/stores/chatStore'
 import { useCharacterStore } from '@/stores/characterStore'
 import { useCreativeStore } from '@/stores/creativeStore'
+import { useModelGuard } from '@/hooks/useModelGuard'
+import { useAIModelStore } from '@/stores/aiModelStore'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -55,6 +57,8 @@ export default function MessageInput({
     clearAll,
     hydrateFromLocalStorage,
   } = useCreativeStore()
+  const { isModelReady, assertModelReady } = useModelGuard()
+  const { activeModel } = useAIModelStore()
   const { t } = useTranslation()
 
   const [internalMessage, setInternalMessage] = useState('')
@@ -108,6 +112,13 @@ export default function MessageInput({
 
     if (!currentCharacter) {
       toast.error(t('chat.error.selectCharacter'))
+      return
+    }
+
+    // 检查模型是否已配置
+    if (!isModelReady) {
+      toast.error('请先配置 AI 模型')
+      assertModelReady() // 自动打开设置抽屉
       return
     }
 
@@ -267,36 +278,73 @@ export default function MessageInput({
     )
   }
 
+  const [showShortcuts, setShowShortcuts] = useState(false)
+
   return (
     <div className={`border-t border-gray-800/50 glass-card backdrop-blur-lg ${className}`}>
-      <div className="p-5">
+      <div className="p-3">
 
-        {/* Character Context and Status */}
+        {/* Compact Header: Character + Model + Mode Toggles */}
         {currentCharacter && (
-          <div className="flex items-center space-x-2 mb-4 glass-light px-4 py-2 rounded-lg w-fit">
-            <span className="text-sm text-gray-400">{t('chat.chattingWith')}</span>
-            <span className="font-semibold gradient-text">{currentCharacter.name}</span>
-            <span className="text-sm text-gray-400">{t('chat.conversation')}</span>
-          </div>
-        )}
-        
-        {/* Status Message when input is disabled */}
-        {(!currentChat && !isLoading) && (
-          <div className="mb-4 p-4 glass-light rounded-xl text-sm animate-fade-in">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse-glow"></div>
-              <span className="text-blue-300 font-medium">{t('chat.status.initializing')}</span>
+          <div className="flex items-center justify-between px-2 py-1.5 mb-2 border-b border-gray-800/30">
+            {/* Left: Character info */}
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-xs font-bold">{currentCharacter.name.charAt(0)}</span>
+              </div>
+              <span className="text-sm font-medium truncate">{currentCharacter.name}</span>
+            </div>
+            
+            {/* Right: Model + Mode toggles */}
+            <div className="flex items-center gap-1.5">
+              {activeModel && (
+                <span className="text-xs text-gray-400 hidden sm:inline truncate max-w-[200px]" title={`${activeModel.provider} - ${activeModel.model}`}>
+                  {activeModel.provider}/{activeModel.model}
+                </span>
+              )}
+              
+              {/* Compact Mode Toggles */}
+              <button
+                onClick={handleToggleStreaming}
+                disabled={disabled || isLoading}
+                className={`h-7 w-7 flex items-center justify-center rounded-md transition-all ${
+                  isStreamingEnabled 
+                    ? 'bg-blue-500/20 text-blue-400 border border-blue-400/30' 
+                    : 'text-gray-500 hover:text-gray-400 hover:bg-gray-800/50'
+                }`}
+                title={isStreamingEnabled ? '流式输出已开启' : '流式输出已关闭'}
+              >
+                <Radio className={`w-3.5 h-3.5 ${isStreamingEnabled ? 'animate-pulse' : ''}`} />
+              </button>
+
+              <button
+                onClick={handleToggleFastMode}
+                disabled={disabled || isLoading}
+                className={`h-7 w-7 flex items-center justify-center rounded-md transition-all ${
+                  isFastModeEnabled 
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-400/30' 
+                    : 'text-gray-500 hover:text-gray-400 hover:bg-gray-800/50'
+                }`}
+                title={isFastModeEnabled ? '快速模式已开启' : '快速模式已关闭'}
+              >
+                <Zap className={`w-3.5 h-3.5 ${isFastModeEnabled ? 'animate-pulse' : ''}`} />
+              </button>
+              
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse ml-1"></div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Recording Status */}
+        {/* Recording Status - Keep as-is (important status) */}
         {isRecording && (
-          <div className="flex items-center justify-between mb-4 p-4 glass-card rounded-xl border border-red-500/30 animate-fade-in">
-            <div className="flex items-center space-x-3">
-              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-              <span className="text-sm text-red-400 font-medium">{t('chat.status.recording')}</span>
-              <span className="text-sm text-red-300 font-mono bg-red-950/50 px-3 py-1 rounded-lg">
+          <div className="flex items-center justify-between mb-2 p-2 glass-card rounded-lg border border-red-500/30 animate-fade-in">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-red-400 font-medium">{t('chat.status.recording')}</span>
+              <span className="text-xs text-red-300 font-mono bg-red-950/50 px-2 py-0.5 rounded">
                 {formatRecordingTime(recordingTime)}
               </span>
             </div>
@@ -304,95 +352,62 @@ export default function MessageInput({
               size="sm"
               variant="outline"
               onClick={stopRecording}
-              className="glass-light border-red-500/30 text-red-400 hover:bg-red-900/30 hover-lift"
+              className="glass-light border-red-500/30 text-red-400 hover:bg-red-900/30 h-6 text-xs"
             >
-              <MicOff className="w-4 h-4 mr-2" />
-              {t('chat.status.stopRecording')}
+              <MicOff className="w-3 h-3 sm:mr-1.5" />
+              <span className="hidden sm:inline">{t('chat.status.stopRecording')}</span>
             </Button>
           </div>
         )}
 
-        {/* Global Controls near input: Streaming / Fast Mode */}
-        <div className="flex items-center gap-2 mb-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleToggleStreaming}
-            disabled={disabled || isLoading}
-            className={`h-8 px-3 text-xs font-medium transition-all duration-200 ${isStreamingEnabled ? 'bg-blue-500/20 text-blue-300 border-blue-400/30 hover:bg-blue-500/30' : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/50'} border`}
-            title={isStreamingEnabled ? '流式输出已开启' : '流式输出已关闭'}
-          >
-            <Radio className={`w-3.5 h-3.5 mr-1.5 ${isStreamingEnabled ? 'animate-pulse' : ''}`} />
-            <span className="hidden sm:inline">流式输出</span>
-            <span className="sm:hidden">流式</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleToggleFastMode}
-            disabled={disabled || isLoading}
-            className={`h-8 px-3 text-xs font-medium transition-all duration-200 ${isFastModeEnabled ? 'bg-amber-500/20 text-amber-300 border-amber-400/30 hover:bg-amber-500/30' : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/50'} border`}
-            title={isFastModeEnabled ? '快速模式已开启（Temperature: 0.3）' : '快速模式已关闭'}
-          >
-            <Zap className={`w-3.5 h-3.5 mr-1.5 ${isFastModeEnabled ? 'animate-pulse' : ''}`} />
-            <span className="hidden sm:inline">快速模式</span>
-            <span className="sm:hidden">快速</span>
-          </Button>
-        </div>
-
-        {/* Input Area */}
-        <div className="flex items-end space-x-3">
-          {/* Main Input */}
+        {/* Compact Input Area - ChatGPT/Grok Style */}
+        <div className="flex items-end gap-1.5">
+          {/* Main Input Container */}
           <div className="flex-1 relative">
             <Textarea
               ref={textareaRef}
               value={message}
               onChange={(e) => handleSetMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onCompositionStart={() => { composingRef.current = true }}
-            onCompositionEnd={() => { composingRef.current = false }}
+              onKeyDown={handleKeyDown}
+              onCompositionStart={() => { composingRef.current = true }}
+              onCompositionEnd={() => { composingRef.current = false }}
+              onFocus={() => setShowShortcuts(true)}
+              onBlur={() => setShowShortcuts(false)}
               placeholder={placeholder || t('chat.message.placeholder')}
               disabled={disabled || isLoading || isRecording}
-              className="glass-input input-focus min-h-[70px] max-h-[200px] resize-none pr-16 text-base"
+              className="glass-input input-focus min-h-[44px] max-h-[120px] resize-none text-sm rounded-lg border-white/10 focus:border-blue-400/30 transition-all pr-1"
               rows={1}
             />
-
-            {/* Character Count */}
-            {message.length > 0 && (
-              <div className="absolute bottom-3 right-3 text-xs font-medium glass-light px-2 py-1 rounded-lg">
-                <span className={message.length > 3800 ? 'text-red-400' : 'text-gray-400'}>
-                  {message.length}/4000
-                </span>
-              </div>
-            )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center space-x-2">
+          {/* Compact Action Buttons - Right Side */}
+          <div className="flex items-center gap-1">
             {/* File Upload */}
             <Button
               type="button"
               variant="outline"
-              size="sm"
+              size="icon"
               onClick={handleFileUpload}
               disabled={disabled || isLoading || isRecording}
-              className="glass-light hover:bg-white/10 text-gray-300 hover:text-white border-white/20 hover-lift w-11 h-11"
+              className="glass-light hover:bg-white/10 text-gray-400 hover:text-white border-white/10 h-9 w-9 rounded-lg"
               title={t('chat.file.upload')}
             >
-              <Paperclip className="w-5 h-5" />
+              <Paperclip className="w-4 h-4" />
             </Button>
 
             {/* Voice Recording */}
             <Button
               type="button"
               variant={isRecording ? "destructive" : "outline"}
-              size="sm"
+              size="icon"
               onClick={isRecording ? stopRecording : startRecording}
               disabled={disabled || isLoading}
-              className={isRecording ? "bg-red-600 hover:bg-red-700 w-11 h-11" : "glass-light hover:bg-white/10 text-gray-300 hover:text-white border-white/20 hover-lift w-11 h-11"}
+              className={isRecording 
+                ? "bg-red-600 hover:bg-red-700 h-9 w-9 rounded-lg" 
+                : "glass-light hover:bg-white/10 text-gray-400 hover:text-white border-white/10 h-9 w-9 rounded-lg"}
               title={isRecording ? t('chat.voice.stopRecording') : t('chat.voice.input')}
             >
-              {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </Button>
 
             {/* Quick Actions */}
@@ -401,20 +416,20 @@ export default function MessageInput({
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                  size="icon"
                   disabled={disabled || isLoading || isRecording || !currentCharacter}
-                  className="glass-light hover:bg-white/10 text-gray-300 hover:text-white border-white/20 hover-lift w-11 h-11"
+                  className="glass-light hover:bg-white/10 text-gray-400 hover:text-white border-white/10 h-9 w-9 rounded-lg"
                   title={t('chat.quickActions.title')}
                 >
-                  <Sparkles className="w-5 h-5" />
+                  <Sparkles className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 glass-card border-white/10">
+              <DropdownMenuContent align="end" className="w-48 glass-card border-white/10 rounded-xl">
                 {quickActions.map((action, index) => (
                   <DropdownMenuItem
                     key={index}
                     onClick={action.action}
-                    className="cursor-pointer hover:bg-white/10"
+                    className="cursor-pointer hover:bg-white/10 rounded-lg text-sm"
                   >
                     {action.label}
                   </DropdownMenuItem>
@@ -422,22 +437,7 @@ export default function MessageInput({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Regenerate Response */}
-            {canRegenerate && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => toast(t('chat.message.regenerateInDev'))}
-                disabled={disabled || isLoading}
-                className="glass-light hover:bg-white/10 text-gray-300 hover:text-white border-white/20 hover-lift w-11 h-11"
-                title={t('chat.message.regenerate')}
-              >
-                <RotateCcw className="w-5 h-5" />
-              </Button>
-            )}
-
-            {/* Send Button */}
+            {/* Send Button - Slightly larger for prominence */}
             <Button
               type="button"
               onClick={handleSend}
@@ -446,81 +446,76 @@ export default function MessageInput({
                 isLoading ||
                 isRecording ||
                 !message.trim() ||
-                !currentCharacter
+                !currentCharacter ||
+                !isModelReady
               }
-              className="gradient-btn-primary hover-lift w-14 h-11"
+              className="gradient-btn-primary h-10 w-10 rounded-lg disabled:opacity-50"
               title={t('chat.message.sendEnter')}
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
-        {/* Creative intent chips (指令化开关) */}
+        {/* Character Counter - Compact, shown only when typing */}
+        {message.length > 100 && (
+          <div className="flex justify-end mt-1 px-1">
+            <span className={`text-xs ${message.length > 3800 ? 'text-red-400 font-bold' : 'text-gray-500'}`}>
+              {message.length}/4000
+            </span>
+          </div>
+        )}
+
+        {/* Creative Intent Controls - Compact Single Row */}
         {currentCharacter && (
-          <div className="flex flex-col gap-2 mb-3">
-            {/* Active capsules */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {storyAdvance && (
-                <span className="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full border border-amber-400/30 text-amber-300 glass-light">
-                  剧情推进
-                  <button className="ml-1 text-amber-300 hover:text-amber-200" onClick={() => setStoryAdvance(false)} aria-label="清除剧情推进">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {povMode && (
-                <span className="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full border border-teal-400/30 text-teal-300 glass-light">
-                  视角：{povMode === 'first' ? '第一人称' : '第三人称'}
-                  <button className="ml-1 text-teal-300 hover:text-teal-200" onClick={() => setPovMode(null)} aria-label="清除视角">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {sceneTransitionOnce && (
-                <span className="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full border border-purple-400/30 text-purple-300 glass-light">
-                  场景过渡（一次性）
-                </span>
-              )}
-              {!storyAdvance && !povMode && !sceneTransitionOnce && (
-                <span className="text-xs text-gray-500">未启用创作意图</span>
-              )}
-            </div>
-            {/* Toggle buttons */}
-            <div className="flex items-center justify-start gap-2 sm:gap-3 max-w-4xl">
+          <div className="mt-2 px-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <button
                 type="button"
                 onClick={() => setStoryAdvance(!storyAdvance)}
-                className={`px-2 py-1.5 sm:px-4 text-xs rounded-full border transition-all duration-200 glass-light bg-gray-800/60 ${storyAdvance ? 'text-amber-200 border-amber-300/60' : 'text-amber-300 border-amber-400/30 hover:text-amber-200 hover:border-amber-300/60'}`}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md border transition-all ${
+                  storyAdvance 
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-400/40' 
+                    : 'bg-gray-800/40 text-amber-400/60 border-amber-400/20 hover:text-amber-300 hover:border-amber-300/30'
+                }`}
                 aria-label="剧情推进"
               >
-                <span className="hidden sm:inline">剧情推进{storyAdvance ? '（开）' : ''}</span>
-                <span className="sm:hidden">剧情推进</span>
+                {storyAdvance && <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse"></span>}
+                剧情推进
               </button>
               <button
                 type="button"
                 onClick={() => setPovMode(povMode === null ? 'first' : povMode === 'first' ? 'third' : null)}
-                className={`px-2 py-1.5 sm:px-4 text-xs rounded-full border transition-all duration-200 glass-light bg-gray-800/60 ${povMode ? 'text-teal-200 border-teal-300/60' : 'text-teal-300 border-teal-400/30 hover:text-teal-200 hover:border-teal-300/60'}`}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md border transition-all ${
+                  povMode 
+                    ? 'bg-teal-500/20 text-teal-300 border-teal-400/40' 
+                    : 'bg-gray-800/40 text-teal-400/60 border-teal-400/20 hover:text-teal-300 hover:border-teal-300/30'
+                }`}
                 aria-label="视角设计"
               >
-                <span className="hidden sm:inline">视角设计{povMode ? `（${povMode === 'first' ? '第一' : '第三'}）` : ''}</span>
-                <span className="sm:hidden">视角设计</span>
+                {povMode && <span className="w-1 h-1 rounded-full bg-teal-400 animate-pulse"></span>}
+                {povMode ? (povMode === 'first' ? '第一人称' : '第三人称') : '视角设计'}
               </button>
               <button
                 type="button"
                 onClick={() => setSceneTransitionOnce(true)}
-                className={`px-2 py-1.5 sm:px-4 text-xs rounded-full border transition-all duration-200 glass-light bg-gray-800/60 ${sceneTransitionOnce ? 'text-purple-200 border-purple-300/60' : 'text-purple-300 border-purple-400/30 hover:text-purple-200 hover:border-purple-300/60'}`}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md border transition-all ${
+                  sceneTransitionOnce 
+                    ? 'bg-purple-500/20 text-purple-300 border-purple-400/40' 
+                    : 'bg-gray-800/40 text-purple-400/60 border-purple-400/20 hover:text-purple-300 hover:border-purple-300/30'
+                }`}
                 aria-label="场景过渡"
               >
-                <span className="hidden sm:inline">场景过渡{sceneTransitionOnce ? '（已启用一次性）' : ''}</span>
-                <span className="sm:hidden">场景过渡</span>
+                {sceneTransitionOnce && <span className="w-1 h-1 rounded-full bg-purple-400 animate-pulse"></span>}
+                场景过渡
               </button>
               {(storyAdvance || povMode || sceneTransitionOnce) && (
                 <button
                   type="button"
                   onClick={clearAll}
-                  className="px-2 py-1.5 sm:px-4 text-xs rounded-full border transition-all duration-200 glass-light bg-gray-800/60 text-gray-300 border-white/10 hover:bg-gray-700/50"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md border bg-gray-800/40 text-gray-400 border-white/10 hover:bg-gray-700/50 hover:text-white transition-all"
                 >
+                  <X className="w-3 h-3" />
                   清空
                 </button>
               )}
@@ -528,31 +523,19 @@ export default function MessageInput({
           </div>
         )}
 
-        {/* Status Indicators */}
-        <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center space-x-3 text-xs">
-            <span className="glass-light px-3 py-1.5 rounded-lg text-gray-400">
-              <span className="text-blue-400">⏎</span> {t('chat.shortcuts.send')}
+        {/* Keyboard Shortcuts - Show on focus */}
+        {showShortcuts && (
+          <div className="flex items-center gap-2 mt-1.5 px-1 text-xs text-gray-500 animate-in fade-in duration-200">
+            <span className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-gray-800/50 rounded text-blue-400">↵</kbd>
+              <span className="hidden sm:inline">{t('chat.shortcuts.send')}</span>
             </span>
-            <span className="glass-light px-3 py-1.5 rounded-lg text-gray-400">
-              <span className="text-purple-400">⇧</span> {t('chat.shortcuts.newline')}
+            <span className="hidden sm:flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-gray-800/50 rounded text-purple-400">⇧↵</kbd>
+              {t('chat.shortcuts.newline')}
             </span>
-            {currentCharacter && (
-              <span className="glass-light px-3 py-1.5 rounded-lg text-gray-400">
-                <span className="text-teal-400">🎨</span> {currentCharacter.settings?.temperature?.toFixed(1) || '0.7'}
-              </span>
-            )}
           </div>
-
-          {isLoading && (
-            <div className="flex items-center space-x-2 glass-light px-4 py-2 rounded-lg animate-pulse-glow">
-              <div className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-pulse"></div>
-              <span className="text-sm text-blue-300 font-medium">
-                {t('chat.status.replying', { name: currentCharacter?.name || t('chat.status.character') })}
-              </span>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   )

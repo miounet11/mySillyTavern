@@ -21,6 +21,8 @@ import CharacterModal from '../character/CharacterModal'
 import RetryDialog from './RetryDialog'
 import toast from 'react-hot-toast'
 import { useTranslation } from '@/lib/i18n'
+import { useModelGuard } from '@/hooks/useModelGuard'
+import ModelNotSetModal from '@/components/modals/ModelNotSetModal'
 
 interface ChatInterfaceProps {
   characterId?: string | null
@@ -82,6 +84,8 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     (((activeModel as any).provider === 'local') || Boolean((activeModel as any).apiKey))
   )
 
+  const { isModelReady, assertModelReady, modelNotSetOpen, setModelNotSetOpen } = useModelGuard()
+
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [modelsInitialized, setModelsInitialized] = useState(false)
@@ -124,9 +128,25 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     toast.success('已跳转到对话底部', { duration: 1000 })
   }
 
+  // Auto-scroll when messages change
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    // Use setTimeout to ensure DOM has updated
+    const timer = setTimeout(() => {
+      scrollToBottom(true)
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [messages.length]) // Only depend on length to avoid content-only changes
+
+  // Initial scroll when chat is loaded or switched
+  useEffect(() => {
+    if (currentChat && messages.length > 0) {
+      // Longer delay for initial load to ensure layout is complete
+      const timer = setTimeout(() => {
+        scrollToBottom(false) // No animation for initial scroll
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [currentChat?.id]) // Only trigger on chat switch
 
   // Load AI models on mount to ensure we have the active model
   useEffect(() => {
@@ -337,9 +357,9 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
 
   // Handle sending a message
   const handleSendMessage = async (content: string) => {
-    if (!isModelConfigured) {
+    if (!isModelConfigured || !isModelReady) {
       toast.error(t('chat.chatInterface.noModel'))
-      window.dispatchEvent(new CustomEvent('open-settings'))
+      assertModelReady()
       return
     }
     if (sendingRef.current) {
@@ -654,9 +674,9 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
 
   // Handle regenerating the last response
   const handleRegenerate = async () => {
-    if (!isModelConfigured) {
+    if (!isModelConfigured || !isModelReady) {
       toast.error(t('chat.chatInterface.noModel'))
-      window.dispatchEvent(new CustomEvent('open-settings'))
+      assertModelReady()
       return
     }
     if (!currentChat || !character || isGenerating) return
@@ -664,6 +684,16 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     try {
       clearError()
       setGenerating(true)
+
+      // 前置校验：必须存在可响应的用户消息
+      const lastAssistantIndex = messages.map((m) => m.role).lastIndexOf('assistant')
+      const candidateSlice = lastAssistantIndex >= 0 ? messages.slice(0, lastAssistantIndex) : messages
+      const hasPrevUser = [...candidateSlice].reverse().some((m) => m.role === 'user')
+      if (!hasPrevUser) {
+        toast.error('缺少用户消息，无法重生成')
+        setGenerating(false)
+        return
+      }
 
       // Prepare model options (keep parity with generate flow)
       const clientModel = activeModel
@@ -784,10 +814,9 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   // Create new chat
   const handleNewChat = async () => {
     // Check if we have an active model configured (from localStorage)
-    if (!isModelConfigured) {
+    if (!isModelConfigured || !isModelReady) {
       toast.error(t('chat.chatInterface.noModel'))
-      // 打开右侧设置抽屉，而不是跳转页面
-      window.dispatchEvent(new CustomEvent('open-settings'))
+      assertModelReady()
       return
     }
 
@@ -953,35 +982,36 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
           <>
             {/* 未配置提示（在已有对话时也进行提示） */}
             {hydrated && !isModelConfigured && (
-              <div className="mx-4 mt-3 mb-0 bg-amber-900/20 border border-amber-700/60 text-amber-200 rounded px-3 py-2 text-xs flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 mt-0.5 text-amber-400" />
-                <div className="flex-1">
-                  <div className="font-medium mb-0.5">未检测到有效的 AI 模型配置</div>
-                  <div className="opacity-90">请先完成 AI 模型配置（API 地址、Key、模型ID），完成后再开始对话。</div>
+              <div className="mx-3 sm:mx-4 mt-3 mb-0 bg-gradient-to-r from-amber-900/20 to-orange-900/20 border border-amber-700/60 text-amber-200 rounded-xl px-3 sm:px-4 py-3 text-xs flex items-start gap-2 backdrop-blur-sm shadow-lg shadow-amber-900/20">
+                <AlertCircle className="w-4 h-4 mt-0.5 text-amber-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold mb-1 text-amber-300">未检测到有效的 AI 模型配置</div>
+                  <div className="opacity-90 text-xs leading-relaxed">请先完成 AI 模型配置（API 地址、Key、模型ID），完成后再开始对话。</div>
                 </div>
                 <button
                   onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
-                  className="tavern-button-secondary text-xs px-2 py-1"
+                  className="tavern-button-secondary text-xs px-2.5 py-1.5 whitespace-nowrap flex-shrink-0 rounded-lg hover:bg-amber-700/30 transition-all duration-300"
                 >
                   打开配置
                 </button>
               </div>
             )}
-            {/* Message List */}
-            <div className="flex-1 overflow-y-auto tavern-scrollbar p-4">
+            
+            {/* Message List - fills available space with scroll */}
+            <div className="flex-1 min-h-0 overflow-y-auto tavern-scrollbar">
               <MessageList
                 messages={messages}
                 isLoading={isGenerating}
                 showIncompletePrompt={incompleteInteractionDetected && !dismissedIncompleteInteraction}
                 onContinueIncomplete={handleContinueIncomplete}
                 onDismissIncomplete={handleDismissIncomplete}
-              onRegenerateMessage={handleRegenerateFromMessage}
-              onScrollToBottom={handleScrollToBottom}
+                onRegenerateMessage={handleRegenerateFromMessage}
+                onScrollToBottom={handleScrollToBottom}
               />
-              <div ref={messagesEndRef} />
+              <div ref={messagesEndRef} className="h-px" />
             </div>
 
-            {/* Control Bar */}
+            {/* Control Bar - Compact and Integrated */}
             <ChatControlBar
               onScrollToBottom={handleScrollToBottom}
               onRegenerate={handleRegenerate}
@@ -993,22 +1023,20 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
               }}
             />
 
-            {/* Message Input */}
-            <div className="border-t border-gray-800 p-4">
-              <MessageInput
-                value={inputValue}
-                onChange={setInputValue}
-                onSend={handleSendMessage}
-                disabled={!canGenerate || isLoading || !isModelConfigured}
-                placeholder={
-                  !character
-                    ? 'Select a character to start chatting'
-                    : !isModelConfigured
-                    ? 'Select an AI model to start chatting'
-                    : 'Type your message...'
-                }
-              />
-            </div>
+            {/* Message Input - Seamlessly Integrated */}
+            <MessageInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSend={handleSendMessage}
+              disabled={!canGenerate || isLoading || !isModelConfigured}
+              placeholder={
+                !character
+                  ? 'Select a character to start chatting'
+                  : !isModelConfigured
+                  ? 'Select an AI model to start chatting'
+                  : 'Type your message...'
+              }
+            />
           </>
         )}
       </div>
@@ -1038,6 +1066,9 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
         onRetry={handleRetry}
         onCancel={handleCancelRetry}
       />
+
+      {/* 模型未设置引导对话框 */}
+      <ModelNotSetModal open={modelNotSetOpen} onClose={() => setModelNotSetOpen(false)} />
     </div>
   )
 }

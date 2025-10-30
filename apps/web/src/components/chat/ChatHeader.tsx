@@ -288,7 +288,7 @@ export default function ChatHeader({
                   {t('chat.chatHeader.shareChat')}
                 </DropdownMenuItem>
 
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={handleExportChat} disabled={isExporting}>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={handleExportChat} disabled={isExporting || !currentChat}>
                   <Download className="w-4 h-4 mr-2" />
                   {isExporting ? t('chat.chatHeader.exportingChat') : t('chat.chatHeader.exportChat')}
                 </DropdownMenuItem>
@@ -303,7 +303,7 @@ export default function ChatHeader({
                 <DropdownMenuSeparator />
 
                 {/* Destructive Actions */}
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={handleDeleteChat} className="text-red-500 hover:text-red-400 focus:text-red-400">
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={handleDeleteChat} disabled={!currentChat} className="text-red-500 hover:text-red-400 focus:text-red-400">
                   <Trash2 className="w-4 h-4 mr-2" />
                   {t('chat.deleteChat')}
                 </DropdownMenuItem>

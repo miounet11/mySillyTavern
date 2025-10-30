@@ -123,9 +123,9 @@ export default function ExternalPromptsDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:!max-w-6xl h-[85vh] bg-gray-900/95 backdrop-blur-xl rounded-lg border border-gray-700/50 flex flex-col shadow-2xl">
+      <DialogContent className="max-w-6xl max-h-[90vh] bg-gray-900/95 backdrop-blur-xl rounded-lg border border-gray-700/50 flex flex-col shadow-2xl overflow-y-auto tavern-scrollbar">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
+          <DialogTitle className="text-2xl font-bold text-gray-100 flex items-center gap-2">
             <FileText className="w-6 h-6 text-blue-400" />
             外部提示词库
           </DialogTitle>
