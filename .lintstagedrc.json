@@ -1,0 +1,13 @@
+{
+  "*.{ts,tsx,js,jsx}": [
+    "eslint --fix",
+    "prettier --write"
+  ],
+  "*.{json,md,yml,yaml,css,scss,html}": [
+    "prettier --write"
+  ],
+  "*.{ts,tsx}": [
+    "bash -c 'npm run type-check --if-present'"
+  ]
+}
+
