@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import AIModelDrawer from '@/components/ai/AIModelDrawer'
 import { useAIModelStore } from '@/stores/aiModelStore'
 import { ProviderList } from './ProviderList'
@@ -310,22 +311,12 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
     input.click()
   }
 
-  // Don't render if not open
-  if (!isOpen) return null
-
   return (
     <>
-      {/* Semi-transparent backdrop (non-blocking) */}
-      <div 
-        className="fixed inset-0 top-16 bg-black/20 z-40 pointer-events-none animate-in fade-in duration-300"
-        aria-hidden="true"
-      />
-
-      {/* Right side drawer */}
-      <div className="fixed right-0 top-16 bottom-0 w-[600px] bg-gray-900/98 backdrop-blur-md border-l border-gray-800 shadow-2xl z-50 flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-800 flex-shrink-0">
-          <div className="flex items-center justify-between">
+      <Sheet open={isOpen} onOpenChange={onClose}>
+        <SheetContent side="right" className="w-[90%] sm:w-[500px] lg:w-[600px] p-0 flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-800 flex-shrink-0">
             <div className="flex items-center space-x-3">
               <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
                 <IconSettings className="w-5 h-5 text-white" />
@@ -339,39 +330,30 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
                 </p>
               </div>
             </div>
-            {/* Close Button */}
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
-              title="关闭设置"
-            >
-              <IconX className="w-5 h-5" />
-            </button>
           </div>
-        </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <TabsList className="mx-6 mt-3 grid w-[calc(100%-3rem)] grid-cols-4 flex-shrink-0">
-              <TabsTrigger value="general" className="text-xs">
+              <TabsTrigger value="general" className="text-xs min-h-[44px] md:min-h-[auto]">
                 <IconUser className="w-3.5 h-3.5 mr-1.5" />
                 常规
               </TabsTrigger>
-              <TabsTrigger value="models" className="text-xs">
+              <TabsTrigger value="models" className="text-xs min-h-[44px] md:min-h-[auto]">
                 <IconDatabase className="w-3.5 h-3.5 mr-1.5" />
                 模型
               </TabsTrigger>
-              <TabsTrigger value="interface" className="text-xs">
+              <TabsTrigger value="interface" className="text-xs min-h-[44px] md:min-h-[auto]">
                 <IconPalette className="w-3.5 h-3.5 mr-1.5" />
                 界面
               </TabsTrigger>
-              <TabsTrigger value="plugins" className="text-xs">
+              <TabsTrigger value="plugins" className="text-xs min-h-[44px] md:min-h-[auto]">
                 <IconPuzzle className="w-3.5 h-3.5 mr-1.5" />
                 插件
               </TabsTrigger>
             </TabsList>
 
             {/* General Settings Tab */}
-            <TabsContent value="general" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0">
+            <TabsContent value="general" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0 pb-20 md:pb-4">
               <div className="space-y-6">
                 {/* 用户ID - 只读显示 */}
                 <div>
@@ -499,7 +481,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
             </TabsContent>
 
             {/* Interface Settings Tab */}
-            <TabsContent value="interface" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0">
+            <TabsContent value="interface" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0 pb-20 md:pb-4">
               <div className="space-y-6">
                 <div>
                   <Label htmlFor="fontSize" className="text-sm text-gray-300">字体大小</Label>
@@ -602,7 +584,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
             </TabsContent>
 
             {/* Plugins Tab */}
-            <TabsContent value="plugins" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0">
+            <TabsContent value="plugins" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0 pb-20 md:pb-4">
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-semibold text-gray-300">插件管理</h3>
@@ -658,7 +640,8 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
               </div>
             </TabsContent>
           </Tabs>
-      </div>
+        </SheetContent>
+      </Sheet>
 
       {/* AI Model Configuration Drawer - Higher z-index to appear above settings */}
       <div className={isModelDrawerOpen ? "model-drawer-wrapper" : ""}>

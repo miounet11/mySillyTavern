@@ -15,6 +15,7 @@ import {
 } from '@tabler/icons-react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
 interface ChatSettingsPanelProps {
   isOpen: boolean
@@ -42,68 +43,53 @@ export default function ChatSettingsPanel({
   const { t } = useTranslation()
   const router = useRouter()
 
-  if (!isOpen) {
-    return (
-      <ActionIcon
-        onClick={onToggle}
-        size="lg"
-        variant="filled"
-        color="dark"
-        style={{
-          position: 'fixed',
-          left: '1rem',
-          top: '5rem',
-          zIndex: 30
-        }}
-        title={t('chat.settingsPanel.expandSidebar')}
-      >
-        <IconLayoutSidebarLeftExpand size={20} />
-      </ActionIcon>
-    )
-  }
-
   return (
-    <Box
-      style={{
-        width: '16rem',
-        height: '100%',
-        borderRight: '1px solid var(--mantine-color-dark-5)',
-        backgroundColor: 'var(--mantine-color-dark-7)',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative'
-      }}
-    >
-      {/* Header */}
-      <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
-        <Group justify="space-between" mb="md">
-          <Text size="sm" fw={600}>{t('chat.settingsPanel.title')}</Text>
-          <ActionIcon
-            onClick={onToggle}
-            variant="subtle"
-            color="gray"
-            title={t('chat.settingsPanel.collapseSidebar')}
-          >
-            <IconLayoutSidebarLeftCollapse size={16} />
-          </ActionIcon>
-        </Group>
+    <>
+      {/* Floating button when closed */}
+      {!isOpen && (
+        <ActionIcon
+          onClick={onToggle}
+          size="lg"
+          variant="filled"
+          color="dark"
+          style={{
+            position: 'fixed',
+            left: '1rem',
+            top: '5rem',
+            zIndex: 30
+          }}
+          title={t('chat.settingsPanel.expandSidebar')}
+        >
+          <IconLayoutSidebarLeftExpand size={20} />
+        </ActionIcon>
+      )}
 
-        {characterName && (
-          <Text size="xs" c="dimmed">
-            {t('chat.settingsPanel.currentCharacter')}: <Text component="span" c="teal">{characterName}</Text>
-          </Text>
-        )}
-      </Box>
+      {/* Drawer Sheet */}
+      <Sheet open={isOpen} onOpenChange={onToggle}>
+        <SheetContent side="left" className="w-[85%] sm:w-[320px] md:w-[340px] p-0 flex flex-col">
+          {/* Header */}
+          <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
+            <Group justify="space-between" mb="md">
+              <Text size="sm" fw={600}>{t('chat.settingsPanel.title')}</Text>
+            </Group>
 
-      {/* Navigation Buttons */}
-      <ScrollArea style={{ flex: 1 }} p="md">
-        <Stack gap="xs">
+            {characterName && (
+              <Text size="xs" c="dimmed">
+                {t('chat.settingsPanel.currentCharacter')}: <Text component="span" c="teal">{characterName}</Text>
+              </Text>
+            )}
+          </Box>
+
+          {/* Navigation Buttons */}
+          <ScrollArea style={{ flex: 1 }} p="md" className="pb-20 md:pb-0">
+            <Stack gap="xs">
           <Button
             onClick={() => router.push('/characters')}
             variant="default"
             fullWidth
             leftSection={<IconArrowLeft size={16} />}
             justify="flex-start"
+            className="min-h-[44px] md:min-h-[auto]"
           >
             {t('chat.settingsPanel.backToCharacters')}
           </Button>
@@ -119,6 +105,7 @@ export default function ChatSettingsPanel({
             leftSection={<IconGitBranch size={16} />}
             justify="flex-start"
             title={t('chat.settingsPanel.branches.tooltip')}
+            className="min-h-[44px] md:min-h-[auto]"
           >
             {t('chat.settingsPanel.branches.title')}
           </Button>
@@ -134,6 +121,7 @@ export default function ChatSettingsPanel({
             leftSection={<IconFileText size={16} />}
             justify="flex-start"
             title={t('chat.settingsPanel.externalPrompts.tooltip')}
+            className="min-h-[44px] md:min-h-[auto]"
           >
             {t('chat.settingsPanel.externalPrompts.title')}
           </Button>
@@ -145,6 +133,7 @@ export default function ChatSettingsPanel({
             leftSection={<IconBook size={16} />}
             justify="flex-start"
             title={t('chat.settingsPanel.worldInfo.tooltip')}
+            className="min-h-[44px] md:min-h-[auto]"
           >
             {t('chat.settingsPanel.worldInfo.title')}
           </Button>
@@ -156,6 +145,7 @@ export default function ChatSettingsPanel({
             leftSection={<IconWand size={16} />}
             justify="flex-start"
             title={t('chat.settingsPanel.templateVars.tooltip')}
+            className="min-h-[44px] md:min-h-[auto]"
           >
             {t('chat.settingsPanel.templateVars.title')}
           </Button>
@@ -167,6 +157,7 @@ export default function ChatSettingsPanel({
             leftSection={<IconCode size={16} />}
             justify="flex-start"
             title={t('chat.settingsPanel.regex.tooltip')}
+            className="min-h-[44px] md:min-h-[auto]"
           >
             {t('chat.settingsPanel.regex.title')}
           </Button>
@@ -178,6 +169,7 @@ export default function ChatSettingsPanel({
             leftSection={<IconFileCode size={16} />}
             justify="flex-start"
             title={t('chat.settingsPanel.presets.tooltip')}
+            className="min-h-[44px] md:min-h-[auto]"
           >
             {t('chat.settingsPanel.presets.title')}
           </Button>
@@ -193,28 +185,29 @@ export default function ChatSettingsPanel({
             leftSection={<IconSettings size={16} />}
             justify="flex-start"
             title={t('chat.settingsPanel.advancedSettings.tooltip')}
+            className="min-h-[44px] md:min-h-[auto]"
           >
             {t('chat.settingsPanel.advancedSettings.title')}
           </Button>
-        </Stack>
-      </ScrollArea>
+            </Stack>
+          </ScrollArea>
 
-      {/* Footer Info */}
-      <Box p="md" style={{ borderTop: '1px solid var(--mantine-color-dark-5)' }}>
-        <Stack gap={4}>
-          <Group justify="space-between">
-            <Text size="xs" c="dimmed">{t('chat.settingsPanel.stats.messageCount')}:</Text>
-            <Text size="xs" c="gray">--</Text>
-          </Group>
-          <Group justify="space-between">
-            <Text size="xs" c="dimmed">{t('chat.settingsPanel.stats.tokenUsage')}:</Text>
-            <Text size="xs" c="gray">--</Text>
-          </Group>
-        </Stack>
-      </Box>
-
-      {/* Dialogs moved to chat/page to match World Info open behavior */}
-    </Box>
+          {/* Footer Info */}
+          <Box p="md" style={{ borderTop: '1px solid var(--mantine-color-dark-5)' }}>
+            <Stack gap={4}>
+              <Group justify="space-between">
+                <Text size="xs" c="dimmed">{t('chat.settingsPanel.stats.messageCount')}:</Text>
+                <Text size="xs" c="gray">--</Text>
+              </Group>
+              <Group justify="space-between">
+                <Text size="xs" c="dimmed">{t('chat.settingsPanel.stats.tokenUsage')}:</Text>
+                <Text size="xs" c="gray">--</Text>
+              </Group>
+            </Stack>
+          </Box>
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }
 

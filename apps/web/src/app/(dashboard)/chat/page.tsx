@@ -57,51 +57,25 @@ function ChatPageContent() {
 
   return (
     <div className="min-h-screen bg-gray-950">
-      {/* Left Settings Panel - Fixed Position */}
-      {isSettingsPanelOpen && (
-        <div className="fixed left-0 top-16 bottom-0 w-64 bg-gray-900 border-r border-gray-800 shadow-2xl z-40 overflow-y-auto animate-in slide-in-from-left duration-300">
-          <ChatSettingsPanel
-            isOpen={isSettingsPanelOpen}
-            onToggle={() => setIsSettingsPanelOpen(!isSettingsPanelOpen)}
-            onOpenWorldInfo={() => setIsWorldInfoOpen(true)}
-            onOpenExternalPrompts={() => setIsExternalPromptsOpen(true)}
-            onOpenTemplateVariables={() => setIsTemplateVarsOpen(true)}
-            onOpenRegexEditor={() => setIsRegexEditorOpen(true)}
-            onOpenPresetEditor={() => setIsPresetEditorOpen(true)}
-            onOpenBranchView={() => setIsBranchViewOpen(true)}
-            characterName={character?.name}
-          />
-        </div>
-      )}
+      {/* Chat Settings Panel - Now a drawer */}
+      <ChatSettingsPanel
+        isOpen={isSettingsPanelOpen}
+        onToggle={() => setIsSettingsPanelOpen(!isSettingsPanelOpen)}
+        onOpenWorldInfo={() => setIsWorldInfoOpen(true)}
+        onOpenExternalPrompts={() => setIsExternalPromptsOpen(true)}
+        onOpenTemplateVariables={() => setIsTemplateVarsOpen(true)}
+        onOpenRegexEditor={() => setIsRegexEditorOpen(true)}
+        onOpenPresetEditor={() => setIsPresetEditorOpen(true)}
+        onOpenBranchView={() => setIsBranchViewOpen(true)}
+        characterName={character?.name}
+      />
 
-      {/* Toggle button when left panel is closed */}
-      {!isSettingsPanelOpen && (
-        <ChatSettingsPanel
-          isOpen={isSettingsPanelOpen}
-          onToggle={() => setIsSettingsPanelOpen(!isSettingsPanelOpen)}
-          onOpenWorldInfo={() => setIsWorldInfoOpen(true)}
-          onOpenExternalPrompts={() => setIsExternalPromptsOpen(true)}
-          onOpenTemplateVariables={() => setIsTemplateVarsOpen(true)}
-          onOpenRegexEditor={() => setIsRegexEditorOpen(true)}
-          onOpenPresetEditor={() => setIsPresetEditorOpen(true)}
-          onOpenBranchView={() => setIsBranchViewOpen(true)}
-          characterName={character?.name}
-        />
-      )}
-
-      {/* Main chat area - adjusts margin based on left sidebar */}
-      <div 
-        className="transition-all duration-300"
-        style={{
-          marginLeft: isSettingsPanelOpen ? '256px' : '0'
-        }}
-      >
-        <div className="container mx-auto max-w-6xl px-4 py-6">
-          {/* Main chat interface */}
-          <Suspense fallback={<div className="flex-1 flex items-center justify-center min-h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-teal-400" /></div>}>
-            <ChatInterface characterId={characterId} />
-          </Suspense>
-        </div>
+      {/* Main chat area - Full width */}
+      <div className="container mx-auto max-w-6xl px-4 py-6">
+        {/* Main chat interface */}
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center min-h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-teal-400" /></div>}>
+          <ChatInterface characterId={characterId} />
+        </Suspense>
       </div>
 
       {/* Modals */}

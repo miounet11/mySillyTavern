@@ -64,17 +64,17 @@ export default function CommunityCard({
         <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-transparent to-transparent opacity-60"></div>
         
         {/* Stats badges */}
-        <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-          <span className="glass-light px-3 py-1.5 rounded-full text-xs font-semibold text-teal-400 border border-teal-500/30">
+        <div className="absolute top-2 sm:top-3 left-2 sm:left-3 right-2 sm:right-3 flex items-center justify-between z-10">
+          <span className="glass-light px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-semibold text-teal-400 border border-teal-500/30">
             {character.category}
           </span>
-          <div className="flex items-center gap-2">
-            <span className="glass-light flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs text-white border border-white/10">
-              <Download className="w-3.5 h-3.5 text-blue-400" />
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="glass-light flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs text-white border border-white/10">
+              <Download className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-blue-400" />
               <span className="font-medium">{formatNumber(character.downloads)}</span>
             </span>
-            <span className="glass-light flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs text-white border border-white/10">
-              <Heart className="w-3.5 h-3.5 text-pink-400" />
+            <span className="glass-light flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs text-white border border-white/10">
+              <Heart className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-pink-400" />
               <span className="font-medium">{formatNumber(character.likes)}</span>
             </span>
           </div>
@@ -97,39 +97,39 @@ export default function CommunityCard({
       </div>
 
       {/* Character Info */}
-      <div className="p-4 space-y-2.5">
-        <h3 className="text-base font-semibold text-gray-100 truncate group-hover:text-blue-400 transition-colors">
+      <div className="p-3 sm:p-4 space-y-2 sm:space-y-2.5">
+        <h3 className="text-sm sm:text-base font-semibold text-gray-100 truncate group-hover:text-blue-400 transition-colors">
           {character.name}
         </h3>
         
         {character.description && (
-          <p className="text-sm text-gray-400 line-clamp-2 min-h-[2.5rem] leading-relaxed">
+          <p className="text-xs sm:text-sm text-gray-400 line-clamp-2 min-h-[2.5rem] leading-relaxed">
             {character.description}
           </p>
         )}
 
         {character.author && (
           <div className="flex items-center gap-2 text-xs text-gray-500 pt-1">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-[10px] font-bold">
+            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-[9px] sm:text-[10px] font-bold">
               {character.author.charAt(0).toUpperCase()}
             </div>
-            <span>作者: <span className="text-gray-400">{character.author}</span></span>
+            <span className="text-[10px] sm:text-xs">作者: <span className="text-gray-400">{character.author}</span></span>
           </div>
         )}
 
         {character.tags && character.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            {character.tags.slice(0, 3).map((tag: string, index: number) => (
+          <div className="flex flex-wrap gap-1 sm:gap-1.5 pt-1">
+            {character.tags.slice(0, 2).map((tag: string, index: number) => (
               <span 
                 key={index}
-                className="tag-chip text-xs"
+                className="tag-chip text-[10px] sm:text-xs px-2 py-0.5"
               >
                 {tag}
               </span>
             ))}
-            {character.tags.length > 3 && (
-              <span className="tag-chip text-xs">
-                +{character.tags.length - 3}
+            {character.tags.length > 2 && (
+              <span className="tag-chip text-[10px] sm:text-xs px-2 py-0.5">
+                +{character.tags.length - 2}
               </span>
             )}
           </div>

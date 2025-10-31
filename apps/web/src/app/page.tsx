@@ -103,7 +103,7 @@ export default function HomePage() {
       </div>
 
       {/* CTA Section */}
-      <div className="container mx-auto px-6 py-20 max-w-4xl">
+      <div className="container mx-auto px-6 py-20 pb-32 sm:pb-20 max-w-4xl">
         <div className="bg-gradient-to-r from-teal-500/10 to-cyan-500/10 border border-teal-500/20 rounded-2xl p-12 text-center">
           <h2 className="text-3xl font-bold mb-4 text-gray-100">
             准备开始了吗？

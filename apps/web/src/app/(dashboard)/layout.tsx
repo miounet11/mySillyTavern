@@ -3,6 +3,7 @@
 import { ReactNode, useState, useEffect } from 'react'
 import { AppShell } from '@mantine/core'
 import TopNavigation from '@/components/layout/TopNavigation'
+import BottomNavigation from '@/components/layout/BottomNavigation'
 import SettingsDrawer from '@/components/settings/SettingsDrawer'
 
 export default function DashboardLayout({
@@ -39,9 +40,12 @@ export default function DashboardLayout({
         <TopNavigation />
       </AppShell.Header>
 
-      <AppShell.Main>
+      <AppShell.Main className="pb-16 md:pb-0">
         {children}
       </AppShell.Main>
+      
+      {/* Bottom Navigation - Mobile only */}
+      <BottomNavigation />
       
       {/* Settings Drawer - Fixed on right as overlay */}
       <SettingsDrawer 
