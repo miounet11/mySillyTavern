@@ -28,20 +28,38 @@ import { Label } from '@/components/ui/label'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import AIModelDrawer from '@/components/ai/AIModelDrawer'
 import { useAIModelStore } from '@/stores/aiModelStore'
+import { useSettingsUIStore } from '@/stores/settingsUIStore'
 import { ProviderList } from './ProviderList'
 import { ProviderConfigPanel } from './ProviderConfigPanel'
 import toast from 'react-hot-toast'
 
 interface SettingsDrawerProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen?: boolean
+  onClose?: () => void
 }
 
-export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
+export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onCloseProp }: SettingsDrawerProps = {}) {
+  const { isOpen: isOpenGlobal, defaultTab: globalDefaultTab, closeSettings } = useSettingsUIStore()
+  const isOpen = isOpenProp !== undefined ? isOpenProp : isOpenGlobal
+  const onClose = onCloseProp || closeSettings
+  
   const [activeTab, setActiveTab] = useState('models')
   const [isModelDrawerOpen, setIsModelDrawerOpen] = useState(false)
   const [editingModel, setEditingModel] = useState<any>(null)
   const [wasSettingsOpen, setWasSettingsOpen] = useState(false) // Track if settings was open before model drawer
+  
+  // Track screen size for responsive behavior
+  const [isDesktop, setIsDesktop] = useState(false)
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsDesktop(window.innerWidth >= 640) // sm breakpoint
+    }
+    
+    checkScreenSize()
+    window.addEventListener('resize', checkScreenSize)
+    return () => window.removeEventListener('resize', checkScreenSize)
+  }, [])
   
   // AI Models
   const [aiModels, setAiModels] = useState<any[]>([])
@@ -72,14 +90,14 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
   // Load settings from localStorage
   useEffect(() => {
     if (isOpen) {
-      // Default to Models tab when opening
-      setActiveTab('models')
+      // Use global default tab or fallback to 'models'
+      setActiveTab(globalDefaultTab || 'models')
       loadUserData()
       loadSettings()
       fetchAIModels()
       fetchPlugins()
     }
-  }, [isOpen])
+  }, [isOpen, globalDefaultTab])
 
   const loadUserData = async () => {
     try {
@@ -262,13 +280,56 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
 
   const handleExportData = async () => {
     try {
-      const data = {
-        settings: localStorage.getItem('app_settings'),
-        timestamp: new Date().toISOString(),
-        version: '1.0.0'
+      // 收集所有本地存储数据
+      const localStorageData: Record<string, string> = {}
+      
+      // 收集所有相关的 localStorage 项
+      const keysToExport = [
+        'app_settings',
+        'ai-models-storage',
+        'provider-configs-storage',
+        'chat_streaming_enabled',
+        'chat_fast_mode_enabled',
+        'creative_settings',
+        'regex_scripts',
+        'locale',
+        'regex_scripts_initialized',
+      ]
+      
+      keysToExport.forEach(key => {
+        const value = localStorage.getItem(key)
+        if (value !== null) {
+          localStorageData[key] = value
+        }
+      })
+
+      // 获取当前用户信息
+      let userData = null
+      try {
+        const response = await fetch('/api/users/current')
+        const result = await response.json()
+        if (result.success && result.data) {
+          userData = {
+            username: result.data.username,
+            email: result.data.email,
+          }
+        }
+      } catch (error) {
+        console.log('无法获取用户信息，将跳过用户数据导出')
       }
 
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const exportData = {
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        user: userData,
+        localStorage: localStorageData,
+        metadata: {
+          exportedFrom: window.location.hostname,
+          userAgent: navigator.userAgent,
+        }
+      }
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -278,7 +339,7 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      toast.success('数据已导出')
+      toast.success('数据已导出，包含所有配置信息')
     } catch (error) {
       console.error('Export error:', error)
       toast.error('导出失败')
@@ -297,12 +358,50 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
         const text = await file.text()
         const data = JSON.parse(text)
 
-        if (data.settings) {
-          localStorage.setItem('app_settings', data.settings)
+        // 验证数据格式
+        if (!data.version || !data.localStorage) {
+          toast.error('文件格式不正确，请检查导出文件')
+          return
         }
 
-        toast.success('数据已导入，请刷新页面')
-        setTimeout(() => window.location.reload(), 1500)
+        // 恢复所有 localStorage 数据
+        Object.entries(data.localStorage).forEach(([key, value]) => {
+          if (typeof value === 'string') {
+            localStorage.setItem(key, value)
+          }
+        })
+
+        // 如果有用户数据，同步到数据库
+        if (data.user && (data.user.username || data.user.email)) {
+          try {
+            const response = await fetch('/api/users/current', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                username: data.user.username || undefined,
+                email: data.user.email || undefined,
+              }),
+            })
+
+            const result = await response.json()
+            if (!result.success) {
+              console.warn('用户信息同步失败:', result.error)
+              toast('配置已导入，但用户信息同步失败', { icon: '⚠️' })
+            } else {
+              toast.success('所有数据已导入，即将刷新页面...')
+            }
+          } catch (error) {
+            console.error('用户信息同步错误:', error)
+            toast('配置已导入，但用户信息同步失败', { icon: '⚠️' })
+          }
+        } else {
+          toast.success('配置已导入，即将刷新页面...')
+        }
+
+        // 刷新页面以应用所有更改
+        setTimeout(() => {
+          window.location.reload()
+        }, 1500)
       } catch (error) {
         console.error('Import error:', error)
         toast.error('导入失败，请检查文件格式')
@@ -314,23 +413,23 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
   return (
     <>
       <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent side="right" className="w-[90%] sm:w-[500px] lg:w-[600px] p-0 flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-800 flex-shrink-0">
+        <SheetContent side="right" className="w-[90%] sm:w-[500px] lg:w-[600px] p-0 flex flex-col overflow-hidden" hideOverlay={isDesktop}>
+          {/* Header with proper accessibility components */}
+          <SheetHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0">
             <div className="flex items-center space-x-3">
               <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
                 <IconSettings className="w-5 h-5 text-white" />
               </div>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-100">
+              <div className="flex-1">
+                <SheetTitle className="text-xl font-semibold text-gray-100">
                   设置中心
-                </h2>
-                <p className="text-xs text-gray-400 mt-0.5">
+                </SheetTitle>
+                <SheetDescription className="text-xs text-gray-400 mt-0.5">
                   配置应用程序和个人偏好
-                </p>
+                </SheetDescription>
               </div>
             </div>
-          </div>
+          </SheetHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <TabsList className="mx-6 mt-3 grid w-[calc(100%-3rem)] grid-cols-4 flex-shrink-0">
@@ -656,10 +755,10 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
       
       <style jsx global>{`
         .model-drawer-wrapper [data-radix-dialog-overlay] {
-          z-index: 60 !important;
+          z-index: 110 !important;
         }
         .model-drawer-wrapper [data-radix-dialog-content] {
-          z-index: 60 !important;
+          z-index: 110 !important;
         }
       `}</style>
     </>

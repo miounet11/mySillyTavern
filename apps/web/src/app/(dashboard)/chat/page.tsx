@@ -17,6 +17,7 @@ import ChatBranchVisualization from '@/components/chat/ChatBranchVisualization'
 import ChatNodeEditor from '@/components/chat/ChatNodeEditor'
 import { Loader2 } from 'lucide-react'
 import { useChatStore } from '@/stores/chatStore'
+import { useSettingsUIStore } from '@/stores/settingsUIStore'
 import toast from 'react-hot-toast'
 
 function ChatPageContent() {
@@ -32,6 +33,23 @@ function ChatPageContent() {
   const [isNodeEditorOpen, setIsNodeEditorOpen] = useState(false)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const { character } = useChatStore()
+  const { isOpen: isSettingsDrawerOpen } = useSettingsUIStore()
+
+  // Track screen size for responsive behavior
+  const [isDesktop, setIsDesktop] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth
+      setIsDesktop(width >= 640) // sm breakpoint
+      setIsMobile(width < 640)
+    }
+    
+    checkScreenSize()
+    window.addEventListener('resize', checkScreenSize)
+    return () => window.removeEventListener('resize', checkScreenSize)
+  }, [])
 
   // 注意：全局 SettingsDrawer 已监听 open-settings 并处理模型配置，
   // 这里不再重复监听以避免重复弹出。
@@ -68,15 +86,53 @@ function ChatPageContent() {
         onOpenPresetEditor={() => setIsPresetEditorOpen(true)}
         onOpenBranchView={() => setIsBranchViewOpen(true)}
         characterName={character?.name}
+        hideOverlay={isDesktop}
+        isMobile={isMobile}
       />
 
-      {/* Main chat area - Full width */}
-      <div className="container mx-auto max-w-6xl px-4 py-6">
+      {/* Main chat area - Dynamic width based on drawer states */}
+      <div 
+        className="container mx-auto max-w-6xl px-4 py-6 transition-all duration-500 ease-in-out"
+        style={{
+          marginLeft: isSettingsPanelOpen ? 'var(--left-drawer-width, 0px)' : '0',
+          marginRight: isSettingsDrawerOpen ? 'var(--right-drawer-width, 0px)' : '0',
+        }}
+      >
         {/* Main chat interface */}
         <Suspense fallback={<div className="flex-1 flex items-center justify-center min-h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-teal-400" /></div>}>
           <ChatInterface characterId={characterId} />
         </Suspense>
       </div>
+
+      {/* CSS Variables for responsive drawer widths */}
+      <style jsx>{`
+        :global(:root) {
+          /* Mobile: drawers overlay, no margin */
+          --left-drawer-width: 0px;
+          --right-drawer-width: 0px;
+        }
+        
+        /* Tablet and up: drawers push content */
+        @media (min-width: 640px) {
+          :global(:root) {
+            --left-drawer-width: 320px;
+            --right-drawer-width: 500px;
+          }
+        }
+        
+        /* Desktop: larger drawers */
+        @media (min-width: 768px) {
+          :global(:root) {
+            --left-drawer-width: 340px;
+          }
+        }
+        
+        @media (min-width: 1024px) {
+          :global(:root) {
+            --right-drawer-width: 600px;
+          }
+        }
+      `}</style>
 
       {/* Modals */}
       <WorldInfoPanel

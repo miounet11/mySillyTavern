@@ -131,6 +131,16 @@ export const useAIModelStore = create<AIModelState>()(
           set({ isLoading: true, error: null })
           console.log('[AIModelStore] 开始创建模型:', params)
           
+          // 智能激活逻辑：如果这是第一个模型，自动设为活跃
+          const currentModels = get().models
+          const isFirstModel = currentModels.length === 0
+          const shouldAutoActivate = isFirstModel && params.isActive === undefined
+          
+          if (shouldAutoActivate) {
+            console.log('[AIModelStore] 🎉 这是第一个模型，自动设为活跃')
+            params = { ...params, isActive: true }
+          }
+          
           // API-first creation
           try {
             const resp = await fetch('/api/ai-models', {
@@ -143,6 +153,10 @@ export const useAIModelStore = create<AIModelState>()(
             }
             const created: AIModelConfig = await resp.json()
             console.log('[AIModelStore] 服务器创建成功:', created)
+            
+            if (shouldAutoActivate) {
+              console.log('[AIModelStore] ✅ 第一个模型已自动激活:', created.name)
+            }
 
             set((state) => {
               const nextModels = params.isActive
@@ -177,6 +191,10 @@ export const useAIModelStore = create<AIModelState>()(
             }
             
             console.log('[AIModelStore] 本地创建模型:', newModel)
+            
+            if (shouldAutoActivate) {
+              console.log('[AIModelStore] ✅ 第一个模型已自动激活（本地）:', newModel.name)
+            }
             
             if (newModel.isActive) {
               set((state) => ({ models: state.models.map(m => ({ ...m, isActive: false })) }))

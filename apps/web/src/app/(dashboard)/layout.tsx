@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useState, useEffect } from 'react'
+import { ReactNode } from 'react'
 import { AppShell } from '@mantine/core'
 import TopNavigation from '@/components/layout/TopNavigation'
 import BottomNavigation from '@/components/layout/BottomNavigation'
@@ -11,19 +11,6 @@ export default function DashboardLayout({
 }: {
   children: ReactNode
 }) {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-
-  // Listen for open settings event from anywhere in the app
-  useEffect(() => {
-    const handleOpenSettings = () => {
-      setIsSettingsOpen(true)
-    }
-
-    window.addEventListener('open-settings', handleOpenSettings)
-    return () => {
-      window.removeEventListener('open-settings', handleOpenSettings)
-    }
-  }, [])
 
   return (
     <AppShell
@@ -47,11 +34,8 @@ export default function DashboardLayout({
       {/* Bottom Navigation - Mobile only */}
       <BottomNavigation />
       
-      {/* Settings Drawer - Fixed on right as overlay */}
-      <SettingsDrawer 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
-      />
+      {/* Settings Drawer - Fixed on right as overlay - Uses global state */}
+      <SettingsDrawer />
     </AppShell>
   )
 }

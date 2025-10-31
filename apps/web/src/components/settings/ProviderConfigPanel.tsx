@@ -279,17 +279,31 @@ export function ProviderConfigPanel({
               align="center"
               justify="center"
               style={{
-                padding: '3rem 0',
+                padding: '2rem 1rem',
                 color: 'rgb(107, 114, 128)', // gray-500
+                borderRadius: '0.5rem',
+                border: '2px dashed rgb(75, 85, 99)',
+                backgroundColor: 'rgb(17, 24, 39, 0.3)',
               }}
             >
-              <IconDatabase size={64} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-              <Text size="sm" style={{ marginBottom: '0.5rem' }}>
+              <IconDatabase size={48} style={{ opacity: 0.5, marginBottom: '1rem', color: 'rgb(156, 163, 175)' }} />
+              <Text size="sm" fw={600} style={{ marginBottom: '0.5rem', color: 'rgb(209, 213, 219)' }}>
                 还没有配置 AI 模型
               </Text>
-              <Text size="xs" style={{ color: 'rgb(107, 114, 128)' }}>
-                点击 "New" 按钮开始配置
+              <Text size="xs" style={{ color: 'rgb(107, 114, 128)', marginBottom: '1rem', textAlign: 'center' }}>
+                点击上方 "New" 按钮添加您的第一个模型
               </Text>
+              <div style={{ 
+                padding: '0.75rem 1rem', 
+                backgroundColor: 'rgb(59, 130, 246, 0.1)', 
+                borderRadius: '0.375rem',
+                border: '1px solid rgb(59, 130, 246, 0.2)',
+                marginTop: '0.5rem'
+              }}>
+                <Text size="xs" style={{ color: 'rgb(147, 197, 253)', textAlign: 'center' }}>
+                  💡 提示：第一个添加的模型会自动设为活跃
+                </Text>
+              </div>
             </Flex>
           ) : (
             models.map((model) => (

@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -436,9 +437,9 @@ function AIModelModal({
           <DialogTitle className="text-2xl font-semibold text-gray-100">
             {editingModel ? '编辑AI模型' : '添加AI模型'}
           </DialogTitle>
-          <p className="text-sm text-gray-400 mt-1">
+          <DialogDescription className="text-sm text-gray-400 mt-1">
             配置 AI 模型连接信息和参数设置
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">

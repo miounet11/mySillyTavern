@@ -19,10 +19,13 @@ import ChatHeader from './ChatHeader'
 import ChatControlBar from './ChatControlBar'
 import CharacterModal from '../character/CharacterModal'
 import RetryDialog from './RetryDialog'
+import AIModelSetupGuide from '@/components/modals/AIModelSetupGuide'
+import QuickSetupGuide from '@/components/modals/QuickSetupGuide'
 import toast from 'react-hot-toast'
 import { useTranslation } from '@/lib/i18n'
 import { useModelGuard } from '@/hooks/useModelGuard'
 import ModelNotSetModal from '@/components/modals/ModelNotSetModal'
+import { useSettingsUIStore } from '@/stores/settingsUIStore'
 
 interface ChatInterfaceProps {
   characterId?: string | null
@@ -85,6 +88,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   )
 
   const { isModelReady, assertModelReady, modelNotSetOpen, setModelNotSetOpen } = useModelGuard()
+  const { openSettings: openSettingsDrawer } = useSettingsUIStore()
 
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
@@ -94,6 +98,11 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   const sendingRef = useRef(false)
   const autoOpenModelDrawerRef = useRef(false)
   const [appSettings, setAppSettings] = useState<{ userName?: string; autoSendGreeting?: boolean; openerTemplate?: string }>({})
+  const [showSetupGuide, setShowSetupGuide] = useState(false)
+  const [showQuickSetup, setShowQuickSetup] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const hasShownGuideRef = useRef(false)
+  const hasShownQuickSetupRef = useRef(false)
   
   // Retry dialog state
   const [showRetryDialog, setShowRetryDialog] = useState(false)
@@ -138,6 +147,40 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
       }
     }
   }, [])
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // AI Model setup guide logic
+  useEffect(() => {
+    // Only show guide once per session and when model is not configured
+    if (!hasShownGuideRef.current && hydrated && !isModelConfigured && currentChat) {
+      setShowSetupGuide(true)
+      hasShownGuideRef.current = true
+    }
+  }, [hydrated, isModelConfigured, currentChat])
+
+  // Listen for model configuration success
+  useEffect(() => {
+    const handleModelConfigured = () => {
+      if (isModelConfigured && showSetupGuide) {
+        setShowSetupGuide(false)
+        toast.success('✨ AI模型配置成功！现在可以开始对话了')
+        // Focus input after short delay
+        setTimeout(() => {
+          inputRef.current?.focus()
+        }, 300)
+      }
+    }
+    handleModelConfigured()
+  }, [isModelConfigured, showSetupGuide])
 
   // Debug: log state changes
   useEffect(() => {
@@ -219,9 +262,9 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   useEffect(() => {
     if (hydrated && !isModelConfigured && !autoOpenModelDrawerRef.current) {
       autoOpenModelDrawerRef.current = true
-      window.dispatchEvent(new CustomEvent('open-settings'))
+      openSettingsDrawer('models')
     }
-  }, [hydrated, isModelConfigured])
+  }, [hydrated, isModelConfigured, openSettingsDrawer])
 
   // Listen for new chat event from sidebar
   useEffect(() => {
@@ -274,10 +317,26 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
       }
       // Check if we have an active model (from localStorage)
       if (!hasActiveModel || !activeModel) {
-        console.error('[ChatInterface] No active model configured!', { hasActiveModel, activeModel })
-        toast.error(t('chat.chatInterface.noModel'))
-        // 打开右侧设置抽屉，而不是跳转页面
-        window.dispatchEvent(new CustomEvent('open-settings'))
+        console.warn('[ChatInterface] No active model configured yet. Guiding user to setup...', { hasActiveModel, activeModel })
+        
+        // 只显示一次快速设置引导
+        if (!hasShownQuickSetupRef.current) {
+          hasShownQuickSetupRef.current = true
+          setShowQuickSetup(true)
+          
+          // 显示友好的引导提示
+          toast((t) => (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🚀</span>
+                <span className="font-medium">快速开始</span>
+              </div>
+              <p className="text-sm text-gray-300">
+                让我们花 30 秒配置您的第一个 AI 模型
+              </p>
+            </div>
+          ), { duration: 4000 })
+        }
         return
       }
       
@@ -993,7 +1052,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
                         在开始对话前，您需要先配置一个 AI 模型。我们支持 OpenAI、Anthropic、Google 以及本地模型（如 Ollama）。
                       </p>
                       <button
-                        onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
+                        onClick={() => openSettingsDrawer('models')}
                         className="tavern-button inline-flex items-center gap-2"
                       >
                         <Settings className="w-4 h-4" />
@@ -1036,7 +1095,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
                   <div className="opacity-90 text-xs leading-relaxed">请先完成 AI 模型配置（API 地址、Key、模型ID），完成后再开始对话。</div>
                 </div>
                 <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
+                  onClick={() => openSettingsDrawer('models')}
                   className="tavern-button-secondary text-xs px-2.5 py-1.5 whitespace-nowrap flex-shrink-0 rounded-lg hover:bg-amber-700/30 transition-all duration-300"
                 >
                   打开配置
@@ -1116,6 +1175,29 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
 
       {/* 模型未设置引导对话框 */}
       <ModelNotSetModal open={modelNotSetOpen} onClose={() => setModelNotSetOpen(false)} />
+
+      {/* Quick Setup Guide - 快速配置引导（优先显示） */}
+      <QuickSetupGuide
+        open={showQuickSetup}
+        onClose={() => {
+          setShowQuickSetup(false)
+          // 如果用户关闭了快速设置，可以选择显示详细引导或直接打开设置
+        }}
+      />
+
+      {/* AI Model Setup Guide - Full screen guide for first-time users */}
+      <AIModelSetupGuide
+        isOpen={showSetupGuide}
+        onClose={() => setShowSetupGuide(false)}
+        onOpenSettings={() => {
+          openSettingsDrawer()
+          // On mobile, hide the guide when settings drawer opens
+          if (isMobile) {
+            setShowSetupGuide(false)
+          }
+        }}
+        isMobile={isMobile}
+      />
     </div>
   )
 }

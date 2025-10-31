@@ -15,7 +15,7 @@ import {
 } from '@tabler/icons-react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 
 interface ChatSettingsPanelProps {
   isOpen: boolean
@@ -27,6 +27,8 @@ interface ChatSettingsPanelProps {
   onOpenPresetEditor?: () => void
   onOpenBranchView?: () => void
   characterName?: string
+  hideOverlay?: boolean
+  isMobile?: boolean
 }
 
 export default function ChatSettingsPanel({
@@ -38,7 +40,9 @@ export default function ChatSettingsPanel({
   onOpenRegexEditor,
   onOpenPresetEditor,
   onOpenBranchView,
-  characterName
+  characterName,
+  hideOverlay = false,
+  isMobile = false
 }: ChatSettingsPanelProps) {
   const { t } = useTranslation()
   const router = useRouter()
@@ -66,7 +70,13 @@ export default function ChatSettingsPanel({
 
       {/* Drawer Sheet */}
       <Sheet open={isOpen} onOpenChange={onToggle}>
-        <SheetContent side="left" className="w-[85%] sm:w-[320px] md:w-[340px] p-0 flex flex-col">
+        <SheetContent side="left" className="w-[85%] sm:w-[320px] md:w-[340px] p-0 flex flex-col" hideOverlay={hideOverlay}>
+          {/* Accessibility titles for screen readers */}
+          <SheetTitle className="sr-only">{t('chat.settingsPanel.title')}</SheetTitle>
+          <SheetDescription className="sr-only">
+            {t('chat.settingsPanel.description') || 'Chat settings and navigation panel'}
+          </SheetDescription>
+          
           {/* Header */}
           <Box p="md" style={{ borderBottom: '1px solid var(--mantine-color-dark-5)' }}>
             <Group justify="space-between" mb="md">

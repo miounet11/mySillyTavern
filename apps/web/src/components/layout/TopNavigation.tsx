@@ -4,11 +4,13 @@ import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Group, Button, ActionIcon, Burger, Drawer, Stack, Text } from '@mantine/core'
 import { IconMessageCircle, IconUsers, IconWorld, IconSettings } from '@tabler/icons-react'
+import { useSettingsUIStore } from '@/stores/settingsUIStore'
 
 export default function TopNavigation() {
   const router = useRouter()
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { toggleSettings } = useSettingsUIStore()
 
   const navigation = [
     { name: '首页', href: '/', icon: IconMessageCircle },
@@ -24,7 +26,7 @@ export default function TopNavigation() {
   }
 
   const handleSettingsClick = () => {
-    window.dispatchEvent(new CustomEvent('open-settings'))
+    toggleSettings('models') // 切换设置抽屉，默认打开模型标签
   }
 
   const handleNavigate = (href: string) => {
