@@ -198,7 +198,7 @@ export default function PresetEditor({
       size="xl"
       title={
         <Group gap="xs">
-          <IconFileText size={24} color="var(--mantine-color-teal-4)" />
+          <IconFileText size={24} color="hsl(var(--primary-rose))" />
           <Text size="xl" fw={700}>预设编辑器</Text>
         </Group>
       }
@@ -258,7 +258,7 @@ export default function PresetEditor({
                 <Button
                   onClick={handleCreate}
                   leftSection={<IconPlus size={16} />}
-                  gradient={{ from: 'teal', to: 'cyan' }}
+                  color="brand"
                   variant="gradient"
                 >
                   创建预设
@@ -269,7 +269,7 @@ export default function PresetEditor({
               {filteredPresets.length > 0 && (
                 <Alert
                   icon={<IconMessage size={16} />}
-                  color="teal"
+                  color="brand"
                   variant="light"
                 >
                   <Text size="sm">点击预设行可应用并进入对话</Text>
@@ -324,13 +324,13 @@ export default function PresetEditor({
                               checked={preset.enabled}
                               onChange={() => togglePreset(preset.id)}
                               onClick={(e) => e.stopPropagation()}
-                              color="teal"
+                              color="brand"
                             />
                           </Table.Td>
 
                           <Table.Td>
                             <Badge
-                              color={preset.enabled ? "teal" : "gray"}
+                              color={preset.enabled ? "brand" : "gray"}
                               variant="light"
                             >
                               {preset.enabled ? '启用' : '禁用'}
@@ -369,7 +369,7 @@ export default function PresetEditor({
                                   handleEdit(preset)
                                 }}
                                 variant="subtle"
-                                color="teal"
+                                color="brand"
                                 title="编辑"
                               >
                                 <IconEdit size={16} />
@@ -437,7 +437,7 @@ export default function PresetEditor({
                   label="启用此预设"
                   checked={formData.enabled}
                   onChange={(e) => setFormData({ ...formData, enabled: e.currentTarget.checked })}
-                  color="teal"
+                  color="brand"
                 />
 
                 <Group gap="xs" mt="md">
@@ -445,7 +445,7 @@ export default function PresetEditor({
                     onClick={handleSave}
                     disabled={!formData.name || !formData.content}
                     style={{ flex: 1 }}
-                    gradient={{ from: 'teal', to: 'cyan' }}
+                    color="brand"
                     variant="gradient"
                   >
                     保存

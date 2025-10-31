@@ -5,7 +5,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Stack, Flex, Image, Text, Button } from '@mantine/core'
+import { Stack, Flex, Image, Text, Button, Tooltip } from '@mantine/core'
 import { IconPlus } from '@tabler/icons-react'
 import { AIProvider, PROVIDER_INFO } from '@sillytavern-clone/shared'
 import { useProviderConfigStore } from '@/stores/providerConfigStore'
@@ -18,10 +18,15 @@ interface ProviderListProps {
 }
 
 export function ProviderList({ selectedProvider, onSelectProvider, onProviderAdded }: ProviderListProps) {
-  const { getConfiguredProviders, setProviderConfig } = useProviderConfigStore()
+  // 响应式订阅 providerConfigs，当 store 更新时组件会自动重新渲染
+  const providerConfigs = useProviderConfigStore((state) => state.providerConfigs)
+  const { setProviderConfig } = useProviderConfigStore()
   const [isAddingProvider, setIsAddingProvider] = useState(false)
   
-  const configuredProviders = getConfiguredProviders()
+  // 在组件内计算 configuredProviders
+  const configuredProviders = Object.keys(providerConfigs).filter(
+    (provider) => providerConfigs[provider as AIProvider]?.apiKey
+  ) as AIProvider[]
 
   const handleAddProvider = (provider: AIProvider, config: { apiKey: string; baseUrl: string }) => {
     setProviderConfig(provider, config)
@@ -37,22 +42,26 @@ export function ProviderList({ selectedProvider, onSelectProvider, onProviderAdd
       gap="xs"
       style={{
         padding: 'var(--mantine-spacing-xs)',
-        minWidth: '200px',
+        minWidth: '140px',
+        maxWidth: '140px',
         borderRight: '1px solid rgb(55, 65, 81)', // gray-700
       }}
     >
       {/* 添加供应商按钮 */}
       <Button
         variant="light"
-        size="compact-sm"
-        leftSection={<IconPlus size={16} />}
+        size="compact-xs"
+        leftSection={<IconPlus size={14} />}
         onClick={() => setIsAddingProvider(true)}
         disabled={isAddingProvider}
-        style={{
-          fontSize: '0.875rem',
+        fullWidth
+        styles={{
+          label: {
+            fontSize: '0.75rem',
+          }
         }}
       >
-        添加供应商
+        添加
       </Button>
 
       {/* 内联添加供应商表单 */}
@@ -87,45 +96,46 @@ export function ProviderList({ selectedProvider, onSelectProvider, onProviderAdd
           const isActive = selectedProvider === provider
 
           return (
-            <Flex
-              key={provider}
-              gap="xs"
-              align="center"
-              onClick={() => onSelectProvider(provider)}
-              style={{
-                cursor: 'pointer',
-                padding: 'var(--mantine-spacing-xs) var(--mantine-spacing-md)',
-                borderRadius: 'var(--mantine-radius-md)',
-                background: isActive
-                  ? 'rgba(59, 130, 246, 0.15)' // blue-500/15
-                  : 'transparent',
-                color: isActive
-                  ? 'rgb(96, 165, 250)' // blue-400
-                  : 'rgb(156, 163, 175)', // gray-400
-                transition: 'all 0.2s ease',
-              }}
-              className={!isActive ? 'provider-list-item' : ''}
-            >
-              <Image
-                src={info.icon}
-                alt={info.displayName}
-                w={36}
-                h={36}
-                style={{ flexShrink: 0 }}
-              />
-              <Text
-                size="sm"
+            <Tooltip key={provider} label={info.displayName} position="right">
+              <Flex
+                gap="xs"
+                align="center"
+                onClick={() => onSelectProvider(provider)}
                 style={{
-                  fontWeight: 500,
-                  color: 'inherit',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
+                  cursor: 'pointer',
+                  padding: 'var(--mantine-spacing-xs)',
+                  borderRadius: 'var(--mantine-radius-md)',
+                  background: isActive
+                    ? 'rgba(59, 130, 246, 0.15)' // blue-500/15
+                    : 'transparent',
+                  color: isActive
+                    ? 'rgb(96, 165, 250)' // blue-400
+                    : 'rgb(156, 163, 175)', // gray-400
+                  transition: 'all 0.2s ease',
                 }}
+                className={!isActive ? 'provider-list-item' : ''}
               >
-                {info.displayName}
-              </Text>
-            </Flex>
+                <Image
+                  src={info.icon}
+                  alt={info.displayName}
+                  w={32}
+                  h={32}
+                  style={{ flexShrink: 0 }}
+                />
+                <Text
+                  size="xs"
+                  style={{
+                    fontWeight: 500,
+                    color: 'inherit',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {info.displayName}
+                </Text>
+              </Flex>
+            </Tooltip>
           )
         })
       )}

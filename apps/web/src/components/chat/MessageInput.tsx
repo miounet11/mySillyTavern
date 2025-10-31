@@ -31,6 +31,8 @@ import {
   IconBolt,
   IconBroadcast,
   IconX,
+  IconChevronDown,
+  IconCheck,
 } from '@tabler/icons-react'
 
 interface MessageInputProps {
@@ -71,12 +73,13 @@ export default function MessageInput({
     hydrateFromLocalStorage,
   } = useCreativeStore()
   const { isModelReady, assertModelReady } = useModelGuard()
-  const { activeModel } = useAIModelStore()
+  const { activeModel, models, fetchModels } = useAIModelStore()
   const { t } = useTranslation()
 
   const [internalMessage, setInternalMessage] = useState('')
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const recordingIntervalRef = useRef<NodeJS.Timeout>()
   const composingRef = useRef(false)
@@ -84,6 +87,16 @@ export default function MessageInput({
 
   const currentCharacter = character || activeCharacter
   const message = value !== undefined ? value : internalMessage
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 640)
+    }
+    checkScreenSize()
+    window.addEventListener('resize', checkScreenSize)
+    return () => window.removeEventListener('resize', checkScreenSize)
+  }, [])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -114,6 +127,26 @@ export default function MessageInput({
       }
     }
   }, [isRecording])
+
+  const handleSwitchModel = async (modelId: string) => {
+    try {
+      const response = await fetch(`/api/ai-models/${modelId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: true })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to set active model')
+      }
+      
+      await fetchModels()
+      toast.success('模型已切换')
+    } catch (error) {
+      console.error('Error switching model:', error)
+      toast.error('切换模型失败')
+    }
+  }
 
   const handleSend = async () => {
     const trimmedMessage = message.trim()
@@ -302,23 +335,23 @@ export default function MessageInput({
         backdropFilter: 'blur(16px)',
       }}
     >
-      <Stack gap="md" p="md">
+      <Stack gap={isMobile ? 'sm' : 'md'} p={isMobile ? 'sm' : 'md'}>
         {/* Compact Header: Character + Model + Mode Toggles */}
         {currentCharacter && (
           <Group
             justify="space-between"
-            px="xs"
-            py={6}
+            px={isMobile ? '4px' : 'xs'}
+            py={isMobile ? 4 : 6}
             style={{
               borderBottom: '1px solid rgba(55, 65, 81, 0.3)',
             }}
           >
             {/* Left: Character info */}
-            <Group gap="xs" style={{ minWidth: 0 }}>
+            <Group gap={isMobile ? 4 : 'xs'} style={{ minWidth: 0 }}>
               <Box
                 style={{
-                  width: '24px',
-                  height: '24px',
+                  width: isMobile ? '20px' : '24px',
+                  height: isMobile ? '20px' : '24px',
                   borderRadius: '50%',
                   background: 'linear-gradient(to bottom right, rgb(59, 130, 246), rgb(168, 85, 247))',
                   display: 'flex',
@@ -331,24 +364,71 @@ export default function MessageInput({
                   {currentCharacter.name.charAt(0)}
                 </Text>
               </Box>
-              <Text size="sm" fw={500} truncate>
+              <Text size={isMobile ? 'xs' : 'sm'} fw={500} truncate>
                 {currentCharacter.name}
               </Text>
             </Group>
             
             {/* Right: Model + Mode toggles */}
-            <Group gap={6}>
-              {activeModel && (
-                <Text
-                  size="xs"
-                  c="dimmed"
-                  truncate
-                  visibleFrom="sm"
-                  maw={200}
-                  title={`${activeModel.provider} - ${activeModel.model}`}
-                >
-                  {activeModel.provider}/{activeModel.model}
-                </Text>
+            <Group gap={isMobile ? 3 : 6}>
+              {activeModel && models.length > 0 && (
+                <Menu position="bottom-end" shadow="md" width={280}>
+                  <Menu.Target>
+                    <Button
+                      variant="subtle"
+                      size="xs"
+                      c="dimmed"
+                      px={8}
+                      visibleFrom="sm"
+                      styles={{
+                        root: {
+                          height: 'auto',
+                          padding: '4px 8px',
+                          maxWidth: '200px',
+                        },
+                        label: {
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        },
+                      }}
+                      rightSection={<IconChevronDown size={14} />}
+                    >
+                      {activeModel.provider}/{activeModel.model}
+                    </Button>
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    <Menu.Label>选择模型</Menu.Label>
+                    {models.map((model) => (
+                      <Menu.Item
+                        key={model.id}
+                        onClick={() => handleSwitchModel(model.id)}
+                        leftSection={
+                          model.id === activeModel.id ? (
+                            <IconCheck size={16} />
+                          ) : (
+                            <Box style={{ width: 16, height: 16 }} />
+                          )
+                        }
+                        style={{
+                          backgroundColor:
+                            model.id === activeModel.id
+                              ? 'var(--mantine-color-dark-5)'
+                              : undefined,
+                        }}
+                      >
+                        <Stack gap={2}>
+                          <Text size="sm" fw={model.id === activeModel.id ? 600 : 400}>
+                            {model.name || `${model.provider}/${model.model}`}
+                          </Text>
+                          <Text size="xs" c="dimmed">
+                            {model.provider}/{model.model}
+                          </Text>
+                        </Stack>
+                      </Menu.Item>
+                    ))}
+                  </Menu.Dropdown>
+                </Menu>
               )}
               
               {/* Compact Mode Toggles */}
@@ -475,8 +555,9 @@ export default function MessageInput({
                   backgroundColor: 'rgba(31, 41, 55, 0.5)',
                   borderColor: 'rgba(255, 255, 255, 0.1)',
                   color: 'rgb(243, 244, 246)',
-                  minHeight: '44px',
-                  fontSize: '0.875rem',
+                  minHeight: isMobile ? '40px' : '44px',
+                  fontSize: isMobile ? '0.875rem' : '0.9375rem',
+                  padding: isMobile ? '0.5rem' : '0.625rem',
                   transition: 'all 0.2s',
                   '&:focus': {
                     borderColor: 'rgba(59, 130, 246, 0.3)',
@@ -490,16 +571,16 @@ export default function MessageInput({
           </Box>
 
           {/* Compact Action Buttons - Right Side */}
-          <Group gap={4}>
+          <Group gap={isMobile ? 2 : 4}>
             {/* File Upload */}
             <Tooltip label={t('chat.file.upload')}>
               <ActionIcon
                 variant="light"
                 onClick={handleFileUpload}
                 disabled={disabled || isLoading || isRecording}
-                size="lg"
+                size={isMobile ? 'md' : 'lg'}
               >
-                <IconPaperclip size={16} />
+                <IconPaperclip size={isMobile ? 14 : 16} />
               </ActionIcon>
             </Tooltip>
 
@@ -510,9 +591,9 @@ export default function MessageInput({
                 color={isRecording ? 'red' : 'gray'}
                 onClick={isRecording ? stopRecording : startRecording}
                 disabled={disabled || isLoading}
-                size="lg"
+                size={isMobile ? 'md' : 'lg'}
               >
-                {isRecording ? <IconMicrophoneOff size={16} /> : <IconMicrophone size={16} />}
+                {isRecording ? <IconMicrophoneOff size={isMobile ? 14 : 16} /> : <IconMicrophone size={isMobile ? 14 : 16} />}
               </ActionIcon>
             </Tooltip>
 
@@ -523,9 +604,9 @@ export default function MessageInput({
                   <ActionIcon
                     variant="light"
                     disabled={disabled || isLoading || isRecording || !currentCharacter}
-                    size="lg"
+                    size={isMobile ? 'md' : 'lg'}
                   >
-                    <IconSparkles size={16} />
+                    <IconSparkles size={isMobile ? 14 : 16} />
                   </ActionIcon>
                 </Tooltip>
               </Menu.Target>
@@ -555,12 +636,12 @@ export default function MessageInput({
                   !currentCharacter ||
                   !isModelReady
                 }
-                size={40}
+                size={isMobile ? 36 : 40}
                 style={{
                   opacity: (disabled || isLoading || isRecording || !message.trim() || !currentCharacter || !isModelReady) ? 0.5 : 1,
                 }}
               >
-                <IconSend size={16} />
+                <IconSend size={isMobile ? 14 : 16} />
               </ActionIcon>
             </Tooltip>
           </Group>

@@ -764,73 +764,75 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     }
     if (!currentChat || !character || isGenerating) return
 
-    try {
-      clearError()
-      setGenerating(true)
+    // 判断最后一条消息类型，智能处理不同场景
+    const lastMessage = messages[messages.length - 1]
+    
+    // 场景1：最后一条是用户消息 → 直接生成AI回复（用户发送消息但AI未回复）
+    if (lastMessage?.role === 'user') {
+      await generateAIResponse()
+      return
+    }
+    
+    // 场景2：最后一条是assistant消息 → 重新生成（AI已回复，用户不满意）
+    if (lastMessage?.role === 'assistant') {
+      try {
+        clearError()
+        setGenerating(true)
 
-      // 前置校验：必须存在可响应的用户消息
-      const lastAssistantIndex = messages.map((m) => m.role).lastIndexOf('assistant')
-      const candidateSlice = lastAssistantIndex >= 0 ? messages.slice(0, lastAssistantIndex) : messages
-      const hasPrevUser = [...candidateSlice].reverse().some((m) => m.role === 'user')
-      if (!hasPrevUser) {
-        toast.error('缺少用户消息，无法重生成')
-        setGenerating(false)
-        return
-      }
+        // Prepare model options (keep parity with generate flow)
+        const clientModel = activeModel
+          ? {
+              provider: activeModel.provider,
+              model: activeModel.model,
+              apiKey: activeModel.apiKey,
+              baseUrl: activeModel.baseUrl,
+              settings: activeModel.settings || {},
+            }
+          : undefined
 
-      // Prepare model options (keep parity with generate flow)
-      const clientModel = activeModel
-        ? {
-            provider: activeModel.provider,
-            model: activeModel.model,
-            apiKey: activeModel.apiKey,
-            baseUrl: activeModel.baseUrl,
-            settings: activeModel.settings || {},
-          }
-        : undefined
+        // Optimistically clear last assistant content while waiting
+        const assistantMessages = messages.filter((msg) => msg.role === 'assistant')
+        const lastAssistantMessage = assistantMessages[assistantMessages.length - 1]
+        if (lastAssistantMessage) {
+          updateMessage(lastAssistantMessage.id, {
+            content: '',
+            metadata: { ...lastAssistantMessage.metadata, isRegenerated: true }
+          })
+        }
 
-      // Optimistically clear last assistant content while waiting
-      const assistantMessages = messages.filter((msg) => msg.role === 'assistant')
-      const lastMessage = assistantMessages[assistantMessages.length - 1]
-      if (lastMessage) {
-        updateMessage(lastMessage.id, {
-          content: '',
-          metadata: { ...lastMessage.metadata, isRegenerated: true }
-        })
-      }
-
-      // Non-streaming regenerate with extended timeout (server also supports streaming if later needed)
-      const response = await chatService.regenerateResponse(
-        currentChat.id,
-        {
-          modelId: activeModel?.id,
-          clientModel,
-          fastMode: isFastModeEnabled,
-          creativeDirectives: {
-            storyAdvance: Boolean(storyAdvance),
-            povMode: povMode || null,
-            sceneTransitionOnce: Boolean(sceneTransitionOnce),
+        // Non-streaming regenerate with extended timeout (server also supports streaming if later needed)
+        const response = await chatService.regenerateResponse(
+          currentChat.id,
+          {
+            modelId: activeModel?.id,
+            clientModel,
+            fastMode: isFastModeEnabled,
+            creativeDirectives: {
+              storyAdvance: Boolean(storyAdvance),
+              povMode: povMode || null,
+              sceneTransitionOnce: Boolean(sceneTransitionOnce),
+            },
           },
-        },
-        300000 // 5min timeout for long generations
-      )
+          300000 // 5min timeout for long generations
+        )
 
-      // Update or add the regenerated message
-      if (lastMessage) {
-        updateMessage(lastMessage.id, response.message)
-      } else {
-        addMessage(response.message)
+        // Update or add the regenerated message
+        if (lastAssistantMessage) {
+          updateMessage(lastAssistantMessage.id, response.message)
+        } else {
+          addMessage(response.message)
+        }
+
+        // 消费一次性指令
+        try { consumeOneShots() } catch {}
+
+      } catch (error) {
+        console.error('Error regenerating response:', error)
+        setError('Failed to regenerate response')
+        toast.error('Failed to regenerate response')
+      } finally {
+        setGenerating(false)
       }
-
-      // 消费一次性指令
-      try { consumeOneShots() } catch {}
-
-    } catch (error) {
-      console.error('Error regenerating response:', error)
-      setError('Failed to regenerate response')
-      toast.error('Failed to regenerate response')
-    } finally {
-      setGenerating(false)
     }
   }
 
@@ -1112,7 +1114,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
             <ChatControlBar
               onScrollToBottom={handleScrollToBottom}
               onRegenerate={handleRegenerate}
-              showRegenerate={messages.length > 0 && messages.some(m => m.role === 'assistant')}
+              showRegenerate={messages.length > 0 && messages.some(m => m.role === 'user')}
               disabled={!canGenerate || isLoading || !isModelConfigured}
               onCheckIncomplete={() => {
                 // 检测后自动滚动到底部，以便看到提示

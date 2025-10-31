@@ -133,13 +133,13 @@ export default function ExternalPromptsDialog({
       size="xl"
       title={
         <Group gap="xs">
-          <IconFileText size={24} color="var(--mantine-color-blue-4)" />
+          <IconFileText size={24} color="hsl(var(--primary-rose))" />
           <Text size="xl" fw={700}>外部提示词库</Text>
         </Group>
       }
       styles={{
-        content: { maxHeight: '90vh' },
-        body: { height: 'calc(90vh - 60px)', display: 'flex', flexDirection: 'column' }
+        content: { height: '85vh' },
+        body: { height: 'calc(100% - 60px)', display: 'flex', flexDirection: 'column' }
       }}
     >
       <Stack style={{ flex: 1, overflow: 'hidden' }} gap="md">
@@ -159,7 +159,7 @@ export default function ExternalPromptsDialog({
         <ScrollArea style={{ flex: 1 }}>
           {isLoading ? (
             <Stack align="center" gap="md" py={60}>
-              <Loader color="blue" />
+              <Loader color="brand" />
               <Text c="dimmed">加载中...</Text>
             </Stack>
           ) : templates.length === 0 ? (
@@ -176,11 +176,11 @@ export default function ExternalPromptsDialog({
                   style={{
                     borderRadius: 'var(--mantine-radius-md)',
                     border: selectedTemplate?.id === template.id 
-                      ? '1px solid var(--mantine-color-blue-5)' 
-                      : '1px solid var(--mantine-color-dark-5)',
+                      ? '1px solid hsl(var(--primary-rose))' 
+                      : '1px solid hsl(var(--primary-rose) / 0.3)',
                     backgroundColor: selectedTemplate?.id === template.id
-                      ? 'var(--mantine-color-blue-9)'
-                      : 'var(--mantine-color-dark-7)',
+                      ? 'hsl(var(--primary-rose) / 0.1)'
+                      : 'hsl(var(--bg-card))',
                     cursor: 'pointer',
                     transition: 'all 0.2s'
                   }}
@@ -191,7 +191,7 @@ export default function ExternalPromptsDialog({
                       <Group gap="xs">
                         <Text fw={600}>{template.name}</Text>
                         {template.isBuiltin && (
-                          <Badge size="sm" variant="light" color="violet">官方</Badge>
+                          <Badge size="sm" variant="light" color="brand">官方</Badge>
                         )}
                       </Group>
                       {template.description && (
@@ -216,7 +216,7 @@ export default function ExternalPromptsDialog({
                   </Group>
 
                   {selectedTemplate?.id === template.id && (
-                    <Stack gap="sm" mt="md" pt="md" style={{ borderTop: '1px solid var(--mantine-color-dark-5)' }}>
+                    <Stack gap="sm" mt="md" pt="md" style={{ borderTop: '1px solid hsl(var(--primary-rose) / 0.3)' }}>
                       <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
                         {template.content}
                       </Text>
@@ -228,6 +228,8 @@ export default function ExternalPromptsDialog({
                           }}
                           style={{ flex: 1 }}
                           size="sm"
+                          color="brand"
+                          variant="gradient"
                         >
                           应用提示词
                         </Button>
@@ -255,7 +257,7 @@ export default function ExternalPromptsDialog({
         </ScrollArea>
 
         {/* Footer */}
-        <Group justify="space-between" pt="md" style={{ borderTop: '1px solid var(--mantine-color-dark-5)' }}>
+        <Group justify="space-between" pt="md" style={{ borderTop: '1px solid hsl(var(--primary-rose) / 0.3)' }}>
           <Text size="sm" c="dimmed">
             共 {templates.length} 个提示词模板
           </Text>

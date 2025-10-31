@@ -34,15 +34,16 @@ export default function CommunityCard({
   }
 
   return (
-    <div className="character-card group stagger-item animate-fade-in">
+    <div className="character-card group stagger-item animate-fade-in" style={{ contain: 'layout style paint' }}>
       {/* Character Image */}
       <div className="relative w-full aspect-[2/3] bg-gradient-to-br from-gray-900 to-gray-950 overflow-hidden">
         {character.avatar ? (
           <img
             src={character.avatar}
             alt={character.name}
-            className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
+            decoding="async"
             onError={(e) => {
               e.currentTarget.style.display = 'none'
               const fallback = e.currentTarget.nextElementSibling as HTMLElement
@@ -81,13 +82,13 @@ export default function CommunityCard({
         </div>
         
         {/* Hover overlay with download button */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end justify-center p-4 backdrop-blur-sm">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end justify-center p-4 backdrop-blur-[2px]">
           <Button
             onClick={(e) => {
               e.stopPropagation()
               onDownload(character)
             }}
-            className="w-full gradient-btn-teal text-sm py-2.5 shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300"
+            className="w-full gradient-btn-teal text-sm py-2.5 shadow-lg transform translate-y-3 group-hover:translate-y-0 transition-transform duration-200"
             size="sm"
           >
             <Download className="w-4 h-4 mr-2" />

@@ -18,12 +18,13 @@ import ChatNodeEditor from '@/components/chat/ChatNodeEditor'
 import { Loader2 } from 'lucide-react'
 import { useChatStore } from '@/stores/chatStore'
 import { useSettingsUIStore } from '@/stores/settingsUIStore'
+import SettingsDrawer from '@/components/settings/SettingsDrawer'
 import toast from 'react-hot-toast'
 
 function ChatPageContent() {
   const searchParams = useSearchParams()
   const characterId = searchParams.get('characterId')
-  const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(true)
+  const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false)  // 初始为false，根据屏幕尺寸动态设置
   const [isWorldInfoOpen, setIsWorldInfoOpen] = useState(false)
   const [isExternalPromptsOpen, setIsExternalPromptsOpen] = useState(false)
   const [isTemplateVarsOpen, setIsTemplateVarsOpen] = useState(false)
@@ -42,8 +43,12 @@ function ChatPageContent() {
   useEffect(() => {
     const checkScreenSize = () => {
       const width = window.innerWidth
-      setIsDesktop(width >= 640) // sm breakpoint
+      const desktop = width >= 640 // sm breakpoint
+      setIsDesktop(desktop)
       setIsMobile(width < 640)
+      
+      // 桌面端默认展开，移动端默认收起
+      setIsSettingsPanelOpen(desktop)
     }
     
     checkScreenSize()
@@ -74,69 +79,60 @@ function ChatPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950">
-      {/* Chat Settings Panel - Now a drawer */}
-      <ChatSettingsPanel
-        isOpen={isSettingsPanelOpen}
-        onToggle={() => setIsSettingsPanelOpen(!isSettingsPanelOpen)}
-        onOpenWorldInfo={() => setIsWorldInfoOpen(true)}
-        onOpenExternalPrompts={() => setIsExternalPromptsOpen(true)}
-        onOpenTemplateVariables={() => setIsTemplateVarsOpen(true)}
-        onOpenRegexEditor={() => setIsRegexEditorOpen(true)}
-        onOpenPresetEditor={() => setIsPresetEditorOpen(true)}
-        onOpenBranchView={() => setIsBranchViewOpen(true)}
-        characterName={character?.name}
-        hideOverlay={isDesktop}
-        isMobile={isMobile}
-      />
+    <div className="h-[calc(100vh-60px)] bg-gray-950 flex overflow-hidden">
+      {/* Left Column - Chat Settings Panel (Fixed Sidebar) */}
+      {isDesktop && (
+        <div className={`transition-all duration-300 ease-in-out flex-shrink-0 ${
+          isSettingsPanelOpen ? 'w-[260px]' : 'w-0'
+        } overflow-hidden`}>
+          <ChatSettingsPanel
+            isOpen={isSettingsPanelOpen}
+            onToggle={() => setIsSettingsPanelOpen(!isSettingsPanelOpen)}
+            onOpenWorldInfo={() => setIsWorldInfoOpen(true)}
+            onOpenExternalPrompts={() => setIsExternalPromptsOpen(true)}
+            onOpenTemplateVariables={() => setIsTemplateVarsOpen(true)}
+            onOpenRegexEditor={() => setIsRegexEditorOpen(true)}
+            onOpenPresetEditor={() => setIsPresetEditorOpen(true)}
+            onOpenBranchView={() => setIsBranchViewOpen(true)}
+            characterName={character?.name}
+            isMobile={isMobile}
+            isDesktop={isDesktop}
+          />
+        </div>
+      )}
 
-      {/* Main chat area - Dynamic width based on drawer states */}
-      <div 
-        className={`px-4 py-6 transition-all duration-500 ease-in-out ${
-          !isSettingsPanelOpen && !isSettingsDrawerOpen 
-            ? 'max-w-md sm:max-w-2xl lg:max-w-4xl mx-auto' 
-            : 'max-w-6xl'
-        }`}
-        style={{
-          marginLeft: isSettingsPanelOpen ? 'var(--left-drawer-width, 0px)' : '0',
-          marginRight: isSettingsDrawerOpen ? 'var(--right-drawer-width, 0px)' : '0',
-        }}
-      >
-        {/* Main chat interface */}
+      {/* Mobile: Chat Settings Panel as Drawer */}
+      {!isDesktop && (
+        <ChatSettingsPanel
+          isOpen={isSettingsPanelOpen}
+          onToggle={() => setIsSettingsPanelOpen(!isSettingsPanelOpen)}
+          onOpenWorldInfo={() => setIsWorldInfoOpen(true)}
+          onOpenExternalPrompts={() => setIsExternalPromptsOpen(true)}
+          onOpenTemplateVariables={() => setIsTemplateVarsOpen(true)}
+          onOpenRegexEditor={() => setIsRegexEditorOpen(true)}
+          onOpenPresetEditor={() => setIsPresetEditorOpen(true)}
+          onOpenBranchView={() => setIsBranchViewOpen(true)}
+          characterName={character?.name}
+          isMobile={isMobile}
+          isDesktop={isDesktop}
+        />
+      )}
+
+      {/* Middle Column - Chat Interface (Flexible) */}
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <Suspense fallback={<div className="flex-1 flex items-center justify-center min-h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-teal-400" /></div>}>
           <ChatInterface characterId={characterId} />
         </Suspense>
       </div>
 
-      {/* CSS Variables for responsive drawer widths */}
-      <style jsx>{`
-        :global(:root) {
-          /* Mobile: drawers overlay, no margin */
-          --left-drawer-width: 0px;
-          --right-drawer-width: 0px;
-        }
-        
-        /* Tablet and up: drawers push content */
-        @media (min-width: 640px) {
-          :global(:root) {
-            --left-drawer-width: 320px;
-            --right-drawer-width: 500px;
-          }
-        }
-        
-        /* Desktop: larger drawers */
-        @media (min-width: 768px) {
-          :global(:root) {
-            --left-drawer-width: 340px;
-          }
-        }
-        
-        @media (min-width: 1024px) {
-          :global(:root) {
-            --right-drawer-width: 600px;
-          }
-        }
-      `}</style>
+      {/* Right Column - Settings Drawer (Fixed Sidebar) */}
+      {isDesktop && (
+        <div className={`transition-all duration-300 ease-in-out flex-shrink-0 ${
+          isSettingsDrawerOpen ? 'w-[380px]' : 'w-0'
+        } overflow-hidden`}>
+          {isSettingsDrawerOpen && <SettingsDrawer />}
+        </div>
+      )}
 
       {/* Modals */}
       <WorldInfoPanel

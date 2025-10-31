@@ -5,6 +5,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import {
   IconSettings,
   IconUser,
@@ -20,7 +21,8 @@ import {
   IconPower,
   IconX,
 } from '@tabler/icons-react'
-import { Button as MantineButton, TextInput, Badge, Stack, Box, Text } from '@mantine/core'
+import { Button as MantineButton, TextInput, Badge, Stack, Box, Text, ActionIcon } from '@mantine/core'
+import { IconX as IconXTabler } from '@tabler/icons-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,9 +31,11 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import AIModelDrawer from '@/components/ai/AIModelDrawer'
 import { useAIModelStore } from '@/stores/aiModelStore'
 import { useSettingsUIStore } from '@/stores/settingsUIStore'
+import { useProviderConfigStore } from '@/stores/providerConfigStore'
 import { ProviderList } from './ProviderList'
 import { ProviderConfigPanel } from './ProviderConfigPanel'
 import toast from 'react-hot-toast'
+import type { AIProvider } from '@sillytavern-clone/shared'
 
 interface SettingsDrawerProps {
   isOpen?: boolean
@@ -42,6 +46,8 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
   const { isOpen: isOpenGlobal, defaultTab: globalDefaultTab, closeSettings } = useSettingsUIStore()
   const isOpen = isOpenProp !== undefined ? isOpenProp : isOpenGlobal
   const onClose = onCloseProp || closeSettings
+  const pathname = usePathname()
+  const isChatPage = pathname === '/chat'
   
   const [activeTab, setActiveTab] = useState('models')
   const [isModelDrawerOpen, setIsModelDrawerOpen] = useState(false)
@@ -61,10 +67,15 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
     return () => window.removeEventListener('resize', checkScreenSize)
   }, [])
   
+  // Use fixed sidebar mode on chat page for desktop
+  // When rendered in chat page, it's part of flex layout, so always use sidebar mode
+  const useFixedSidebar = isChatPage && isDesktop && isOpen
+  
   // AI Models
   const [aiModels, setAiModels] = useState<any[]>([])
   const [isLoadingModels, setIsLoadingModels] = useState(false)
   const { fetchModels, getModelsByProvider, selectedProvider, setSelectedProvider } = useAIModelStore()
+  const { setProviderConfig } = useProviderConfigStore()
   
   // Plugins
   const [plugins, setPlugins] = useState<any[]>([])
@@ -166,13 +177,60 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
     }
   }
 
+  // Sync provider configurations from loaded models to providerConfigStore
+  const syncProvidersFromModels = (models: any[]) => {
+    if (!models || models.length === 0) {
+      console.log('[syncProvidersFromModels] No models to sync')
+      return
+    }
+
+    console.log(`[syncProvidersFromModels] Starting sync with ${models.length} model(s)`, models)
+
+    // Use Map to store the best config for each provider
+    const providerMap = new Map<AIProvider, { apiKey: string; baseUrl: string }>()
+
+    // First pass: prioritize isActive models
+    models.forEach((model) => {
+      if (model.isActive && model.provider && model.apiKey && !providerMap.has(model.provider)) {
+        console.log(`[syncProvidersFromModels] Adding active model: ${model.provider}/${model.model}`)
+        providerMap.set(model.provider, {
+          apiKey: model.apiKey,
+          baseUrl: model.baseUrl || '',
+        })
+      }
+    })
+
+    // Second pass: fill in providers without active models (use first available)
+    models.forEach((model) => {
+      if (model.provider && model.apiKey && !providerMap.has(model.provider)) {
+        console.log(`[syncProvidersFromModels] Adding model: ${model.provider}/${model.model}`)
+        providerMap.set(model.provider, {
+          apiKey: model.apiKey,
+          baseUrl: model.baseUrl || '',
+        })
+      }
+    })
+
+    // Sync to providerConfigStore
+    console.log(`[syncProvidersFromModels] Syncing ${providerMap.size} provider(s) to store`)
+    providerMap.forEach((config, provider) => {
+      console.log(`[syncProvidersFromModels] Setting config for provider: ${provider}`)
+      setProviderConfig(provider, config)
+    })
+
+    console.log(`[syncProvidersFromModels] Sync completed: ${providerMap.size} provider(s) from ${models.length} model(s)`)
+  }
+
   const fetchAIModels = async () => {
     try {
       setIsLoadingModels(true)
       const response = await fetch('/api/ai-models')
       const data = await response.json()
       if (response.ok) {
-        setAiModels(data.models || [])
+        const models = data.models || []
+        setAiModels(models)
+        // Sync providers to localStorage after fetching models
+        syncProvidersFromModels(models)
       }
     } catch (error) {
       console.error('Error fetching AI models:', error)
@@ -410,49 +468,56 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
     input.click()
   }
 
-  return (
-    <>
-      <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
-        <SheetContent side="right" className="w-[90%] sm:w-[500px] lg:w-[600px] p-0 flex flex-col overflow-hidden" hideOverlay={isDesktop}>
-          {/* Header with proper accessibility components */}
-          <SheetHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
-                <IconSettings className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1">
-                <SheetTitle className="text-xl font-semibold text-gray-100">
-                  设置中心
-                </SheetTitle>
-                <SheetDescription className="text-xs text-gray-400 mt-0.5">
-                  配置应用程序和个人偏好
-                </SheetDescription>
-              </div>
+  // Settings content (shared between drawer and sidebar)
+  const settingsContent = (
+    <div className={`h-full bg-gray-900 border-l border-gray-800 flex flex-col ${useFixedSidebar ? 'relative' : ''}`}>
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-gray-800 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
+              <IconSettings className="w-5 h-5 text-white" />
             </div>
-          </SheetHeader>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-gray-100">设置中心</h2>
+              <p className="text-xs text-gray-400 mt-0.5">配置应用程序和个人偏好</p>
+            </div>
+          </div>
+          {useFixedSidebar && (
+            <ActionIcon
+              onClick={onClose}
+              variant="subtle"
+              size="sm"
+              title="关闭设置"
+            >
+              <IconXTabler size={18} />
+            </ActionIcon>
+          )}
+        </div>
+      </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-            <TabsList className="mx-6 mt-3 grid w-[calc(100%-3rem)] grid-cols-4 flex-shrink-0">
-              <TabsTrigger value="general" className="text-xs min-h-[44px] md:min-h-[auto]">
-                <IconUser className="w-3.5 h-3.5 mr-1.5" />
-                常规
-              </TabsTrigger>
-              <TabsTrigger value="models" className="text-xs min-h-[44px] md:min-h-[auto]">
-                <IconDatabase className="w-3.5 h-3.5 mr-1.5" />
-                模型
-              </TabsTrigger>
-              <TabsTrigger value="interface" className="text-xs min-h-[44px] md:min-h-[auto]">
-                <IconPalette className="w-3.5 h-3.5 mr-1.5" />
-                界面
-              </TabsTrigger>
-              <TabsTrigger value="plugins" className="text-xs min-h-[44px] md:min-h-[auto]">
-                <IconPuzzle className="w-3.5 h-3.5 mr-1.5" />
-                插件
-              </TabsTrigger>
-            </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+        <TabsList className="mx-6 mt-3 grid w-[calc(100%-3rem)] grid-cols-4 flex-shrink-0">
+          <TabsTrigger value="general" className="text-xs min-h-[44px] md:min-h-[auto]">
+            <IconUser className="w-3.5 h-3.5 mr-1.5" />
+            常规
+          </TabsTrigger>
+          <TabsTrigger value="models" className="text-xs min-h-[44px] md:min-h-[auto]">
+            <IconDatabase className="w-3.5 h-3.5 mr-1.5" />
+            模型
+          </TabsTrigger>
+          <TabsTrigger value="interface" className="text-xs min-h-[44px] md:min-h-[auto]">
+            <IconPalette className="w-3.5 h-3.5 mr-1.5" />
+            界面
+          </TabsTrigger>
+          <TabsTrigger value="plugins" className="text-xs min-h-[44px] md:min-h-[auto]">
+            <IconPuzzle className="w-3.5 h-3.5 mr-1.5" />
+            插件
+          </TabsTrigger>
+        </TabsList>
 
-            {/* General Settings Tab */}
-            <TabsContent value="general" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0 pb-20 md:pb-4">
+        {/* General Settings Tab */}
+        <TabsContent value="general" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0 pb-20 md:pb-4">
               <div className="space-y-6">
                 {/* 用户ID - 只读显示 */}
                 <div>
@@ -739,9 +804,45 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
               </div>
             </TabsContent>
           </Tabs>
+    </div>
+  )
+
+  // Fixed sidebar mode (for chat page desktop)
+  if (useFixedSidebar) {
+    return (
+      <>
+        {settingsContent}
+        {/* AI Model Configuration Drawer - Higher z-index to appear above settings */}
+        <div className={isModelDrawerOpen ? "model-drawer-wrapper" : ""}>
+          <AIModelDrawer
+            isOpen={isModelDrawerOpen}
+            onClose={() => setIsModelDrawerOpen(false)}
+            editingModel={editingModel}
+            onModelCreated={handleModelSaved}
+            onModelUpdated={handleModelSaved}
+          />
+        </div>
+        
+        <style jsx global>{`
+          .model-drawer-wrapper [data-radix-dialog-overlay] {
+            z-index: 110 !important;
+          }
+          .model-drawer-wrapper [data-radix-dialog-content] {
+            z-index: 110 !important;
+          }
+        `}</style>
+      </>
+    )
+  }
+
+  // Drawer mode (default, for mobile and non-chat pages)
+  return (
+    <>
+      <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
+        <SheetContent side="right" className="w-[90%] sm:w-[500px] lg:w-[600px] p-0 flex flex-col overflow-hidden" hideOverlay={isDesktop}>
+          {settingsContent}
         </SheetContent>
       </Sheet>
-
       {/* AI Model Configuration Drawer - Higher z-index to appear above settings */}
       <div className={isModelDrawerOpen ? "model-drawer-wrapper" : ""}>
         <AIModelDrawer

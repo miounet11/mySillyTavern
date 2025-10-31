@@ -78,10 +78,47 @@ module.exports = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        'xs': 'var(--radius-sm)',
+        'xl': 'var(--radius-xl)',
+        '2xl': 'var(--radius-2xl)',
+        'full': 'var(--radius-full)',
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
+      },
+      fontSize: {
+        'xs': 'var(--font-xs)',      // 12px
+        'sm': 'var(--font-sm)',      // 14px
+        'base': 'var(--font-base)',  // 16px
+        'lg': 'var(--font-lg)',      // 18px
+        'xl': 'var(--font-xl)',      // 20px
+        '2xl': 'var(--font-2xl)',    // 24px
+        '3xl': 'var(--font-3xl)',    // 30px
+        '4xl': 'var(--font-4xl)',    // 36px
+        '5xl': 'var(--font-5xl)',    // 48px
+      },
+      lineHeight: {
+        'tight': 'var(--leading-tight)',
+        'normal': 'var(--leading-normal)',
+        'relaxed': 'var(--leading-relaxed)',
+        'loose': 'var(--leading-loose)',
+      },
+      fontWeight: {
+        'light': 'var(--font-light)',
+        'normal': 'var(--font-normal)',
+        'medium': 'var(--font-medium)',
+        'semibold': 'var(--font-semibold)',
+        'bold': 'var(--font-bold)',
+      },
+      boxShadow: {
+        'sm': 'var(--shadow-sm)',
+        'md': 'var(--shadow-md)',
+        'lg': 'var(--shadow-lg)',
+        'xl': 'var(--shadow-xl)',
+        'rose': 'var(--shadow-rose)',
+        'gold': 'var(--shadow-gold)',
+        'rose-gold': 'var(--shadow-rose-gold)',
       },
       keyframes: {
         "accordion-down": {
@@ -112,8 +149,16 @@ module.exports = {
         "slide-up": "slide-up 0.3s ease-out",
         "typing": "typing-indicator 1.4s infinite ease-in-out",
       },
-      // Custom spacing and sizes for SillyTavern UI
+      // Custom spacing and sizes for SillyTavern UI (8px base grid)
       spacing: {
+        'xs': 'var(--spacing-xs)',   // 4px
+        'sm': 'var(--spacing-sm)',   // 8px
+        'md': 'var(--spacing-md)',   // 16px
+        'lg': 'var(--spacing-lg)',   // 24px
+        'xl': 'var(--spacing-xl)',   // 32px
+        '2xl': 'var(--spacing-2xl)', // 48px
+        '3xl': 'var(--spacing-3xl)', // 64px
+        '4xl': 'var(--spacing-4xl)', // 96px
         '18': '4.5rem',
         '88': '22rem',
         '128': '32rem',

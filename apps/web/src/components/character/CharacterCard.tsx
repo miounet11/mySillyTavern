@@ -53,19 +53,16 @@ export default function CharacterCard({
         radius="md"
         withBorder
         style={{
-          backgroundColor: 'rgba(31, 41, 55, 0.5)',
-          borderColor: 'rgb(55, 65, 81)',
           cursor: 'pointer',
           overflow: 'hidden',
-          transition: 'all 0.3s ease',
+          contain: 'layout style paint',
+          willChange: 'transform',
         }}
         styles={{
           root: {
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
             '&:hover': {
-              backgroundColor: 'rgb(31, 41, 55)',
-              borderColor: 'rgb(59, 130, 246)',
               transform: 'translateY(-4px)',
-              boxShadow: '0 10px 30px rgba(59, 130, 246, 0.2)',
             },
           },
         }}
@@ -76,7 +73,7 @@ export default function CharacterCard({
             position: 'relative',
             width: '100%',
             aspectRatio: '2/3',
-            background: 'linear-gradient(to bottom right, rgb(17, 24, 39), rgb(3, 7, 18))',
+            background: 'linear-gradient(to bottom right, hsl(var(--bg-base-end)), hsl(var(--bg-base-start)))',
             overflow: 'hidden',
           }}
         >
@@ -88,10 +85,11 @@ export default function CharacterCard({
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                transition: 'all 0.5s ease',
+                transition: 'transform 0.3s ease',
               }}
-              className="group-hover:scale-110"
+              className="group-hover:scale-105"
               loading="lazy"
+              decoding="async"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
                 const fallback = e.currentTarget.nextElementSibling as HTMLElement
@@ -106,14 +104,14 @@ export default function CharacterCard({
               height: '100%',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2))'
+              background: 'linear-gradient(135deg, hsl(var(--primary-rose) / 0.2), hsl(var(--accent-gold) / 0.2))'
             }}
           >
             <Text
               size="72px"
               fw={700}
               style={{
-                background: 'linear-gradient(to right, rgb(96, 165, 250), rgb(168, 85, 247))',
+                background: 'linear-gradient(to right, hsl(var(--primary-rose)), hsl(var(--accent-gold)))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}
@@ -127,7 +125,7 @@ export default function CharacterCard({
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'linear-gradient(to top, rgb(3, 7, 18), transparent, transparent)',
+              background: 'linear-gradient(to top, hsl(var(--bg-base-start)), transparent, transparent)',
               opacity: 0.6,
             }}
           />
@@ -140,20 +138,20 @@ export default function CharacterCard({
               inset: 0,
               background: 'linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.6), transparent)',
               opacity: 0,
-              transition: 'all 0.3s ease',
+              transition: 'opacity 0.2s ease',
               display: 'flex',
               alignItems: 'flex-end',
               justifyContent: 'center',
               padding: '1rem',
-              backdropFilter: 'blur(4px)',
+              backdropFilter: 'blur(2px)',
             }}
           >
             <Stack 
               gap="xs" 
               style={{ 
                 width: '100%',
-                transform: 'translateY(16px)',
-                transition: 'transform 0.3s ease',
+                transform: 'translateY(12px)',
+                transition: 'transform 0.2s ease',
               }}
               className="group-hover:translate-y-0"
             >
@@ -167,7 +165,7 @@ export default function CharacterCard({
                   leftSection={<IconMessageCircle size={16} />}
                   styles={{
                     root: {
-                      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+                      boxShadow: 'var(--shadow-rose-gold)',
                     },
                   }}
                 >
@@ -183,8 +181,8 @@ export default function CharacterCard({
                       color="gray"
                       size="lg"
                       style={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        backgroundColor: 'hsl(var(--primary-rose) / 0.1)',
+                        borderColor: 'hsl(var(--primary-rose) / 0.3)',
                       }}
                     >
                       <IconEdit size={18} />
@@ -199,8 +197,8 @@ export default function CharacterCard({
                       color="gray"
                       size="lg"
                       style={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        backgroundColor: 'hsl(var(--primary-rose) / 0.1)',
+                        borderColor: 'hsl(var(--primary-rose) / 0.3)',
                       }}
                     >
                       <IconDownload size={18} />
@@ -238,9 +236,9 @@ export default function CharacterCard({
             size="md"
             fw={600}
             lineClamp={1}
-            className="group-hover:text-blue-400"
+            className="group-hover:text-rose-400"
             style={{
-              color: 'rgb(243, 244, 246)',
+              color: 'hsl(var(--text-primary))',
               transition: 'color 0.2s ease',
             }}
           >
@@ -327,7 +325,8 @@ export default function CharacterCard({
         backgroundColor: 'rgb(31, 41, 55)',
         borderColor: 'rgb(55, 65, 81)',
         cursor: 'pointer',
-        transition: 'all 0.2s ease',
+        transition: 'border-color 0.2s ease',
+        contain: 'layout style paint',
       }}
       styles={{
         root: {

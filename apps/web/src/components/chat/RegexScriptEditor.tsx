@@ -248,7 +248,7 @@ export default function RegexScriptEditor({
       size="xl"
       title={
         <Group gap="xs">
-          <IconCode size={24} color="var(--mantine-color-teal-4)" />
+          <IconCode size={24} color="hsl(var(--primary-rose))" />
           <Text size="xl" fw={700}>正则脚本编辑器</Text>
         </Group>
       }
@@ -307,7 +307,7 @@ export default function RegexScriptEditor({
                   <Button
                     onClick={handleCreate}
                     leftSection={<IconPlus size={16} />}
-                    gradient={{ from: 'teal', to: 'cyan' }}
+                    color="brand"
                     variant="gradient"
                   >
                     添加脚本
@@ -348,7 +348,7 @@ export default function RegexScriptEditor({
                               <Switch
                                 checked={script.enabled}
                                 onChange={() => toggleScript(script.id)}
-                                color="teal"
+                                color="brand"
                               />
                               <Text fw={600}>{script.name}</Text>
                               <Badge variant="light" color="gray" size="sm">
@@ -360,7 +360,7 @@ export default function RegexScriptEditor({
                               <ActionIcon
                                 onClick={() => handleEdit(script)}
                                 variant="subtle"
-                                color="teal"
+                                color="brand"
                               >
                                 <IconEdit size={16} />
                               </ActionIcon>
@@ -383,7 +383,7 @@ export default function RegexScriptEditor({
                             </Group>
                             <Group gap="xs" align="flex-start">
                               <Text size="xs" c="dimmed" style={{ minWidth: 60 }}>替换:</Text>
-                              <CodeBlock style={{ flex: 1 }} c="teal">
+                              <CodeBlock style={{ flex: 1 }} c="brand">
                                 {script.replaceWith}
                               </CodeBlock>
                             </Group>
@@ -453,7 +453,7 @@ export default function RegexScriptEditor({
                     label="启用此脚本"
                     checked={formData.enabled}
                     onChange={(e) => setFormData({ ...formData, enabled: e.currentTarget.checked })}
-                    color="teal"
+                    color="brand"
                   />
 
                   {/* Test Section */}
@@ -501,7 +501,7 @@ export default function RegexScriptEditor({
                       onClick={handleSave}
                       disabled={!formData.name || !formData.findRegex}
                       style={{ flex: 1 }}
-                      gradient={{ from: 'teal', to: 'cyan' }}
+                      color="brand"
                       variant="gradient"
                     >
                       保存

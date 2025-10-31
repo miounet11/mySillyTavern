@@ -1,6 +1,7 @@
 'use client'
 
 import { ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 import { AppShell } from '@mantine/core'
 import TopNavigation from '@/components/layout/TopNavigation'
 import BottomNavigation from '@/components/layout/BottomNavigation'
@@ -11,6 +12,8 @@ export default function DashboardLayout({
 }: {
   children: ReactNode
 }) {
+  const pathname = usePathname()
+  const isChatPage = pathname === '/chat'
 
   return (
     <AppShell
@@ -35,7 +38,8 @@ export default function DashboardLayout({
       <BottomNavigation />
       
       {/* Settings Drawer - Fixed on right as overlay - Uses global state */}
-      <SettingsDrawer />
+      {/* Only render in layout for non-chat pages; chat page renders its own */}
+      {!isChatPage && <SettingsDrawer />}
     </AppShell>
   )
 }

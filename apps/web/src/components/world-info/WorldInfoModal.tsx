@@ -243,13 +243,16 @@ export default function WorldInfoModal({
       onClose={onClose}
       size="xl"
       title={
-        <Text size="xl" fw={700}>
-          {editingWorldInfo ? '编辑世界信息' : '创建世界信息'}
-        </Text>
+        <Group gap="xs">
+          <IconWorld size={24} color="hsl(var(--primary-rose))" />
+          <Text size="xl" fw={700}>
+            {editingWorldInfo ? '编辑世界信息' : '创建世界信息'}
+          </Text>
+        </Group>
       }
       styles={{
-        content: { maxHeight: '90vh' },
-        body: { height: 'calc(90vh - 60px)', display: 'flex', flexDirection: 'column' }
+        content: { height: '85vh' },
+        body: { height: 'calc(100% - 60px)', display: 'flex', flexDirection: 'column' }
       }}
     >
       <form onSubmit={handleSubmit} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -533,7 +536,7 @@ export default function WorldInfoModal({
         </Tabs>
 
         {/* Form Actions */}
-        <Group justify="flex-end" pt="md" mt="md" style={{ borderTop: '1px solid var(--mantine-color-dark-5)' }}>
+        <Group justify="flex-end" pt="md" mt="md" style={{ borderTop: '1px solid hsl(var(--primary-rose) / 0.3)' }}>
           <Button
             type="button"
             variant="default"
@@ -545,6 +548,8 @@ export default function WorldInfoModal({
             type="submit"
             loading={isLoading}
             leftSection={<IconDeviceFloppy size={16} />}
+            color="brand"
+            variant="gradient"
           >
             {editingWorldInfo ? '更新世界信息' : '创建世界信息'}
           </Button>

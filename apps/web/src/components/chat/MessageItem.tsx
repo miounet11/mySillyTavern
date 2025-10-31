@@ -128,9 +128,9 @@ const MessageItem = memo(({
       p="md"
       style={{
         backgroundColor: isUser
-          ? 'rgba(59, 130, 246, 0.05)'
-          : 'rgba(168, 85, 247, 0.05)',
-        borderRadius: '0.5rem',
+          ? 'hsl(var(--primary-rose) / 0.05)'
+          : 'hsl(var(--accent-gold) / 0.05)',
+        borderRadius: 'var(--radius-lg)',
         transition: 'background-color 0.2s',
       }}
     >
@@ -138,7 +138,7 @@ const MessageItem = memo(({
       <Avatar
         size="md"
         radius="xl"
-        color={isUser ? 'blue' : 'violet'}
+        color={isUser ? 'brand' : 'accent'}
         style={{ flexShrink: 0 }}
       >
         {isUser ? (
@@ -155,7 +155,7 @@ const MessageItem = memo(({
         {/* Header */}
         <Group justify="space-between" mb="xs">
           <Group gap="xs">
-            <Text size="sm" fw={600} c={isUser ? 'blue.4' : 'violet.4'}>
+            <Text size="sm" fw={600} c={isUser ? 'brand.6' : 'accent.6'}>
               {isUser ? 'You' : characterName}
             </Text>
             {timeAgo && (
@@ -241,7 +241,7 @@ const MessageItem = memo(({
           <div
             className="whitespace-pre-wrap break-words text-sm leading-relaxed"
             dangerouslySetInnerHTML={{ __html: formattedContent }}
-            style={{ color: 'rgb(243, 244, 246)' }}
+            style={{ color: 'hsl(var(--text-primary))' }}
           />
         )}
       </Box>

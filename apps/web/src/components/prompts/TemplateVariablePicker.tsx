@@ -2,21 +2,27 @@
 
 import { useState, useEffect } from 'react'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { 
-  Search, 
-  Copy, 
-  Check,
-  Wand2,
-  Tag
-} from 'lucide-react'
+  Modal,
+  Button,
+  TextInput,
+  Stack,
+  Group,
+  Text,
+  Badge,
+  ActionIcon,
+  Loader,
+  ScrollArea,
+  Box,
+  Code as CodeBlock,
+  Tabs
+} from '@mantine/core'
+import {
+  IconSearch,
+  IconWand,
+  IconTag,
+  IconCopy,
+  IconCheck
+} from '@tabler/icons-react'
 import toast from 'react-hot-toast'
 
 interface TemplateVariable {
@@ -115,123 +121,172 @@ export default function TemplateVariablePicker({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] bg-gray-900/95 backdrop-blur-xl rounded-lg border border-gray-700/50 flex flex-col shadow-2xl overflow-y-auto tavern-scrollbar">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-gray-100 flex items-center gap-2">
-            <Wand2 className="w-6 h-6 text-purple-400" />
-            模板变量选择器
-          </DialogTitle>
-          <DialogDescription className="text-gray-400">
-            点击变量来插入到你的消息或提示词中
-          </DialogDescription>
-        </DialogHeader>
+    <Modal
+      opened={isOpen}
+      onClose={onClose}
+      size="xl"
+      title={
+        <Group gap="xs">
+          <IconWand size={24} color="hsl(var(--primary-rose))" />
+          <Text size="xl" fw={700}>模板变量选择器</Text>
+        </Group>
+      }
+      styles={{
+        content: { height: '85vh' },
+        body: { height: 'calc(100% - 60px)', display: 'flex', flexDirection: 'column' }
+      }}
+    >
+      <Stack style={{ flex: 1, overflow: 'hidden' }} gap="md">
+        <Text size="sm" c="dimmed">
+          点击变量来插入到你的消息或提示词中
+        </Text>
 
         {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input
-            placeholder="搜索变量..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 tavern-input"
-          />
-        </div>
+        <TextInput
+          placeholder="搜索变量..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          leftSection={<IconSearch size={16} />}
+        />
 
         {/* Category Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm transition-all ${
-                selectedCategory === cat
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
-            >
-              {getCategoryLabel(cat)}
-            </button>
-          ))}
-        </div>
+        <Tabs value={selectedCategory} onChange={(value) => setSelectedCategory(value || 'all')}>
+          <Tabs.List>
+            {categories.map((cat) => (
+              <Tabs.Tab key={cat} value={cat}>
+                {getCategoryLabel(cat)}
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
+        </Tabs>
 
         {/* Variables List */}
-        <div className="flex-1 overflow-y-auto tavern-scrollbar pr-2">
+        <ScrollArea style={{ flex: 1 }}>
           {isLoading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
-              <p className="mt-4 text-gray-400">加载中...</p>
-            </div>
+            <Stack align="center" gap="md" py={60}>
+              <Loader color="brand" />
+              <Text c="dimmed">加载中...</Text>
+            </Stack>
           ) : filteredVariables.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <Tag className="w-16 h-16 mx-auto mb-4 opacity-30" />
-              <p>没有找到匹配的变量</p>
-            </div>
+            <Stack align="center" gap="md" py={60}>
+              <IconTag size={64} opacity={0.3} />
+              <Text c="dimmed">没有找到匹配的变量</Text>
+            </Stack>
           ) : (
-            <div className="space-y-2">
+            <Stack gap="xs">
               {filteredVariables.map((variable) => (
-                <div
+                <Box
                   key={variable.id}
-                  className="p-4 rounded-lg border border-gray-700 bg-gray-800/50 hover:border-gray-600 hover:bg-gray-800 transition-all group"
+                  p="md"
+                  style={{
+                    borderRadius: 'var(--mantine-radius-md)',
+                    border: '1px solid hsl(var(--primary-rose) / 0.3)',
+                    backgroundColor: 'hsl(var(--bg-card))',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'hsl(var(--primary-rose) / 0.5)'
+                    e.currentTarget.style.backgroundColor = 'hsl(var(--bg-overlay))'
+                    const actionGroup = e.currentTarget.querySelector('[data-action-group]') as HTMLElement
+                    if (actionGroup) actionGroup.style.opacity = '1'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'hsl(var(--primary-rose) / 0.3)'
+                    e.currentTarget.style.backgroundColor = 'hsl(var(--bg-card))'
+                    const actionGroup = e.currentTarget.querySelector('[data-action-group]') as HTMLElement
+                    if (actionGroup) actionGroup.style.opacity = '0'
+                  }}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <code className="text-sm font-mono px-2 py-1 bg-gray-900 text-purple-300 rounded">
+                  <Group justify="space-between" align="flex-start">
+                    <Stack gap="xs" style={{ flex: 1 }}>
+                      <Group gap="xs">
+                        <CodeBlock
+                          style={{
+                            fontSize: 'var(--font-sm)',
+                            backgroundColor: 'hsl(var(--bg-base-start))',
+                            color: 'hsl(var(--primary-rose-light))',
+                            padding: 'var(--spacing-xs) var(--spacing-sm)',
+                            borderRadius: 'var(--radius-sm)'
+                          }}
+                        >
                           {variable.variable}
-                        </code>
-                        <span className="text-xs px-2 py-0.5 bg-gray-700 text-gray-300 rounded">
+                        </CodeBlock>
+                        <Badge
+                          variant="light"
+                          color="brand"
+                          size="sm"
+                        >
                           {getCategoryLabel(variable.category)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-400 mb-2">{variable.description}</p>
-                      <div className="text-xs text-gray-500">
-                        <span className="font-medium">示例：</span>
-                        <code className="ml-1 px-1.5 py-0.5 bg-gray-900 text-gray-400 rounded">
+                        </Badge>
+                      </Group>
+                      <Text size="sm" c="dimmed">{variable.description}</Text>
+                      <Group gap="xs">
+                        <Text size="xs" c="dimmed">示例：</Text>
+                        <CodeBlock
+                          style={{
+                            fontSize: 'var(--font-xs)',
+                            backgroundColor: 'hsl(var(--bg-base-start))',
+                            color: 'hsl(var(--text-secondary))',
+                            padding: '2px 6px',
+                            borderRadius: 'var(--radius-sm)'
+                          }}
+                        >
                           {variable.example}
-                        </code>
-                      </div>
-                    </div>
+                        </CodeBlock>
+                      </Group>
+                    </Stack>
                     
-                    <div className="flex gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Group 
+                      gap="xs" 
+                      data-action-group
+                      style={{ opacity: 0, transition: 'opacity 0.2s' }}
+                    >
                       <Button
-                        onClick={() => handleInsert(variable)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleInsert(variable)
+                        }}
                         size="sm"
-                        className="tavern-button h-8"
+                        color="brand"
+                        variant="gradient"
                       >
                         插入
                       </Button>
-                      <Button
-                        onClick={() => handleCopy(variable)}
-                        size="sm"
-                        variant="outline"
-                        className="tavern-button-secondary h-8 w-8 p-0"
+                      <ActionIcon
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleCopy(variable)
+                        }}
+                        variant="default"
+                        size="lg"
+                        color="brand"
                       >
                         {copiedId === variable.id ? (
-                          <Check className="w-4 h-4" />
+                          <IconCheck size={18} />
                         ) : (
-                          <Copy className="w-4 h-4" />
+                          <IconCopy size={18} />
                         )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                      </ActionIcon>
+                    </Group>
+                  </Group>
+                </Box>
               ))}
-            </div>
+            </Stack>
           )}
-        </div>
+        </ScrollArea>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-800">
-          <div className="text-sm text-gray-500">
+        <Group justify="space-between" pt="md" style={{ borderTop: '1px solid hsl(var(--primary-rose) / 0.3)' }}>
+          <Text size="sm" c="dimmed">
             共 {filteredVariables.length} 个变量
-          </div>
-          <Button variant="ghost" onClick={onClose}>
+          </Text>
+          <Button variant="subtle" onClick={onClose}>
             关闭
           </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </Group>
+      </Stack>
+    </Modal>
   )
 }
-
