@@ -19,8 +19,8 @@ import ChatHeader from './ChatHeader'
 import ChatControlBar from './ChatControlBar'
 import CharacterModal from '../character/CharacterModal'
 import RetryDialog from './RetryDialog'
-import AIModelSetupGuide from '@/components/modals/AIModelSetupGuide'
 import QuickSetupGuide from '@/components/modals/QuickSetupGuide'
+import ModelSetupBanner from '@/components/modals/ModelSetupBanner'
 import toast from 'react-hot-toast'
 import { useTranslation } from '@/lib/i18n'
 import { useModelGuard } from '@/hooks/useModelGuard'
@@ -98,11 +98,11 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   const sendingRef = useRef(false)
   const autoOpenModelDrawerRef = useRef(false)
   const [appSettings, setAppSettings] = useState<{ userName?: string; autoSendGreeting?: boolean; openerTemplate?: string }>({})
-  const [showSetupGuide, setShowSetupGuide] = useState(false)
   const [showQuickSetup, setShowQuickSetup] = useState(false)
+  const [showSetupBanner, setShowSetupBanner] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const hasShownGuideRef = useRef(false)
   const hasShownQuickSetupRef = useRef(false)
+  const bannerDismissedRef = useRef(false)
   
   // Retry dialog state
   const [showRetryDialog, setShowRetryDialog] = useState(false)
@@ -158,20 +158,21 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // AI Model setup guide logic
+  // AI Model setup banner logic - show banner when model is not configured
   useEffect(() => {
-    // Only show guide once per session and when model is not configured
-    if (!hasShownGuideRef.current && hydrated && !isModelConfigured && currentChat) {
-      setShowSetupGuide(true)
-      hasShownGuideRef.current = true
+    // Show banner if model not configured and user hasn't dismissed it
+    if (hydrated && !isModelConfigured && !bannerDismissedRef.current) {
+      setShowSetupBanner(true)
+    } else {
+      setShowSetupBanner(false)
     }
-  }, [hydrated, isModelConfigured, currentChat])
+  }, [hydrated, isModelConfigured])
 
   // Listen for model configuration success
   useEffect(() => {
     const handleModelConfigured = () => {
-      if (isModelConfigured && showSetupGuide) {
-        setShowSetupGuide(false)
+      if (isModelConfigured && showSetupBanner) {
+        setShowSetupBanner(false)
         toast.success('✨ AI模型配置成功！现在可以开始对话了')
         // Focus input after short delay
         setTimeout(() => {
@@ -180,7 +181,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
       }
     }
     handleModelConfigured()
-  }, [isModelConfigured, showSetupGuide])
+  }, [isModelConfigured, showSetupBanner])
 
   // Debug: log state changes
   useEffect(() => {
@@ -258,14 +259,6 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     return () => clearTimeout(timer)
   }, [modelsInitialized, hydrated, isModelConfigured, currentChat, characterId])
 
-  // 首次进入且未配置模型时，自动打开设置抽屉（仅一次）
-  useEffect(() => {
-    if (hydrated && !isModelConfigured && !autoOpenModelDrawerRef.current) {
-      autoOpenModelDrawerRef.current = true
-      openSettingsDrawer('models')
-    }
-  }, [hydrated, isModelConfigured, openSettingsDrawer])
-
   // Listen for new chat event from sidebar
   useEffect(() => {
     const handleCreateNewChat = () => {
@@ -317,26 +310,10 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
       }
       // Check if we have an active model (from localStorage)
       if (!hasActiveModel || !activeModel) {
-        console.warn('[ChatInterface] No active model configured yet. Guiding user to setup...', { hasActiveModel, activeModel })
+        console.warn('[ChatInterface] No active model configured yet. Banner will guide user to setup...', { hasActiveModel, activeModel })
         
-        // 只显示一次快速设置引导
-        if (!hasShownQuickSetupRef.current) {
-          hasShownQuickSetupRef.current = true
-          setShowQuickSetup(true)
-          
-          // 显示友好的引导提示
-          toast((t) => (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🚀</span>
-                <span className="font-medium">快速开始</span>
-              </div>
-              <p className="text-sm text-gray-300">
-                让我们花 30 秒配置您的第一个 AI 模型
-              </p>
-            </div>
-          ), { duration: 4000 })
-        }
+        // Don't auto-show popup - let the banner handle it
+        // Banner will be visible at top of page
         return
       }
       
@@ -1029,6 +1006,20 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Model Setup Banner - Shows when model not configured */}
+      {showSetupBanner && (
+        <ModelSetupBanner
+          onOpenSetup={() => {
+            setShowQuickSetup(true)
+            setShowSetupBanner(false)
+          }}
+          onDismiss={() => {
+            bannerDismissedRef.current = true
+            setShowSetupBanner(false)
+          }}
+        />
+      )}
+
       {/* Chat Header */}
       <ChatHeader
         chat={currentChat}
@@ -1176,27 +1167,14 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
       {/* 模型未设置引导对话框 */}
       <ModelNotSetModal open={modelNotSetOpen} onClose={() => setModelNotSetOpen(false)} />
 
-      {/* Quick Setup Guide - 快速配置引导（优先显示） */}
+      {/* Quick Setup Guide - 快速配置引导（手动触发） */}
       <QuickSetupGuide
         open={showQuickSetup}
         onClose={() => {
           setShowQuickSetup(false)
-          // 如果用户关闭了快速设置，可以选择显示详细引导或直接打开设置
+          // 用户关闭快速设置后，不再显示 banner（本次会话）
+          bannerDismissedRef.current = true
         }}
-      />
-
-      {/* AI Model Setup Guide - Full screen guide for first-time users */}
-      <AIModelSetupGuide
-        isOpen={showSetupGuide}
-        onClose={() => setShowSetupGuide(false)}
-        onOpenSettings={() => {
-          openSettingsDrawer()
-          // On mobile, hide the guide when settings drawer opens
-          if (isMobile) {
-            setShowSetupGuide(false)
-          }
-        }}
-        isMobile={isMobile}
       />
     </div>
   )

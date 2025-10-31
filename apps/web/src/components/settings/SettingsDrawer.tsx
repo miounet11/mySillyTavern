@@ -412,7 +412,7 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
 
   return (
     <>
-      <Sheet open={isOpen} onOpenChange={onClose}>
+      <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
         <SheetContent side="right" className="w-[90%] sm:w-[500px] lg:w-[600px] p-0 flex flex-col overflow-hidden" hideOverlay={isDesktop}>
           {/* Header with proper accessibility components */}
           <SheetHeader className="px-6 py-4 border-b border-gray-800 flex-shrink-0">

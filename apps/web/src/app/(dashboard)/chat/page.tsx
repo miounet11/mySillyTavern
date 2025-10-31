@@ -92,7 +92,11 @@ function ChatPageContent() {
 
       {/* Main chat area - Dynamic width based on drawer states */}
       <div 
-        className="container mx-auto max-w-6xl px-4 py-6 transition-all duration-500 ease-in-out"
+        className={`px-4 py-6 transition-all duration-500 ease-in-out ${
+          !isSettingsPanelOpen && !isSettingsDrawerOpen 
+            ? 'max-w-md sm:max-w-2xl lg:max-w-4xl mx-auto' 
+            : 'max-w-6xl'
+        }`}
         style={{
           marginLeft: isSettingsPanelOpen ? 'var(--left-drawer-width, 0px)' : '0',
           marginRight: isSettingsDrawerOpen ? 'var(--right-drawer-width, 0px)' : '0',

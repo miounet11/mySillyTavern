@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import { UserInitializer } from '@/components/user/UserInitializer'
 import { MantineThemeProvider } from '@/components/providers/MantineThemeProvider'
+import { I18nProvider } from '@/components/providers/I18nProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -30,33 +31,35 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={inter.className}>
         <MantineThemeProvider>
-          <UserInitializer />
-          <div className="tavern-container">
-            {children}
-          </div>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#374151',
-                color: '#f3f4f6',
-                border: '1px solid #4b5563',
-              },
-              success: {
-                iconTheme: {
-                  primary: '#10b981',
-                  secondary: '#374151',
+          <I18nProvider>
+            <UserInitializer />
+            <div className="tavern-container">
+              {children}
+            </div>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: '#374151',
+                  color: '#f3f4f6',
+                  border: '1px solid #4b5563',
                 },
-              },
-              error: {
-                iconTheme: {
-                  primary: '#ef4444',
-                  secondary: '#374151',
+                success: {
+                  iconTheme: {
+                    primary: '#10b981',
+                    secondary: '#374151',
+                  },
                 },
-              },
-            }}
-          />
+                error: {
+                  iconTheme: {
+                    primary: '#ef4444',
+                    secondary: '#374151',
+                  },
+                },
+              }}
+            />
+          </I18nProvider>
         </MantineThemeProvider>
       </body>
     </html>
