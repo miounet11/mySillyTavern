@@ -842,6 +842,11 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
           className="w-[85%] sm:w-[450px] lg:w-[520px] p-0 flex flex-col overflow-hidden settings-drawer-sheet" 
           hideOverlay={false}
         >
+          {/* Accessibility titles for screen readers */}
+          <SheetTitle className="sr-only">设置中心</SheetTitle>
+          <SheetDescription className="sr-only">
+            配置应用程序和个人偏好设置，包括常规设置、AI模型、界面和插件
+          </SheetDescription>
           {settingsContent}
         </SheetContent>
       </Sheet>

@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { useChatStore } from '@/stores/chatStore'
+import { useSettingsUIStore } from '@/stores/settingsUIStore'
 
 interface ChatSettingsPanelProps {
   isOpen: boolean
@@ -56,6 +57,7 @@ export default function ChatSettingsPanel({
   const { t } = useTranslation()
   const router = useRouter()
   const { messages } = useChatStore()
+  const { openSettings } = useSettingsUIStore()
 
   // Calculate stats
   const messageCount = messages.length
@@ -194,7 +196,7 @@ export default function ChatSettingsPanel({
           </Text>
 
           <Button
-            onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
+            onClick={() => openSettings('models')}
             variant="default"
             fullWidth
             size={isMobile ? 'sm' : 'md'}
@@ -396,7 +398,7 @@ export default function ChatSettingsPanel({
           </Text>
 
           <Button
-            onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
+            onClick={() => openSettings('models')}
             variant="default"
             fullWidth
             leftSection={<IconSettings size={16} />}

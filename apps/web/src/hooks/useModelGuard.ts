@@ -1,9 +1,10 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useAIModelStore } from '@/stores/aiModelStore'
+import { useSettingsUIStore } from '@/stores/settingsUIStore'
 
 export function useModelGuard() {
   const { activeModel, hydrated } = useAIModelStore()
-  const [modelNotSetOpen, setModelNotSetOpen] = useState(false)
+  const { openSettings } = useSettingsUIStore()
 
   const isModelReady = useMemo(() => {
     if (!hydrated) return false
@@ -19,17 +20,14 @@ export function useModelGuard() {
 
   const assertModelReady = useCallback(() => {
     if (!isModelReady) {
-      setModelNotSetOpen(true)
-      try {
-        // 同时打开右侧设置抽屉，便于用户立即配置
-        window.dispatchEvent(new CustomEvent('open-settings'))
-      } catch {}
+      // 直接打开设置中心的模型配置标签
+      openSettings('models')
       return false
     }
     return true
-  }, [isModelReady])
+  }, [isModelReady, openSettings])
 
-  return { isModelReady, assertModelReady, modelNotSetOpen, setModelNotSetOpen }
+  return { isModelReady, assertModelReady }
 }
 
 

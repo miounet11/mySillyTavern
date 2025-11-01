@@ -19,12 +19,9 @@ import ChatHeader from './ChatHeader'
 import ChatControlBar from './ChatControlBar'
 import CharacterModal from '../character/CharacterModal'
 import RetryDialog from './RetryDialog'
-import QuickSetupGuide from '@/components/modals/QuickSetupGuide'
-import ModelSetupBanner from '@/components/modals/ModelSetupBanner'
 import toast from 'react-hot-toast'
 import { useTranslation } from '@/lib/i18n'
 import { useModelGuard } from '@/hooks/useModelGuard'
-import ModelNotSetModal from '@/components/modals/ModelNotSetModal'
 import { useSettingsUIStore } from '@/stores/settingsUIStore'
 
 interface ChatInterfaceProps {
@@ -87,7 +84,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     (((activeModel as any).provider === 'local') || Boolean((activeModel as any).apiKey))
   )
 
-  const { isModelReady, assertModelReady, modelNotSetOpen, setModelNotSetOpen } = useModelGuard()
+  const { isModelReady, assertModelReady } = useModelGuard()
   const { openSettings: openSettingsDrawer } = useSettingsUIStore()
 
   const [inputValue, setInputValue] = useState('')
@@ -98,11 +95,7 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
   const sendingRef = useRef(false)
   const autoOpenModelDrawerRef = useRef(false)
   const [appSettings, setAppSettings] = useState<{ userName?: string; autoSendGreeting?: boolean; openerTemplate?: string }>({})
-  const [showQuickSetup, setShowQuickSetup] = useState(false)
-  const [showSetupBanner, setShowSetupBanner] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const hasShownQuickSetupRef = useRef(false)
-  const bannerDismissedRef = useRef(false)
   
   // Retry dialog state
   const [showRetryDialog, setShowRetryDialog] = useState(false)
@@ -157,31 +150,6 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
-
-  // AI Model setup banner logic - show banner when model is not configured
-  useEffect(() => {
-    // Show banner if model not configured and user hasn't dismissed it
-    if (hydrated && !isModelConfigured && !bannerDismissedRef.current) {
-      setShowSetupBanner(true)
-    } else {
-      setShowSetupBanner(false)
-    }
-  }, [hydrated, isModelConfigured])
-
-  // Listen for model configuration success
-  useEffect(() => {
-    const handleModelConfigured = () => {
-      if (isModelConfigured && showSetupBanner) {
-        setShowSetupBanner(false)
-        toast.success('✨ AI模型配置成功！现在可以开始对话了')
-        // Focus input after short delay
-        setTimeout(() => {
-          inputRef.current?.focus()
-        }, 300)
-      }
-    }
-    handleModelConfigured()
-  }, [isModelConfigured, showSetupBanner])
 
   // Debug: log state changes
   useEffect(() => {
@@ -1008,20 +976,6 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Model Setup Banner - Shows when model not configured */}
-      {showSetupBanner && (
-        <ModelSetupBanner
-          onOpenSetup={() => {
-            setShowQuickSetup(true)
-            setShowSetupBanner(false)
-          }}
-          onDismiss={() => {
-            bannerDismissedRef.current = true
-            setShowSetupBanner(false)
-          }}
-        />
-      )}
-
       {/* Chat Header */}
       <ChatHeader
         chat={currentChat}
@@ -1164,19 +1118,6 @@ export default function ChatInterface({ characterId }: ChatInterfaceProps) {
         maxRetries={maxRetries}
         onRetry={handleRetry}
         onCancel={handleCancelRetry}
-      />
-
-      {/* 模型未设置引导对话框 */}
-      <ModelNotSetModal open={modelNotSetOpen} onClose={() => setModelNotSetOpen(false)} />
-
-      {/* Quick Setup Guide - 快速配置引导（手动触发） */}
-      <QuickSetupGuide
-        open={showQuickSetup}
-        onClose={() => {
-          setShowQuickSetup(false)
-          // 用户关闭快速设置后，不再显示 banner（本次会话）
-          bannerDismissedRef.current = true
-        }}
       />
     </div>
   )

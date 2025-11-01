@@ -3,9 +3,11 @@
 import { useRouter } from 'next/navigation'
 import { Users, Globe, Settings, Zap, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useSettingsUIStore } from '@/stores/settingsUIStore'
 
 export default function HomePage() {
   const router = useRouter()
+  const { openSettings } = useSettingsUIStore()
 
   const steps = [
     {
@@ -20,7 +22,7 @@ export default function HomePage() {
       title: '配置模型',
       description: '连接您的AI服务',
       action: '配置模型',
-      onClick: () => window.dispatchEvent(new CustomEvent('open-settings'))
+      onClick: () => openSettings('models')
     },
     {
       icon: Zap,

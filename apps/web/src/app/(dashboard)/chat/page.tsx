@@ -56,8 +56,7 @@ function ChatPageContent() {
     return () => window.removeEventListener('resize', checkScreenSize)
   }, [])
 
-  // 注意：全局 SettingsDrawer 已监听 open-settings 并处理模型配置，
-  // 这里不再重复监听以避免重复弹出。
+  // 注意：所有模型配置入口统一使用 SettingsDrawer 的 models 标签
 
   const handleSelectNode = (nodeId: string) => {
     toast.success(`跳转到节点: ${nodeId}`)
