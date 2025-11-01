@@ -17,6 +17,7 @@ export default function LLMConfigPanel() {
   const [configs, setConfigs] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isSavingImage, setIsSavingImage] = useState(false)
 
   // 新配置表单
   const [newConfig, setNewConfig] = useState({
@@ -29,8 +30,18 @@ export default function LLMConfigPanel() {
     maxTokens: 2000,
   })
 
+  // 图像生成配置
+  const [imageConfig, setImageConfig] = useState({
+    imageApiUrl: '',
+    imageApiKey: '',
+    imageModel: 'dall-e-3',
+    imageProvider: 'openai',
+    hasImageConfig: false
+  })
+
   useEffect(() => {
     loadConfigs()
+    loadImageConfig()
   }, [])
 
   const loadConfigs = async () => {
@@ -43,6 +54,51 @@ export default function LLMConfigPanel() {
       toast.error('加载配置失败')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const loadImageConfig = async () => {
+    try {
+      const response = await fetch('/api/admin/config/image')
+      const data = await response.json()
+      setImageConfig({
+        imageApiUrl: data.imageApiUrl || '',
+        imageApiKey: data.imageApiKey === '********' ? '' : data.imageApiKey || '',
+        imageModel: data.imageModel || 'dall-e-3',
+        imageProvider: data.imageProvider || 'openai',
+        hasImageConfig: data.hasImageConfig || false
+      })
+    } catch (error) {
+      console.error('Error loading image config:', error)
+    }
+  }
+
+  const saveImageConfig = async () => {
+    if (!imageConfig.imageApiUrl) {
+      toast.error('请填写图像API地址')
+      return
+    }
+
+    setIsSavingImage(true)
+    try {
+      const response = await fetch('/api/admin/config/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(imageConfig)
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        toast.success('图像配置保存成功')
+        loadImageConfig()
+      } else {
+        toast.error(data.error || '保存失败')
+      }
+    } catch (error) {
+      console.error('Save image config error:', error)
+      toast.error('保存失败')
+    } finally {
+      setIsSavingImage(false)
     }
   }
 
@@ -328,12 +384,118 @@ export default function LLMConfigPanel() {
         </Stack>
       </div>
 
+      {/* 图像生成配置 */}
+      <div className="glass-card p-6 rounded-xl border border-white/10">
+        <h3 className="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
+          <Settings2 className="w-5 h-5 text-purple-400" />
+          图像生成配置
+          {imageConfig.hasImageConfig && (
+            <span className="px-2 py-1 text-xs rounded bg-green-500/20 text-green-400">
+              已配置
+            </span>
+          )}
+        </h3>
+
+        <Stack gap="md">
+          <TextInput
+            label="图像API地址"
+            placeholder="https://api.openai.com/v1/images/generations"
+            value={imageConfig.imageApiUrl}
+            onChange={(e) => setImageConfig({ ...imageConfig, imageApiUrl: e.target.value })}
+            required
+            description="用于AI生成角色封面图的API端点"
+            styles={{
+              input: {
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                color: 'white'
+              },
+              label: { color: 'rgb(209, 213, 219)' },
+              description: { color: 'rgb(156, 163, 175)' }
+            }}
+          />
+
+          <TextInput
+            label="图像API密钥"
+            placeholder={imageConfig.hasImageConfig ? '已保存（输入新密钥以更新）' : 'sk-...'}
+            type="password"
+            value={imageConfig.imageApiKey}
+            onChange={(e) => setImageConfig({ ...imageConfig, imageApiKey: e.target.value })}
+            description="用于API认证"
+            styles={{
+              input: {
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                color: 'white'
+              },
+              label: { color: 'rgb(209, 213, 219)' },
+              description: { color: 'rgb(156, 163, 175)' }
+            }}
+          />
+
+          <Group grow>
+            <Select
+              label="图像服务提供商"
+              value={imageConfig.imageProvider}
+              onChange={(value) => setImageConfig({ ...imageConfig, imageProvider: value || 'openai' })}
+              data={[
+                { value: 'openai', label: 'OpenAI (DALL-E)' },
+                { value: 'stability', label: 'Stability AI' },
+                { value: 'other', label: '其他' }
+              ]}
+              styles={{
+                input: {
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white'
+                },
+                label: { color: 'rgb(209, 213, 219)' }
+              }}
+            />
+
+            <TextInput
+              label="图像模型"
+              placeholder="dall-e-3"
+              value={imageConfig.imageModel}
+              onChange={(e) => setImageConfig({ ...imageConfig, imageModel: e.target.value })}
+              styles={{
+                input: {
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white'
+                },
+                label: { color: 'rgb(209, 213, 219)' }
+              }}
+            />
+          </Group>
+
+          <Button
+            onClick={saveImageConfig}
+            disabled={isSavingImage}
+            className="w-full gradient-btn-purple h-11"
+          >
+            {isSavingImage ? (
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>保存中...</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <Check className="w-4 h-4" />
+                <span>保存图像配置</span>
+              </div>
+            )}
+          </Button>
+        </Stack>
+      </div>
+
       {/* 使用说明 */}
       <div className="glass-card p-4 rounded-xl bg-blue-500/5 border border-blue-500/20">
         <h4 className="text-sm font-semibold text-blue-400 mb-2">💡 使用说明</h4>
         <ul className="text-sm text-gray-400 space-y-1">
-          <li>• 配置将用于角色卡生成功能</li>
-          <li>• API Key 会加密存储在数据库中</li>
+          <li>• LLM配置将用于角色卡生成功能</li>
+          <li>• 图像配置用于AI生成角色封面图</li>
+          <li>• API Key 会加密存储</li>
           <li>• Temperature 越高，生成的内容越有创造性</li>
           <li>• 建议 Temperature 设置为 0.7-0.9</li>
         </ul>

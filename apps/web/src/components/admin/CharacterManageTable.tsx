@@ -10,10 +10,12 @@ import {
   UploadCloud,
   Loader2,
   Eye,
-  AlertCircle
+  AlertCircle,
+  Edit
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Select, Badge, Table, Group, Text, ActionIcon } from '@mantine/core'
+import CharacterEditModal from './CharacterEditModal'
 
 export default function CharacterManageTable() {
   const [characters, setCharacters] = useState<any[]>([])
@@ -23,6 +25,8 @@ export default function CharacterManageTable() {
   const [categoryFilter, setCategoryFilter] = useState('')
   const [userFilter, setUserFilter] = useState('')
   const [availableUsers, setAvailableUsers] = useState<string[]>([])
+  const [editingCharacter, setEditingCharacter] = useState<any>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   useEffect(() => {
     loadUsers()
@@ -115,6 +119,23 @@ export default function CharacterManageTable() {
     } catch (error) {
       console.error('Unpublish error:', error)
       toast.error('操作失败')
+    }
+  }
+
+  const handleEdit = async (character: any) => {
+    try {
+      // 获取完整角色详情
+      const response = await fetch(`/api/admin/characters/${character.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setEditingCharacter(data)
+        setIsEditModalOpen(true)
+      } else {
+        toast.error('加载角色详情失败')
+      }
+    } catch (error) {
+      console.error('Load character error:', error)
+      toast.error('加载角色详情失败')
     }
   }
 
@@ -319,6 +340,14 @@ export default function CharacterManageTable() {
                   </Table.Td>
                   <Table.Td>
                     <Group gap="xs">
+                      <ActionIcon
+                        onClick={() => handleEdit(character)}
+                        variant="subtle"
+                        color="blue"
+                        title={character.type === 'community' ? '编辑角色' : '查看详情'}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </ActionIcon>
                       {character.type === 'user' ? (
                         <ActionIcon
                           onClick={() => handlePublish(character)}
@@ -354,6 +383,21 @@ export default function CharacterManageTable() {
           </Table>
         </div>
       )}
+
+      {/* 编辑模态框 */}
+      <CharacterEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setEditingCharacter(null)
+        }}
+        character={editingCharacter}
+        onSaved={() => {
+          loadCharacters()
+          setIsEditModalOpen(false)
+          setEditingCharacter(null)
+        }}
+      />
     </div>
   )
 }
