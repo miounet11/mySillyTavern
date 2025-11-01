@@ -34,7 +34,6 @@ import { useSettingsUIStore } from '@/stores/settingsUIStore'
 import { useProviderConfigStore } from '@/stores/providerConfigStore'
 import { ProviderList } from './ProviderList'
 import { ProviderConfigPanel } from './ProviderConfigPanel'
-import { MobileProviderView } from './MobileProviderView'
 import toast from 'react-hot-toast'
 import type { AIProvider } from '@sillytavern-clone/shared'
 
@@ -57,12 +56,10 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
   
   // Track screen size for responsive behavior
   const [isDesktop, setIsDesktop] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     const checkScreenSize = () => {
       setIsDesktop(window.innerWidth >= 640) // sm breakpoint
-      setIsMobile(window.innerWidth < 768) // md breakpoint
     }
     
     checkScreenSize()
@@ -614,54 +611,35 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
               </div>
             </TabsContent>
 
-            {/* AI Models Tab - Responsive Provider View */}
+            {/* AI Models Tab - Unified Provider View */}
             <TabsContent value="models" className="flex-1 flex flex-col md:flex-row min-h-0 mt-0 overflow-hidden">
-              {isMobile ? (
-                /* Mobile: Full-width provider view with navigation */
-                <div className="flex-1 overflow-y-auto tavern-scrollbar pb-24">
-                  <MobileProviderView
-                    selectedProvider={selectedProvider}
-                    onSelectProvider={setSelectedProvider}
-                    models={aiModels}
-                    onAddModel={handleAddModel}
-                    onEditModel={handleEditModel}
-                    onDeleteModel={(model) => handleDeleteModel(model.id)}
-                    onSetActiveModel={(model) => handleSetActiveModel(model.id)}
-                    onRefreshModels={fetchAIModels}
-                    isLoading={isLoadingModels}
-                  />
-                </div>
-              ) : (
-                /* Desktop: Side-by-side provider list and config */
-                <>
-                  <ProviderList
-                    selectedProvider={selectedProvider}
-                    onSelectProvider={setSelectedProvider}
-                    onProviderAdded={(provider) => {
-                      setSelectedProvider(provider)
-                      fetchAIModels()
-                    }}
-                  />
+              {/* Side-by-side provider list and config */}
+              <ProviderList
+                selectedProvider={selectedProvider}
+                onSelectProvider={setSelectedProvider}
+                onProviderAdded={(provider) => {
+                  setSelectedProvider(provider)
+                  fetchAIModels()
+                }}
+              />
 
-                  {selectedProvider && (
-                    <ProviderConfigPanel
-                      provider={selectedProvider}
-                      models={aiModels.filter((m) => m.provider === selectedProvider)}
-                      onAddModel={handleAddModel}
-                      onEditModel={handleEditModel}
-                      onDeleteModel={(model) => handleDeleteModel(model.id)}
-                      onSetActiveModel={(model) => handleSetActiveModel(model.id)}
-                      onRefreshModels={fetchAIModels}
-                      isLoading={isLoadingModels}
-                    />
-                  )}
-                  
-                  {!selectedProvider && (
-                    <div className="flex-1 flex items-center justify-center text-gray-500">
-                      <p className="text-sm">请从左侧选择或添加供应商</p>
-                    </div>
-                  )}
-                </>
+              {selectedProvider && (
+                <ProviderConfigPanel
+                  provider={selectedProvider}
+                  models={aiModels.filter((m) => m.provider === selectedProvider)}
+                  onAddModel={handleAddModel}
+                  onEditModel={handleEditModel}
+                  onDeleteModel={(model) => handleDeleteModel(model.id)}
+                  onSetActiveModel={(model) => handleSetActiveModel(model.id)}
+                  onRefreshModels={fetchAIModels}
+                  isLoading={isLoadingModels}
+                />
+              )}
+              
+              {!selectedProvider && (
+                <div className="flex-1 flex items-center justify-center text-gray-500">
+                  <p className="text-sm">请从左侧选择或添加供应商</p>
+                </div>
               )}
             </TabsContent>
 

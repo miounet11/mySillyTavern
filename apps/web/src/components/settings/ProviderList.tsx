@@ -9,7 +9,7 @@ import { Stack, Flex, Image, Text, Button, Tooltip } from '@mantine/core'
 import { IconPlus } from '@tabler/icons-react'
 import { AIProvider, PROVIDER_INFO } from '@sillytavern-clone/shared'
 import { useProviderConfigStore } from '@/stores/providerConfigStore'
-import { AddProviderForm } from './AddProviderForm'
+import { AddProviderModal } from './AddProviderModal'
 
 interface ProviderListProps {
   selectedProvider: AIProvider | null
@@ -28,8 +28,13 @@ export function ProviderList({ selectedProvider, onSelectProvider, onProviderAdd
     (provider) => providerConfigs[provider as AIProvider]?.apiKey
   ) as AIProvider[]
 
-  const handleAddProvider = (provider: AIProvider, config: { apiKey: string; baseUrl: string }) => {
-    setProviderConfig(provider, config)
+  const handleAddProvider = (provider: AIProvider) => {
+    const providerInfo = PROVIDER_INFO[provider]
+    // Create empty configuration with default base URL
+    setProviderConfig(provider, {
+      apiKey: '',
+      baseUrl: providerInfo.defaultBaseUrl || '',
+    })
     setIsAddingProvider(false)
     onSelectProvider(provider)
     if (onProviderAdded) {
@@ -53,7 +58,6 @@ export function ProviderList({ selectedProvider, onSelectProvider, onProviderAdd
         size="compact-xs"
         leftSection={<IconPlus size={14} />}
         onClick={() => setIsAddingProvider(true)}
-        disabled={isAddingProvider}
         fullWidth
         styles={{
           label: {
@@ -64,16 +68,15 @@ export function ProviderList({ selectedProvider, onSelectProvider, onProviderAdd
         添加
       </Button>
 
-      {/* 内联添加供应商表单 */}
-      {isAddingProvider && (
-        <AddProviderForm
-          onSave={handleAddProvider}
-          onCancel={() => setIsAddingProvider(false)}
-        />
-      )}
+      {/* 添加供应商Modal */}
+      <AddProviderModal
+        isOpen={isAddingProvider}
+        onClose={() => setIsAddingProvider(false)}
+        onSave={handleAddProvider}
+      />
 
       {/* 已配置的供应商列表 */}
-      {configuredProviders.length === 0 && !isAddingProvider ? (
+      {configuredProviders.length === 0 ? (
         <Flex
           direction="column"
           align="center"
