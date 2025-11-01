@@ -149,6 +149,10 @@ export function InlineModelForm({
             }))}
             clearable
             size="md"
+            comboboxProps={{ 
+              zIndex: 1000,
+              transitionProps: { duration: 200 }
+            }}
             styles={{
               label: { color: 'rgb(209, 213, 219)', fontSize: '0.875rem', marginBottom: 4 },
               input: {
@@ -156,6 +160,20 @@ export function InlineModelForm({
                 borderColor: 'rgb(59, 130, 246, 0.5)',
                 color: 'rgb(243, 244, 246)',
                 minHeight: '44px',
+              },
+              dropdown: {
+                backgroundColor: 'rgb(31, 41, 55)',
+                borderColor: 'rgb(75, 85, 99)',
+                zIndex: 1000,
+              },
+              option: {
+                color: 'rgb(243, 244, 246)',
+                '&[data-selected]': {
+                  backgroundColor: 'rgb(59, 130, 246)',
+                },
+                '&[data-hovered]': {
+                  backgroundColor: 'rgb(55, 65, 81)',
+                },
               },
             }}
           />

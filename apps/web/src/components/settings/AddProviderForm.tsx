@@ -18,7 +18,7 @@ interface AddProviderFormProps {
 export function AddProviderForm({ onSave, onCancel }: AddProviderFormProps) {
   const { isProviderConfigured } = useProviderConfigStore()
   
-  const [selectedProvider, setSelectedProvider] = useState<AIProvider | null>(null)
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null)
   const [apiKey, setApiKey] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
   const [errors, setErrors] = useState<{ provider?: string; apiKey?: string; baseUrl?: string }>({})
@@ -36,12 +36,11 @@ export function AddProviderForm({ onSave, onCancel }: AddProviderFormProps) {
 
   // 当选择供应商时，自动填充默认 Base URL
   const handleProviderChange = (value: string | null) => {
+    setSelectedProvider(value)
     if (value) {
       const provider = value as AIProvider
-      setSelectedProvider(provider)
       setBaseUrl(PROVIDER_INFO[provider].defaultBaseUrl || '')
     } else {
-      setSelectedProvider(null)
       setBaseUrl('')
     }
   }
@@ -70,7 +69,7 @@ export function AddProviderForm({ onSave, onCancel }: AddProviderFormProps) {
       return
     }
 
-    onSave(selectedProvider, {
+    onSave(selectedProvider as AIProvider, {
       apiKey: apiKey.trim(),
       baseUrl: baseUrl.trim(),
     })
@@ -110,16 +109,23 @@ export function AddProviderForm({ onSave, onCancel }: AddProviderFormProps) {
         required
         error={errors.provider}
         searchable
+        size="md"
+        comboboxProps={{ 
+          zIndex: 1000,
+          transitionProps: { duration: 200 }
+        }}
         styles={{
           label: { color: 'rgb(209, 213, 219)', fontSize: '0.875rem', marginBottom: 4 },
           input: {
             backgroundColor: 'rgb(17, 24, 39)',
             borderColor: errors.provider ? 'rgb(239, 68, 68)' : 'rgb(75, 85, 99)',
             color: 'rgb(243, 244, 246)',
+            minHeight: '44px',
           },
           dropdown: {
             backgroundColor: 'rgb(31, 41, 55)',
             borderColor: 'rgb(75, 85, 99)',
+            zIndex: 1000,
           },
           option: {
             color: 'rgb(243, 244, 246)',
@@ -141,12 +147,14 @@ export function AddProviderForm({ onSave, onCancel }: AddProviderFormProps) {
         onChange={(e) => setApiKey(e.target.value)}
         required
         error={errors.apiKey}
+        size="md"
         styles={{
           label: { color: 'rgb(209, 213, 219)', fontSize: '0.875rem', marginBottom: 4 },
           input: {
             backgroundColor: 'rgb(17, 24, 39)',
             borderColor: errors.apiKey ? 'rgb(239, 68, 68)' : 'rgb(75, 85, 99)',
             color: 'rgb(243, 244, 246)',
+            minHeight: '44px',
           },
         }}
       />
@@ -159,9 +167,10 @@ export function AddProviderForm({ onSave, onCancel }: AddProviderFormProps) {
         onChange={(e) => setBaseUrl(e.target.value)}
         required
         error={errors.baseUrl}
+        size="md"
         description={
-          selectedProvider && PROVIDER_INFO[selectedProvider].defaultBaseUrl
-            ? `默认: ${PROVIDER_INFO[selectedProvider].defaultBaseUrl}`
+          selectedProvider && PROVIDER_INFO[selectedProvider as AIProvider]?.defaultBaseUrl
+            ? `默认: ${PROVIDER_INFO[selectedProvider as AIProvider].defaultBaseUrl}`
             : undefined
         }
         styles={{
@@ -171,6 +180,7 @@ export function AddProviderForm({ onSave, onCancel }: AddProviderFormProps) {
             backgroundColor: 'rgb(17, 24, 39)',
             borderColor: errors.baseUrl ? 'rgb(239, 68, 68)' : 'rgb(75, 85, 99)',
             color: 'rgb(243, 244, 246)',
+            minHeight: '44px',
           },
         }}
       />
@@ -179,23 +189,27 @@ export function AddProviderForm({ onSave, onCancel }: AddProviderFormProps) {
       <Flex gap="sm" justify="flex-end">
         <Button
           variant="subtle"
+          size="md"
           onClick={onCancel}
-          leftSection={<IconX size={16} />}
+          leftSection={<IconX size={18} />}
           style={{
             color: 'rgb(156, 163, 175)',
+            minHeight: '44px',
           }}
         >
           取消
         </Button>
         <Button
+          size="md"
           onClick={handleSave}
-          leftSection={<IconCheck size={16} />}
+          leftSection={<IconCheck size={18} />}
           style={{
             backgroundColor: 'rgb(59, 130, 246)',
             color: 'white',
+            minHeight: '44px',
           }}
         >
-          保存
+          保存并添加模型
         </Button>
       </Flex>
     </Stack>

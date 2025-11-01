@@ -860,7 +860,11 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
   return (
     <>
       <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
-        <SheetContent side="right" className="w-[90%] sm:w-[500px] lg:w-[600px] p-0 flex flex-col overflow-hidden" hideOverlay={isDesktop}>
+        <SheetContent 
+          side="right" 
+          className="w-[85%] sm:w-[450px] lg:w-[520px] p-0 flex flex-col overflow-hidden settings-drawer-sheet" 
+          hideOverlay={false}
+        >
           {settingsContent}
         </SheetContent>
       </Sheet>
@@ -876,6 +880,12 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
       </div>
       
       <style jsx global>{`
+        /* Ensure Settings Drawer Sheet appears above chat page content */
+        .settings-drawer-sheet {
+          z-index: 100 !important;
+        }
+        
+        /* AI Model Drawer appears above Settings Drawer */
         .model-drawer-wrapper [data-radix-dialog-overlay] {
           z-index: 110 !important;
         }

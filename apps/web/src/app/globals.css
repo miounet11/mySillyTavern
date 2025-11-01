@@ -1337,6 +1337,18 @@
     }
   }
 
+  /* Mantine Select dropdown z-index fix */
+  [data-mantine-component="Combobox.Dropdown"],
+  .mantine-Select-dropdown,
+  .mantine-Combobox-dropdown {
+    z-index: 1000 !important;
+  }
+
+  /* Ensure Select dropdown appears above Sheet overlays */
+  [data-radix-popper-content-wrapper] {
+    z-index: 1000 !important;
+  }
+
   /* Character card mobile optimization */
   @media (max-width: 640px) {
     .character-card {

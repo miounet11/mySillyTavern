@@ -125,14 +125,17 @@ function ChatPageContent() {
         </Suspense>
       </div>
 
-      {/* Right Column - Settings Drawer (Fixed Sidebar) */}
+      {/* Right Column - Settings Drawer (Fixed Sidebar for Desktop) */}
       {isDesktop && (
         <div className={`transition-all duration-300 ease-in-out flex-shrink-0 ${
-          isSettingsDrawerOpen ? 'w-[380px]' : 'w-0'
+          isSettingsDrawerOpen ? 'w-[340px]' : 'w-0'
         } overflow-hidden`}>
           {isSettingsDrawerOpen && <SettingsDrawer />}
         </div>
       )}
+
+      {/* Mobile - Settings Drawer as Sheet Overlay */}
+      {!isDesktop && <SettingsDrawer />}
 
       {/* Modals */}
       <WorldInfoPanel
