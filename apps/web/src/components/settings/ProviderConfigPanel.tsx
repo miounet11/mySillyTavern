@@ -120,20 +120,8 @@ export function ProviderConfigPanel({
         paddingBottom: 'calc(var(--mantine-spacing-xl) + 2rem)',
         overflow: 'auto',
       }}
-      className="md:pb-4"
+      className="md:pb-4 tavern-scrollbar"
     >
-      {/* Header */}
-      <Flex align="center" justify="space-between">
-        <Text
-          size="xl"
-          style={{
-            fontWeight: 600,
-            color: 'rgb(243, 244, 246)', // gray-100
-          }}
-        >
-          {providerInfo.displayName}
-        </Text>
-      </Flex>
 
       {/* API Configuration Section */}
       <Stack gap="xs">

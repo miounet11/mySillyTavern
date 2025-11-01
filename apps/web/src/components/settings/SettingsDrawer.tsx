@@ -611,9 +611,9 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
               </div>
             </TabsContent>
 
-            {/* AI Models Tab - Unified Provider View */}
-            <TabsContent value="models" className="flex-1 flex flex-col md:flex-row min-h-0 mt-0 overflow-hidden">
-              {/* Side-by-side provider list and config */}
+            {/* AI Models Tab - Vertical Layout */}
+            <TabsContent value="models" className="flex-1 flex flex-col min-h-0 mt-0 overflow-hidden">
+              {/* Top: Horizontal scrolling provider list */}
               <ProviderList
                 selectedProvider={selectedProvider}
                 onSelectProvider={setSelectedProvider}
@@ -623,7 +623,8 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
                 }}
               />
 
-              {selectedProvider && (
+              {/* Bottom: Provider config panel */}
+              {selectedProvider ? (
                 <ProviderConfigPanel
                   provider={selectedProvider}
                   models={aiModels.filter((m) => m.provider === selectedProvider)}
@@ -634,11 +635,9 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
                   onRefreshModels={fetchAIModels}
                   isLoading={isLoadingModels}
                 />
-              )}
-              
-              {!selectedProvider && (
+              ) : (
                 <div className="flex-1 flex items-center justify-center text-gray-500">
-                  <p className="text-sm">请从左侧选择或添加供应商</p>
+                  <p className="text-sm">请从上方选择或添加供应商</p>
                 </div>
               )}
             </TabsContent>
