@@ -110,6 +110,8 @@ model Character {
   exampleSeparator        String?              @default("###") @db.VarChar(50)
   chatStart               String?              @default("<START>") @db.VarChar(50)
   contextTemplateId       String?
+  category                String?              // 角色分类
+  sortOrder               Int?                 @default(0) // 显示顺序
   user                    User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
   chats                   Chat[]
   pluginSettings          PluginSetting[]
@@ -118,6 +120,8 @@ model Character {
   @@index([userId])
   @@index([name])
   @@index([createdAt])
+  @@index([category])
+  @@index([sortOrder])
 }
 
 model WorldInfo {
@@ -371,4 +375,15 @@ model ContextTemplate {
 
   @@index([isDefault], map: "template_default_idx")
   @@index([userId], map: "template_user_idx")
+}
+
+model CharacterCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  icon        String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([sortOrder])
 }

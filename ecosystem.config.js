@@ -11,7 +11,9 @@ module.exports = {
     max_memory_restart: '1G',
     env: {
       NODE_ENV: 'production',
-      PORT: 3000
+      PORT: 3000,
+      ADMIN_PASSWORD: 'hao123321',
+      SESSION_SECRET: '6fa5e365008d5ff2bbd004a3522eda574a96920ae403becc4d8e09a3feb39c22'
     },
     error_file: '/var/log/sillytavern/error.log',
     out_file: '/var/log/sillytavern/out.log',

@@ -1,0 +1,13 @@
+// Add this model to the schema.prisma file
+
+model CharacterCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  icon        String?  // Emoji or icon identifier
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([sortOrder])
+}
+
