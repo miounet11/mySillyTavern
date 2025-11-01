@@ -1303,6 +1303,38 @@
       transform: scale(0.98);
       transition: transform 0.1s ease-out;
     }
+    
+    /* Ensure minimum touch target size on mobile */
+    button,
+    a,
+    [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Increase tap area for interactive elements */
+    input[type="checkbox"],
+    input[type="radio"] {
+      min-width: 24px;
+      min-height: 24px;
+    }
+  }
+
+  /* Touch-friendly spacing for mobile settings */
+  @media (max-width: 768px) {
+    .settings-form-item {
+      margin-bottom: 2rem;
+    }
+    
+    .settings-section {
+      padding: 1.5rem 1rem;
+    }
+    
+    /* Larger touch targets for action icons */
+    [data-mantine-component="ActionIcon"] {
+      min-width: 44px;
+      min-height: 44px;
+    }
   }
 
   /* Character card mobile optimization */

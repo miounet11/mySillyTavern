@@ -34,6 +34,7 @@ import { useSettingsUIStore } from '@/stores/settingsUIStore'
 import { useProviderConfigStore } from '@/stores/providerConfigStore'
 import { ProviderList } from './ProviderList'
 import { ProviderConfigPanel } from './ProviderConfigPanel'
+import { MobileProviderView } from './MobileProviderView'
 import toast from 'react-hot-toast'
 import type { AIProvider } from '@sillytavern-clone/shared'
 
@@ -56,10 +57,12 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
   
   // Track screen size for responsive behavior
   const [isDesktop, setIsDesktop] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     const checkScreenSize = () => {
       setIsDesktop(window.innerWidth >= 640) // sm breakpoint
+      setIsMobile(window.innerWidth < 768) // md breakpoint
     }
     
     checkScreenSize()
@@ -498,27 +501,27 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
         <TabsList className="mx-6 mt-3 grid w-[calc(100%-3rem)] grid-cols-4 flex-shrink-0">
-          <TabsTrigger value="general" className="text-xs min-h-[44px] md:min-h-[auto]">
+          <TabsTrigger value="general" className="text-xs min-h-[48px] md:min-h-[auto]">
             <IconUser className="w-3.5 h-3.5 mr-1.5" />
             常规
           </TabsTrigger>
-          <TabsTrigger value="models" className="text-xs min-h-[44px] md:min-h-[auto]">
+          <TabsTrigger value="models" className="text-xs min-h-[48px] md:min-h-[auto]">
             <IconDatabase className="w-3.5 h-3.5 mr-1.5" />
             模型
           </TabsTrigger>
-          <TabsTrigger value="interface" className="text-xs min-h-[44px] md:min-h-[auto]">
+          <TabsTrigger value="interface" className="text-xs min-h-[48px] md:min-h-[auto]">
             <IconPalette className="w-3.5 h-3.5 mr-1.5" />
             界面
           </TabsTrigger>
-          <TabsTrigger value="plugins" className="text-xs min-h-[44px] md:min-h-[auto]">
+          <TabsTrigger value="plugins" className="text-xs min-h-[48px] md:min-h-[auto]">
             <IconPuzzle className="w-3.5 h-3.5 mr-1.5" />
             插件
           </TabsTrigger>
         </TabsList>
 
         {/* General Settings Tab */}
-        <TabsContent value="general" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0 pb-20 md:pb-4">
-              <div className="space-y-6">
+        <TabsContent value="general" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0 pb-24 md:pb-4">
+              <div className="space-y-6 md:space-y-6">
                 {/* 用户ID - 只读显示 */}
                 <div>
                   <Label htmlFor="userId" className="text-sm text-gray-300">用户ID</Label>
@@ -611,41 +614,59 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
               </div>
             </TabsContent>
 
-            {/* AI Models Tab - New Provider View */}
-            <TabsContent value="models" className="flex-1 flex flex-row min-h-0 mt-0">
-              {/* Left: Provider List */}
-              <ProviderList
-                selectedProvider={selectedProvider}
-                onSelectProvider={setSelectedProvider}
-                onProviderAdded={(provider) => {
-                  setSelectedProvider(provider)
-                  fetchAIModels()
-                }}
-              />
-
-              {/* Right: Provider Config Panel */}
-              {selectedProvider && (
-                <ProviderConfigPanel
-                  provider={selectedProvider}
-                  models={aiModels.filter((m) => m.provider === selectedProvider)}
-                  onAddModel={handleAddModel}
-                  onEditModel={handleEditModel}
-                  onDeleteModel={(model) => handleDeleteModel(model.id)}
-                  onSetActiveModel={(model) => handleSetActiveModel(model.id)}
-                  onRefreshModels={fetchAIModels}
-                  isLoading={isLoadingModels}
-                />
-              )}
-              
-              {!selectedProvider && (
-                <div className="flex-1 flex items-center justify-center text-gray-500">
-                  <p className="text-sm">请从左侧选择或添加供应商</p>
+            {/* AI Models Tab - Responsive Provider View */}
+            <TabsContent value="models" className="flex-1 flex flex-col md:flex-row min-h-0 mt-0 overflow-hidden">
+              {isMobile ? (
+                /* Mobile: Full-width provider view with navigation */
+                <div className="flex-1 overflow-y-auto tavern-scrollbar pb-24">
+                  <MobileProviderView
+                    selectedProvider={selectedProvider}
+                    onSelectProvider={setSelectedProvider}
+                    models={aiModels}
+                    onAddModel={handleAddModel}
+                    onEditModel={handleEditModel}
+                    onDeleteModel={(model) => handleDeleteModel(model.id)}
+                    onSetActiveModel={(model) => handleSetActiveModel(model.id)}
+                    onRefreshModels={fetchAIModels}
+                    isLoading={isLoadingModels}
+                  />
                 </div>
+              ) : (
+                /* Desktop: Side-by-side provider list and config */
+                <>
+                  <ProviderList
+                    selectedProvider={selectedProvider}
+                    onSelectProvider={setSelectedProvider}
+                    onProviderAdded={(provider) => {
+                      setSelectedProvider(provider)
+                      fetchAIModels()
+                    }}
+                  />
+
+                  {selectedProvider && (
+                    <ProviderConfigPanel
+                      provider={selectedProvider}
+                      models={aiModels.filter((m) => m.provider === selectedProvider)}
+                      onAddModel={handleAddModel}
+                      onEditModel={handleEditModel}
+                      onDeleteModel={(model) => handleDeleteModel(model.id)}
+                      onSetActiveModel={(model) => handleSetActiveModel(model.id)}
+                      onRefreshModels={fetchAIModels}
+                      isLoading={isLoadingModels}
+                    />
+                  )}
+                  
+                  {!selectedProvider && (
+                    <div className="flex-1 flex items-center justify-center text-gray-500">
+                      <p className="text-sm">请从左侧选择或添加供应商</p>
+                    </div>
+                  )}
+                </>
               )}
             </TabsContent>
 
             {/* Interface Settings Tab */}
-            <TabsContent value="interface" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0 pb-20 md:pb-4">
+            <TabsContent value="interface" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0 pb-24 md:pb-4">
               <div className="space-y-6">
                 <div>
                   <Label htmlFor="fontSize" className="text-sm text-gray-300">字体大小</Label>
@@ -748,7 +769,7 @@ export default function SettingsDrawer({ isOpen: isOpenProp, onClose: onClosePro
             </TabsContent>
 
             {/* Plugins Tab */}
-            <TabsContent value="plugins" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0 pb-20 md:pb-4">
+            <TabsContent value="plugins" className="flex-1 overflow-y-auto tavern-scrollbar px-6 py-4 mt-0 pb-24 md:pb-4">
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-semibold text-gray-300">插件管理</h3>

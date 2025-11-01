@@ -117,8 +117,10 @@ export function ProviderConfigPanel({
       style={{
         flex: 1,
         padding: 'var(--mantine-spacing-md)',
+        paddingBottom: 'calc(var(--mantine-spacing-xl) + 2rem)',
         overflow: 'auto',
       }}
+      className="md:pb-4"
     >
       {/* Header */}
       <Flex align="center" justify="space-between">
@@ -158,12 +160,14 @@ export function ProviderConfigPanel({
               placeholder="sk-..."
               value={apiKey}
               onChange={(e) => handleApiKeyChange(e.target.value)}
+              size="md"
               style={{ flex: 1 }}
               styles={{
                 input: {
                   backgroundColor: 'rgb(31, 41, 55)',
                   borderColor: 'rgb(75, 85, 99)',
                   color: 'rgb(243, 244, 246)',
+                  minHeight: '44px',
                 },
               }}
             />
@@ -182,11 +186,13 @@ export function ProviderConfigPanel({
             placeholder={providerInfo.defaultBaseUrl || 'https://api.example.com'}
             value={baseUrl}
             onChange={(e) => handleBaseUrlChange(e.target.value)}
+            size="md"
             styles={{
               input: {
                 backgroundColor: 'rgb(31, 41, 55)',
                 borderColor: 'rgb(75, 85, 99)',
                 color: 'rgb(243, 244, 246)',
+                minHeight: '44px',
               },
             }}
           />
@@ -216,14 +222,15 @@ export function ProviderConfigPanel({
           <Flex gap="sm" align="center">
             <Button
               variant="light"
-              size="compact-xs"
-              leftSection={<IconPlus size={12} />}
+              size="compact-sm"
+              leftSection={<IconPlus size={14} />}
               onClick={() => setIsAddingModel(true)}
               disabled={isAddingModel}
               style={{
                 fontSize: '0.75rem',
-                height: 28,
+                minHeight: '32px',
               }}
+              className="md:h-7"
             >
               New
             </Button>

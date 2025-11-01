@@ -31,14 +31,14 @@ export function ModelCard({ model, onEdit, onDelete, onSetActive }: ModelCardPro
       gap="xs"
       align="center"
       style={{
-        padding: 'var(--mantine-spacing-xs) var(--mantine-spacing-sm)',
+        padding: 'var(--mantine-spacing-sm) var(--mantine-spacing-md)',
         border: '1px solid rgb(55, 65, 81)', // gray-700
-        borderRadius: 'var(--mantine-radius-sm)',
+        borderRadius: 'var(--mantine-radius-md)',
         background: 'rgba(31, 41, 55, 0.5)', // gray-800/50
-        transition: 'background-color 0.2s ease',
-        minHeight: '60px',
+        transition: 'all 0.2s ease',
+        minHeight: '72px',
       }}
-      className="hover:bg-[rgb(31,41,55)]"
+      className="hover:bg-[rgb(31,41,55)] active:scale-[0.98]"
     >
       {/* Model Info */}
       <Stack gap="xs" style={{ flex: '1 1 auto', minWidth: 0 }}>
@@ -133,33 +133,45 @@ export function ModelCard({ model, onEdit, onDelete, onSetActive }: ModelCardPro
           <ActionIcon
             variant="subtle"
             color="gray"
-            size="sm"
+            size="lg"
             onClick={() => onSetActive(model)}
             title="启用"
-            style={{ color: 'rgb(156, 163, 175)' }}
+            style={{ 
+              color: 'rgb(156, 163, 175)',
+              minWidth: '44px',
+              minHeight: '44px',
+            }}
           >
-            <IconPower size={16} />
+            <IconPower size={20} />
           </ActionIcon>
         )}
         <ActionIcon
           variant="subtle"
           color="gray"
-          size="sm"
+          size="lg"
           onClick={() => onEdit(model)}
           title="设置"
-          style={{ color: 'rgb(156, 163, 175)' }}
+          style={{ 
+            color: 'rgb(156, 163, 175)',
+            minWidth: '44px',
+            minHeight: '44px',
+          }}
         >
-          <IconSettings size={20} />
+          <IconSettings size={22} />
         </ActionIcon>
         <ActionIcon
           variant="subtle"
           color="red"
-          size="sm"
+          size="lg"
           onClick={() => onDelete(model)}
           title="删除"
-          style={{ color: 'rgb(239, 68, 68)' }}
+          style={{ 
+            color: 'rgb(239, 68, 68)',
+            minWidth: '44px',
+            minHeight: '44px',
+          }}
         >
-          <IconCircleMinus size={20} />
+          <IconCircleMinus size={22} />
         </ActionIcon>
       </Flex>
     </Flex>

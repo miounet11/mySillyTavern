@@ -148,12 +148,14 @@ export function InlineModelForm({
               label: `${preset.label} - ${preset.description}`,
             }))}
             clearable
+            size="md"
             styles={{
               label: { color: 'rgb(209, 213, 219)', fontSize: '0.875rem', marginBottom: 4 },
               input: {
                 backgroundColor: 'rgb(17, 24, 39)',
                 borderColor: 'rgb(59, 130, 246, 0.5)',
                 color: 'rgb(243, 244, 246)',
+                minHeight: '44px',
               },
             }}
           />
@@ -176,6 +178,7 @@ export function InlineModelForm({
         required
         error={errors.name}
         description={availablePresets.length > 0 ? "已选择预设或自定义输入" : "输入模型的完整名称"}
+        size="md"
         styles={{
           label: { color: 'rgb(209, 213, 219)', fontSize: '0.875rem', marginBottom: 4 },
           description: { color: 'rgb(107, 114, 128)', fontSize: '0.75rem' },
@@ -183,6 +186,7 @@ export function InlineModelForm({
             backgroundColor: 'rgb(17, 24, 39)',
             borderColor: errors.name ? 'rgb(239, 68, 68)' : 'rgb(75, 85, 99)',
             color: 'rgb(243, 244, 246)',
+            minHeight: '44px',
           },
         }}
       />
@@ -282,22 +286,26 @@ export function InlineModelForm({
       <Flex gap="sm" justify="flex-end">
         <Button
           variant="subtle"
+          size="md"
           onClick={onCancel}
-          leftSection={<IconX size={16} />}
+          leftSection={<IconX size={18} />}
           disabled={isSaving}
           style={{
             color: 'rgb(156, 163, 175)',
+            minHeight: '44px',
           }}
         >
           取消
         </Button>
         <Button
+          size="md"
           onClick={handleSave}
-          leftSection={<IconCheck size={16} />}
+          leftSection={<IconCheck size={18} />}
           loading={isSaving}
           style={{
             backgroundColor: 'rgb(59, 130, 246)',
             color: 'white',
+            minHeight: '44px',
           }}
         >
           保存
